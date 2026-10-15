@@ -2,7 +2,7 @@
   "hardware": {
     "vb": {
       "name": "Стяжка Rafix [16-БУ], белый",
-      "path": "C:\\Users\\maxim\\Downloads\\1. Соединительная фурнитура\\1. Соединительная фурнитура\\1 Корпусные стяжки\\2 Hafele Rafix\\Стяжка Rafix [16-БУ], белый.fr3d",
+      "path": "z:\\Work\\генерация мебели\\furn\\стяжка_rafix_16.fr3d",
       "type": "rafix"
     },
     "confirmat": {
@@ -12,19 +12,20 @@
     },
     "shelf_holder": {
       "name": "Полкодержатель D5 никель",
-      "path": "C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\Полкодержатель D5 никель.f3d",
+      "path": "z:\\Work\\генерация мебели\\furn\\полкодержатель_d5.f3d",
       "type": "shelf_holder"
     },
     "hinge": {
       "name": "Петля МОЯ (3x4 фасад, 5x13 стойка)",
       "path": "C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\Петли без заглушек и крестообр. планка\\Петля_CLIP top, CLIP без заглушек\\петля МОЯ.f3d",
-      "type": "hinge"
+      "type": "hinge",
+      "localPath": "z:\\Work\\генерация мебели\\furn\\петля_моя.f3d"
     }
   },
   "drawers": {
     "box_with_planks": {
       "name": "ящик НОВЫЙ (с планками)",
-      "path": "C:\\Users\\maxim\\Downloads\\ящик НОВЫЙ.f3d",
+      "path": "z:\\Work\\генерация мебели\\furn\\ящик_новый.f3d",
       "usePlanks": true,
       "plankCount": 2,
       "plankThick": 16,
@@ -35,7 +36,7 @@
     },
     "box_direct": {
       "name": "ящик БЕЗ_ПЛАНОК (напрямую к стойке)",
-      "path": "C:\\Users\\maxim\\Downloads\\ящик БЕЗ_ПЛАНОК.f3d",
+      "path": "z:\\Work\\генерация мебели\\furn\\ящик_без_планок.f3d",
       "usePlanks": false,
       "guideLeftX": -3.589,
       "guideRightX": 440.48,
