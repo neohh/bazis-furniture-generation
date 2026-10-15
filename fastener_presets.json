@@ -60,8 +60,10 @@
     },
     "HINGE": {
       "hardware": "hinge",
-      "edgeOffset": 100,
-      "count": 4
+      "edgeOffset": 70,
+      "count": 4,
+      "bottomOffsetFromFloor": 70,
+      "topOffsetFromDoor": 100
     }
   },
   "cabinet_connections": {
