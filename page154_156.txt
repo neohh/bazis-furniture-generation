@@ -1,0 +1,180 @@
+=== PAGE 153 ===
+151
+Sign
+Обозначение материала.
+Синтаксис:
+Sign;
+Тип данных:
+String
+Thickness
+Толщина материала.
+Синтаксис:
+Thickness;
+Тип данных:
+Number
+Width
+Ширина материала.
+Синтаксис:
+Width;
+Тип данных:
+Number
+Overhung
+Свес.
+Синтаксис:
+Overhung;
+Тип данных:
+Number
+Allowance
+Припуск.
+Синтаксис:
+Allowance;
+Тип данных:
+Number
+ClipPanel
+Подрезка панели.
+Синтаксис:
+
+=== PAGE 154 ===
+152
+ClipPanel;
+Тип данных:
+Boolean
+InFurniture
+Фурнитура.
+Свойства:
+DatumModeFilter – Фильтр по типу монтирования фурнитуры/фрагмента.
+DatumMode – Тип монтирования выбранной фурнитуры/фрагмента.
+Свойства
+DatumModeFilter
+Фильтр по типу монтирования фурнитуры/фрагмента.
+Синтаксис:
+DatumModeFilter;
+Тип данных:
+DatumMode
+DatumMode
+Тип монтирования выбранной фурнитуры/фрагмента.
+Синтаксис:
+DatumMode;
+Тип данных:
+DatumMode
+Методы:
+Mount – Установить крепеж между двух панелей.
+Mount1 – Установить крепеж на плоскость панели.
+Методы
+Mount
+Установить крепеж между двух панелей.
+Синтаксис:
+Mount(panel1,panel2,x,y,z);
+Входные данные:
+panel1,panel2 – соединяемые панели, Object3.
+x, y, z – координаты точки установки фурнитуры; могут быть заданы как
+Vector.
+
+=== PAGE 155 ===
+153
+Mount1
+Установить крепеж на плоскость панели.
+Синтаксис:
+Mount1(panel, x, y, z, angle);
+Входные параметры:
+panel – панель, на которую устанавливается фурнитура, Object3.
+x, y, z – координаты точки установк и фурнитуры, number, могут быть заданы
+как Vector.
+angle – угол поворота фурнитуры вокруг горизонтальной оси в градусах,
+number.
+MountScheme
+Установить схему крепежа на стык панелей.
+Синтаксис:
+MountScheme (panel1, panel2, FurnPos, basisPoint);
+Входные параметры:
+panel1, panel2 – панели, имеющие стык, Panel.
+FurnPos – Позиция фурнитуры при установке крепежа, FurniturePosition.
+basisPoint – базовая точка установки фурнитуры; может быть задана как
+Vector.
+MountBox
+Установить секцию.
+Синтаксис:
+MountBox (Position,Size,AxisZ,AxisY
+Входные параметры:
+Position – Позиция секции, Vector.
+Size – Размер секции, Vector.
+AxisZ – Направление оси Z секции, Vector.
+AxisY – Направление оси Y секции, Vector.
+ModelInspector
+Анализ модели
+Свойства:
+ErrorList – Список ошибок.
+Options – Опции анализа.
+
+=== PAGE 156 ===
+154
+Методы:
+Run – Проверить модель.
+Свойства
+ErrorList
+Список ошибок.
+Синтаксис:
+ErrorList;
+Тип данных:
+Array <InspectorError>
+Options
+Опции анализа.
+Синтаксис:
+Options;
+Тип данных:
+InspectorOptions
+Методы
+Run
+Проверить модель.
+Синтаксис:
+Run(Model);
+Входные данные:
+Model – проверяемая модель (List3D).
+Возвращаемое значение:
+Отсутствует
+InspectorOptions
+Параметры анализа модели
+Свойства:
+ObjIntersectionAnalyze – Проверка пересечения объектов.
+FastIntersectionAnalyze – Проверка пересечения фурнитуры.
+FastIncorrectAnalyze – Проверка корректности фурнитуры.
+PanelNotFixedAnalyze – Проверка скрепления панелей.
+PanelTooLargeAnalyze – Проверка размера панели на плите.
+PlasticTooLargeAnalyze – Проверка размера пластика на панели.
+
+=== PAGE 157 ===
+155
+MatNotExistsAnalyze – Проверка материала в наличии.
+MatOutOfStockAnalyze – Проверка материала на складе.
+Свойства
+ObjIntersectionAnalyze
+Проверка пересечения объектов.
+Синтаксис:
+ObjIntersectionAnalyze;
+Тип данных:
+boolean
+FastIntersectionAnalyze
+Проверка пересечения фурнитуры.
+Синтаксис:
+FastIntersectionAnalyze;
+Тип данных:
+boolean
+FastIncorrectAnalyze
+Проверка пересечения фурнитуры.
+Синтаксис:
+FastIncorrectAnalyze;
+Тип данных:
+boolean
+PanelNotFixedAnalyze
+Проверка скрепления панелей.
+Синтаксис:
+PanelNotFixedAnalyze;
+Тип данных:
+boolean
+PanelTooLargeAnalyze
+Проверка размера панели на плите.
+Синтаксис:
+PanelTooLargeAnalyze;
+Тип данных:
+boolean
+

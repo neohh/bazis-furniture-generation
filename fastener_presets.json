@@ -1,0 +1,65 @@
+{
+  "hardware": {
+    "vb": {
+      "name": "Стяжка Rafix [16-БУ], белый",
+      "path": "C:\\Users\\maxim\\Downloads\\1. Соединительная фурнитура\\1. Соединительная фурнитура\\1 Корпусные стяжки\\2 Hafele Rafix\\Стяжка Rafix [16-БУ], белый.fr3d",
+      "type": "rafix"
+    },
+    "confirmat": {
+      "name": "Евровинт 7х50 (Артикул 69)",
+      "path": "z:\\Work\\генерация мебели\\furn\\eurovint_7x50.f3d",
+      "type": "confirmat"
+    },
+    "shelf_holder": {
+      "name": "Полкодержатель D5 никель",
+      "path": "C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\Полкодержатель D5 никель.f3d",
+      "type": "shelf_holder"
+    }
+  },
+  "drawers": {
+    "box_with_planks": {
+      "name": "ящик НОВЫЙ (с планками)",
+      "path": "C:\\Users\\maxim\\Downloads\\ящик НОВЫЙ.f3d",
+      "usePlanks": true,
+      "plankCount": 2,
+      "plankThick": 16,
+      "plankHeight": 50,
+      "guideLeftX": -3.589,
+      "guideRightX": 440.48,
+      "origBlockWidth": 487.0
+    },
+    "box_direct": {
+      "name": "ящик БЕЗ_ПЛАНОК (напрямую к стойке)",
+      "path": "C:\\Users\\maxim\\Downloads\\ящик БЕЗ_ПЛАНОК.f3d",
+      "usePlanks": false,
+      "guideLeftX": -3.589,
+      "guideRightX": 440.48,
+      "origBlockWidth": 452.0
+    }
+  },
+  "schemes": {
+    "VB": {
+      "hardware": "vb",
+      "edgeOffset": 50,
+      "count": 2
+    },
+    "CONFIRMAT": {
+      "hardware": "confirmat",
+      "edgeOffset": 50,
+      "count": 2
+    },
+    "SHELF_HOLDER": {
+      "hardware": "shelf_holder",
+      "edgeOffset": 50,
+      "count": 2
+    }
+  },
+  "cabinet_connections": {
+    "bottom_to_sides": "CONFIRMAT",
+    "top_to_sides": "CONFIRMAT",
+    "mezzanine_shelf_to_sides": "VB",
+    "divider_to_bottom": "VB",
+    "divider_to_mezzanine": "VB",
+    "right_shelves": "SHELF_HOLDER"
+  }
+}

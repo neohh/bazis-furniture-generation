@@ -1,0 +1,24 @@
+# Временные папки и файлы
+tmp_help/
+*.tmp
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# IDE & Редакторы
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
