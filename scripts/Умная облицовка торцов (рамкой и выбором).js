@@ -41,14 +41,26 @@ btnFinish.OnChange = function() {
 
 // --- ФУНКЦИИ ГЕОМЕТРИИ И 3D ---
 
+// Рекурсивный поиск панелей (раскрывает сборки, блоки и группы)
+function extractPanels(obj, list) {
+    if (!obj) return;
+    if (obj.AsPanel) {
+        list.push(obj.AsPanel);
+    } else if (obj.List || obj.AsList) {
+        var subList = obj.AsList;
+        if (subList && subList.Count) {
+            for (var i = 0; i < subList.Count; i++) {
+                extractPanels(subList.Objects[i], list);
+            }
+        }
+    }
+}
+
 function getTargetPanels() {
     var list = [];
     if (Model.SelectionCount > 0) {
         for (var i = 0; i < Model.SelectionCount; i++) {
-            var obj = Model.Selections[i];
-            if (obj && obj.AsPanel) {
-                list.push(obj.AsPanel);
-            }
+            extractPanels(Model.Selections[i], list);
         }
     }
     return list;
@@ -97,19 +109,37 @@ function getEdge3D(pan, elemIdx) {
 function getFrontContourIndex(pan) {
     if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
 
+    // Проверяем габариты панели
+    var sx = pan.GSize.x;
+    var sy = pan.GSize.y;
+    var sz = pan.GSize.z;
+
+    // Фронтальная деталь (фасад, дверь, задняя стенка ДВП, стоячий цоколь):
+    // Толщина по Z <= 35, а ширина и высота большие -> все ребра лежат в одной Z-плоскости
+    if (sz <= 35 && sx > 50 && sy > 50) {
+        return -1; // У фасада передней является пласть, а не торец (торцы кромим "По периметру")
+    }
+
     var bestIdx = -1;
     var maxZ = -1e9;
+    var minZ = 1e9;
 
     for (var i = 0; i < pan.Contour.Count; i++) {
         var e3d = getEdge3D(pan, i);
-        if (e3d && e3d.z > maxZ) {
-            maxZ = e3d.z;
-            bestIdx = i;
+        if (e3d) {
+            if (e3d.z > maxZ) {
+                maxZ = e3d.z;
+                bestIdx = i;
+            }
+            if (e3d.z < minZ) {
+                minZ = e3d.z;
+            }
         }
     }
 
-    // Проверяем, что этот торец действительно находится на передней плоскости детали (в пределах 2 мм)
-    if (bestIdx >= 0 && Math.abs(maxZ - pan.GabMax.z) < 2.0) {
+    // Если деталь имеет выраженную глубину (стойка, полка, крышка, дно, перегородка):
+    // торец с максимальной Z однозначно является лицевым (передним)!
+    if (bestIdx >= 0 && (maxZ - minZ) > 20) {
         return bestIdx;
     }
 
