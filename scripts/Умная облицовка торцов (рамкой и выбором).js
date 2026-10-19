@@ -26,9 +26,10 @@ var btnClick = grAct.NewButton('Указать торец КЛИКОМ мыши');
 var grAuto = prop.NewGroup('3. Экспресс-облицовка шкафа');
 var btnAutoCabinet = grAuto.NewButton('Облицевать весь шкаф (фасады+перед 0.8, корпус 0.4)');
 
-// 4. Очистка и выделение
-var grSel = prop.NewGroup('4. Выделение и очистка');
-var btnClearButts = grSel.NewButton('Очистить кромки на выбранных');
+// 4. Очистка и удаление дубликатов
+var grSel = prop.NewGroup('4. Очистка и удаление наслоений');
+var btnCleanDups = grSel.NewButton('Удалить дубликаты кромок (убрать 2-3 кромки на 1 торце)');
+var btnClearButts = grSel.NewButton('Очистить ВСЕ кромки на выбранных');
 var btnSelectAll = grSel.NewButton('Выделить ВСЕ панели модели');
 var btnUnselectAll = grSel.NewButton('Снять выделение');
 
@@ -165,20 +166,110 @@ function isPointInScreenFrame(pt, p1, p2) {
     return (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY);
 }
 
-// ПРЯМОЕ И БЕЗОПАСНОЕ НАНЕСЕНИЕ КРОМКИ ИЗ БАЗЫ:
-// Назначает реальный материал ButtProp со всеми его цветами, знаками и текстурами!
-// Заменяет только торец elemIndex, НЕ ТРОГАЯ остальные 3 стороны!
+// БЕЗОПАСНАЯ ЗАМЕНА КРОМКИ БЕЗ НАСЛОЕНИЙ:
+// Удаляет ЛЮБЫЕ старые кромки на элементе elemIndex (чтобы не было 2 или 3 кромок на одном торце),
+// сохраняет кромки на остальных сторонах, и накатывает ровно 1 новую кромку из базы!
 function applyButtToPanel(pan, elemIndex, buttMaterial, clip) {
     if (!pan || !buttMaterial || elemIndex < 0 || elemIndex >= pan.Contour.Count) {
         return false;
     }
-    StartEditing(pan);
-    var b = pan.AddButt(buttMaterial, elemIndex);
-    if (b) {
-        b.ClipPanel = clip;
+
+    // Сохраняем все кромки с ДРУГИХ сторон детали
+    var otherButts = [];
+    if (pan.Butts) {
+        for (var k = 0; k < pan.Butts.Count; k++) {
+            var bt = pan.Butts.Butts[k];
+            if (bt && bt.ElemIndex !== elemIndex) {
+                otherButts.push({
+                    elem: bt.ElemIndex,
+                    mat: bt.Material,
+                    thick: bt.Thickness,
+                    width: bt.Width,
+                    clip: bt.ClipPanel,
+                    sign: bt.Sign,
+                    over: bt.Overhung,
+                    allow: bt.Allowance
+                });
+            }
+        }
     }
+
+    StartEditing(pan);
+    pan.Butts.Clear();
+
+    // Восстанавливаем кромки на других сторонах
+    for (var s = 0; s < otherButts.length; s++) {
+        var sb = otherButts[s];
+        var r = pan.Butts.Add();
+        if (r) {
+            r.ElemIndex = sb.elem;
+            r.Material = sb.mat;
+            r.Thickness = sb.thick;
+            r.Width = sb.width;
+            r.ClipPanel = sb.clip;
+            r.Sign = sb.sign;
+            r.Overhung = sb.over;
+            r.Allowance = sb.allow;
+        }
+    }
+
+    // Накатываем НОВУЮ кромку из базы на наш торец (ровно в 1 слой!)
+    var newB = pan.AddButt(buttMaterial, elemIndex);
+    if (newB) {
+        newB.ClipPanel = clip;
+    }
+
     pan.Build();
     return true;
+}
+
+// Очистка дубликатов кромок (если на одном торце уже лежит 2 или 3 кромки)
+function removeDuplicateButtsFromPanel(pan) {
+    if (!pan || !pan.Butts || pan.Butts.Count <= 1) return 0;
+
+    var uniqueByElem = {};
+    var hasDups = false;
+
+    for (var i = 0; i < pan.Butts.Count; i++) {
+        var b = pan.Butts.Butts[i];
+        if (uniqueByElem[b.ElemIndex]) {
+            hasDups = true;
+        }
+        // Запоминаем последнюю наложенную кромку для каждого торца
+        uniqueByElem[b.ElemIndex] = {
+            elem: b.ElemIndex,
+            mat: b.Material,
+            thick: b.Thickness,
+            width: b.Width,
+            clip: b.ClipPanel,
+            sign: b.Sign,
+            over: b.Overhung,
+            allow: b.Allowance
+        };
+    }
+
+    if (!hasDups) return 0;
+
+    StartEditing(pan);
+    pan.Butts.Clear();
+
+    for (var key in uniqueByElem) {
+        var ub = uniqueByElem[key];
+        var restored = pan.Butts.Add();
+        if (restored) {
+            restored.ElemIndex = ub.elem;
+            restored.Material = ub.mat;
+            restored.Thickness = ub.thick;
+            restored.Width = ub.width;
+            restored.ClipPanel = ub.clip;
+            restored.Sign = ub.sign;
+            restored.Overhung = ub.over;
+            restored.Allowance = ub.allow;
+        }
+    }
+
+    pan.Build();
+    return 1;
 }
 
 // --- ОБРАБОТЧИКИ НАЖАТИЯ КНОПОК ---
@@ -209,7 +300,7 @@ btnFront.OnClick = function() {
             }
 
             Action.Commit();
-            Action.Hint = 'Успешно! Облицовано передних торцов: ' + count + ' (на ' + panelsMod + ' панелях). Зеленая кромка нанесена!';
+            Action.Hint = 'Успешно! Облицовано передних торцов: ' + count + ' (на ' + panelsMod + ' панелях). Наслоения удалены!';
         } catch (err) {
             alert('Ошибка в обработке: ' + err.message);
         }
@@ -231,11 +322,14 @@ btnPerim.OnClick = function() {
 
             for (var i = 0; i < targets.length; i++) {
                 var pan = targets[i];
+                StartEditing(pan);
+                pan.Butts.Clear(); // Для фасадов очищаем все 4 стороны и наносим кромку заново в 1 слой
                 for (var c = 0; c < pan.Contour.Count; c++) {
-                    if (applyButtToPanel(pan, c, ButtProp, clip)) {
-                        count++;
-                    }
+                    var nb = pan.AddButt(ButtProp, c);
+                    if (nb) nb.ClipPanel = clip;
+                    count++;
                 }
+                pan.Build();
             }
 
             Action.Commit();
@@ -375,7 +469,24 @@ btnClick.OnClick = function() {
     });
 };
 
-// 6. ОЧИСТИТЬ КРОМКИ
+// 6. УДАЛЕНИЕ ДУБЛИКАТОВ И НАСЛОЕНИЙ (УБРАТЬ 2-3 КРОМКИ С ОДНОГО ТОРЦА)
+btnCleanDups.OnClick = function() {
+    Action.AsyncExec(function() {
+        try {
+            var targets = getPanelsToProcess();
+            var cleanedCount = 0;
+            for (var i = 0; i < targets.length; i++) {
+                cleanedCount += removeDuplicateButtsFromPanel(targets[i]);
+            }
+            Action.Commit();
+            Action.Hint = 'Дубликаты кромок устранены на ' + cleanedCount + ' панелях! Теперь на каждом торце ровно по 1 кромке.';
+        } catch (err) {
+            alert('Ошибка: ' + err.message);
+        }
+    });
+};
+
+// 7. ОЧИСТИТЬ ВСЕ КРОМКИ
 btnClearButts.OnClick = function() {
     Action.AsyncExec(function() {
         try {
@@ -402,7 +513,7 @@ btnClearButts.OnClick = function() {
     });
 };
 
-// 7. ЭКСПРЕСС-ОБЛИЦОВКА ВСЕГО ШКАФА
+// 8. ЭКСПРЕСС-ОБЛИЦОВКА ВСЕГО ШКАФА
 btnAutoCabinet.OnClick = function() {
     Action.AsyncExec(function() {
         try {
@@ -428,11 +539,14 @@ btnAutoCabinet.OnClick = function() {
             // Если были выделены фасады — кромим их 0.8 по кругу
             for (var f = 0; f < selectedFacades.length; f++) {
                 var fac = selectedFacades[f];
+                StartEditing(fac);
+                fac.Butts.Clear();
                 for (var fe = 0; fe < fac.Contour.Count; fe++) {
-                    if (applyButtToPanel(fac, fe, mat08, true)) {
-                        facadeCount++;
-                    }
+                    var nbF = fac.AddButt(mat08, fe);
+                    if (nbF) nbF.ClipPanel = true;
+                    facadeCount++;
                 }
+                fac.Build();
             }
 
             // Корпус: передние торцы 0.8, открытые 0.4
@@ -470,7 +584,7 @@ btnAutoCabinet.OnClick = function() {
     });
 };
 
-// 8. УПРАВЛЕНИЕ ВЫДЕЛЕНИЕМ
+// 9. УПРАВЛЕНИЕ ВЫДЕЛЕНИЕМ
 btnSelectAll.OnClick = function() {
     SelectAll();
     Action.Hint = 'Выделены все объекты модели';
