@@ -1,5 +1,5 @@
 // ===================================================================
-// Скрипт: Умная облицовка торцов (выделение досок + выбор торцов рамкой)
+// Скрипт: Умная облицовка торцов (выделение досок + выбор торцов)
 // Для САПР Базис-Мебельщик
 // Кодировка: Windows-1251 (CP1251)
 // ===================================================================
@@ -14,17 +14,16 @@ var grMat = prop.NewGroup('1. Кромочный материал');
 var ButtProp = grMat.NewButt('Кромка');
 var ClipProp = grMat.NewBool('Подрезать деталь (ClipPanel)', true);
 var OverwriteProp = grMat.NewBool('Заменять старую кромку', true);
-var OnlyVisibleInFrameProp = grMat.NewBool('В рамке: только лицевые/открытые', true);
 
-// 2. Действия с торцами
-var grAct = prop.NewGroup('2. Нанесение кромки');
-var btnFrame = grAct.NewButton('Выбрать торцы РАМКОЙ (2 точки)');
+// 2. Действия на выделенных панелях
+var grAct = prop.NewGroup('2. Нанесение на выделенные панели');
 var btnFront = grAct.NewButton('Только ЛИЦЕВЫЕ (передние торцы)');
-var btnPerim = grAct.NewButton('По ПЕРИМЕТРУ (фасады, все 4 стороны)');
-var btnOpen  = grAct.NewButton('Все ОТКРЫТЫЕ торцы (IsButtVisible)');
+var btnPerim = grAct.NewButton('По ПЕРИМЕТРУ (все 4 стороны / фасады)');
+var btnOpen  = grAct.NewButton('Все ОТКРЫТЫЕ торцы (видимые)');
+var btnFrame = grAct.NewButton('Выбрать торцы РАМКОЙ (2 точки)');
 var btnClick = grAct.NewButton('Указать торец КЛИКОМ мыши');
 
-// 3. Быстрая авто-облицовка всего шкафа
+// 3. Экспресс-облицовка всего шкафа
 var grAuto = prop.NewGroup('3. Экспресс-облицовка шкафа');
 var btnAutoCabinet = grAuto.NewButton('Облицевать весь шкаф (фасады+перед 0.8, корпус 0.4)');
 
@@ -40,7 +39,7 @@ btnFinish.OnChange = function() {
     Action.Finish();
 };
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+// --- ФУНКЦИИ ГЕОМЕТРИИ И 3D ---
 
 function getTargetPanels() {
     var list = [];
@@ -73,112 +72,51 @@ function getPanelsToProcess() {
     return list;
 }
 
-// Определение 3D-координат центра торца (элемента контура) панели
-function getButtMidPoint3D(pan, elemIdx) {
+// Получение точных 3D-координат центра и концов торца панели
+function getEdge3D(pan, elemIdx) {
     if (!pan || !pan.Contour || elemIdx < 0 || elemIdx >= pan.Contour.Count) {
         return null;
     }
     var elem = pan.Contour[elemIdx];
     if (!elem) return null;
 
-    var mid2D_x = (elem.Pos1.x + elem.Pos2.x) / 2;
-    var mid2D_y = (elem.Pos1.y + elem.Pos2.y) / 2;
-
-    var gMin = pan.GabMin;
-    var gMax = pan.GabMax;
-    var cMin = pan.Contour.Min;
-    var cMax = pan.Contour.Max;
-
-    var thX = gMax.x - gMin.x;
-    var thY = gMax.y - gMin.y;
-    var thZ = gMax.z - gMin.z;
-
-    var cW = cMax.x - cMin.x;
-    var cH = cMax.y - cMin.y;
-    var rX = (cW > 0.001) ? (mid2D_x - cMin.x) / cW : 0.5;
-    var rY = (cH > 0.001) ? (mid2D_y - cMin.y) / cH : 0.5;
-
-    // Вертикальная панель (стойка, перегородка: толщина по X)
-    // local X -> Depth (Z), local Y -> Height (Y)
-    if (thX <= 35 && thX < thY && thX < thZ) {
-        return {
-            x: (gMin.x + gMax.x) / 2,
-            y: gMin.y + rY * (gMax.y - gMin.y),
-            z: gMin.z + rX * (gMax.z - gMin.z)
-        };
-    }
-
-    // Горизонтальная панель (полка, крышка, дно: толщина по Y)
-    // local X -> Width (X), local Y -> Depth (Z)
-    if (thY <= 35 && thY < thX && thY < thZ) {
-        return {
-            x: gMin.x + rX * (gMax.x - gMin.x),
-            y: (gMin.y + gMax.y) / 2,
-            z: gMin.z + rY * (gMax.z - gMin.z)
-        };
-    }
-
-    // Фронтальная панель (фасад, задняя стенка: толщина по Z)
-    // local X -> Width (X), local Y -> Height (Y)
-    if (thZ <= 35) {
-        return {
-            x: gMin.x + rX * (gMax.x - gMin.x),
-            y: gMin.y + rY * (gMax.y - gMin.y),
-            z: (gMin.z + gMax.z) / 2
-        };
-    }
+    // ToGlobal переводит 2D-координаты контура панели в глобальные 3D-координаты модели!
+    var p1 = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
+    var p2 = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
 
     return {
-        x: (gMin.x + gMax.x) / 2,
-        y: (gMin.y + gMax.y) / 2,
-        z: (gMin.z + gMax.z) / 2
+        x: (p1.x + p2.x) / 2,
+        y: (p1.y + p2.y) / 2,
+        z: (p1.z + p2.z) / 2,
+        p1: p1,
+        p2: p2
     };
 }
 
-// Определение индекса переднего (лицевого) торца на корпусной детали
+// Определение индекса переднего (лицевого) торца на детали
 function getFrontContourIndex(pan) {
     if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
 
-    var gMin = pan.GabMin;
-    var gMax = pan.GabMax;
-    var thX = gMax.x - gMin.x;
-    var thY = gMax.y - gMin.y;
-    var thZ = gMax.z - gMin.z;
+    var bestIdx = -1;
+    var maxZ = -1e9;
 
-    // Вертикальная панель: передний торец имеет максимальный local X
-    if (thX <= 35 && thX < thY && thX < thZ) {
-        var bestV = -1;
-        var maxLocalX = -1e9;
-        for (var i = 0; i < pan.Contour.Count; i++) {
-            var elV = pan.Contour[i];
-            var mX = (elV.Pos1.x + elV.Pos2.x) / 2;
-            if (mX > maxLocalX) {
-                maxLocalX = mX;
-                bestV = i;
-            }
+    for (var i = 0; i < pan.Contour.Count; i++) {
+        var e3d = getEdge3D(pan, i);
+        if (e3d && e3d.z > maxZ) {
+            maxZ = e3d.z;
+            bestIdx = i;
         }
-        return bestV;
     }
 
-    // Горизонтальная панель: передний торец имеет максимальный local Y
-    if (thY <= 35 && thY < thX && thY < thZ) {
-        var bestH = -1;
-        var maxLocalY = -1e9;
-        for (var j = 0; j < pan.Contour.Count; j++) {
-            var elH = pan.Contour[j];
-            var mY = (elH.Pos1.y + elH.Pos2.y) / 2;
-            if (mY > maxLocalY) {
-                maxLocalY = mY;
-                bestH = j;
-            }
-        }
-        return bestH;
+    // Проверяем, что этот торец действительно находится на передней плоскости детали (в пределах 2 мм)
+    if (bestIdx >= 0 && Math.abs(maxZ - pan.GabMax.z) < 2.0) {
+        return bestIdx;
     }
 
     return -1;
 }
 
-// Проверка попадания 3D точки в прямоугольную рамку (проекция на экран)
+// Проверка попадания 3D точки в прямоугольную рамку (по экранной проекции камеры)
 function isPointInScreenFrame(pt, p1, p2) {
     if (Action.RightDir && Action.UpDir) {
         var r = Action.RightDir;
@@ -204,7 +142,6 @@ function isPointInScreenFrame(pt, p1, p2) {
         return false;
     }
 
-    // Запасной расчет по координатам X-Y
     var minX = Math.min(p1.x, p2.x) - 15;
     var maxX = Math.max(p1.x, p2.x) + 15;
     var minY = Math.min(p1.y, p2.y) - 15;
@@ -213,78 +150,148 @@ function isPointInScreenFrame(pt, p1, p2) {
     return (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY);
 }
 
-// Надежное нанесение кромки на торец панели
+// БЕЗОПАСНОЕ нанесение кромки на торец:
+// НИКОГДА не вызывает Butts.Clear() и НЕ УДАЛЯЕТ соседние кромки детали!
 function applyButtToPanel(pan, elemIndex, buttMaterial, clip, overwrite) {
     if (!pan || !buttMaterial) return false;
 
-    var existingIdx = -1;
+    var existingButt = null;
     if (pan.Butts) {
         for (var b = 0; b < pan.Butts.Count; b++) {
             if (pan.Butts.Butts[b].ElemIndex === elemIndex) {
-                existingIdx = b;
+                existingButt = pan.Butts.Butts[b];
                 break;
             }
         }
     }
 
-    if (existingIdx >= 0) {
+    StartEditing(pan);
+
+    if (existingButt) {
         if (!overwrite) {
             return false;
         }
-        // Чтобы избежать наслоения или дублирования кромок:
-        var savedButts = [];
-        for (var k = 0; k < pan.Butts.Count; k++) {
-            var bt = pan.Butts.Butts[k];
-            if (bt.ElemIndex !== elemIndex) {
-                savedButts.push({
-                    elem: bt.ElemIndex,
-                    mat: bt.Material,
-                    thick: bt.Thickness,
-                    width: bt.Width,
-                    clip: bt.ClipPanel,
-                    sign: bt.Sign,
-                    over: bt.Overhung,
-                    allow: bt.Allowance
-                });
-            }
+        // Обновляем параметры существующей кромки ТОЛЬКО НА ЭТОМ ТОРЦЕ
+        if (buttMaterial.Material) {
+            existingButt.Material = buttMaterial.Material;
+        } else if (buttMaterial.Name) {
+            existingButt.Material = buttMaterial.Name;
         }
-
-        StartEditing(pan);
-        pan.Butts.Clear();
-
-        for (var s = 0; s < savedButts.length; s++) {
-            var sb = savedButts[s];
-            var restored = pan.AddButt(sb.mat, sb.elem);
-            if (restored) {
-                restored.Thickness = sb.thick;
-                restored.Width = sb.width;
-                restored.ClipPanel = sb.clip;
-                restored.Sign = sb.sign;
-                restored.Overhung = sb.over;
-                restored.Allowance = sb.allow;
-            }
+        if (buttMaterial.Thickness !== undefined) {
+            existingButt.Thickness = buttMaterial.Thickness;
         }
-
+        if (buttMaterial.Width !== undefined) {
+            existingButt.Width = buttMaterial.Width;
+        }
+        if (buttMaterial.Sign !== undefined) {
+            existingButt.Sign = buttMaterial.Sign;
+        }
+        existingButt.ClipPanel = clip;
+    } else {
+        // Добавляем кромку на пустой торец
         var newB = pan.AddButt(buttMaterial, elemIndex);
         if (newB) {
             newB.ClipPanel = clip;
         }
-        pan.Build();
-        return true;
-    } else {
-        StartEditing(pan);
-        var newB2 = pan.AddButt(buttMaterial, elemIndex);
-        if (newB2) {
-            newB2.ClipPanel = clip;
-        }
-        pan.Build();
-        return true;
     }
+
+    pan.Build();
+    return true;
 }
 
 // --- ОБРАБОТЧИКИ НАЖАТИЯ КНОПОК ---
 
-// 1. ВЫБОР ТОРЦОВ РАМКОЙ
+// 1. ТОЛЬКО ЛИЦЕВЫЕ (ПЕРЕДНИЕ) ТОРЦЫ
+btnFront.OnClick = function() {
+    Action.AsyncExec(function() {
+        var targets = getPanelsToProcess();
+        if (targets.length === 0) {
+            alert('Нет панелей для обработки!');
+            return;
+        }
+
+        var clip = ClipProp.Value;
+        var overwrite = OverwriteProp.Value;
+        var count = 0;
+        var panelsMod = 0;
+
+        for (var i = 0; i < targets.length; i++) {
+            var pan = targets[i];
+            var fIdx = getFrontContourIndex(pan);
+            if (fIdx >= 0) {
+                if (applyButtToPanel(pan, fIdx, ButtProp, clip, overwrite)) {
+                    count++;
+                    panelsMod++;
+                }
+            }
+        }
+
+        Action.Commit();
+        Action.Hint = 'Успешно! Облицовано передних торцов: ' + count + ' (на ' + panelsMod + ' панелях). Остальные кромки сохранены!';
+    });
+};
+
+// 2. ПО ПЕРИМЕТРУ (ВСЕ 4 СТОРОНЫ)
+btnPerim.OnClick = function() {
+    Action.AsyncExec(function() {
+        var targets = getTargetPanels();
+        if (targets.length === 0) {
+            alert('Сначала выделите нужные панели (например, фасады) в Базисе!');
+            return;
+        }
+
+        var clip = ClipProp.Value;
+        var overwrite = OverwriteProp.Value;
+        var count = 0;
+
+        for (var i = 0; i < targets.length; i++) {
+            var pan = targets[i];
+            for (var c = 0; c < pan.Contour.Count; c++) {
+                if (applyButtToPanel(pan, c, ButtProp, clip, overwrite)) {
+                    count++;
+                }
+            }
+        }
+
+        Action.Commit();
+        Action.Hint = 'Успешно! Облицовано по периметру: ' + targets.length + ' панелей (' + count + ' торцов)';
+    });
+};
+
+// 3. ВСЕ ОТКРЫТЫЕ ТОРЦЫ
+btnOpen.OnClick = function() {
+    Action.AsyncExec(function() {
+        var targets = getPanelsToProcess();
+        if (targets.length === 0) {
+            alert('Нет панелей для обработки!');
+            return;
+        }
+
+        var clip = ClipProp.Value;
+        var overwrite = OverwriteProp.Value;
+        var count = 0;
+        var panelsMod = 0;
+
+        for (var i = 0; i < targets.length; i++) {
+            var pan = targets[i];
+            var panMod = false;
+            for (var c = 0; c < pan.Contour.Count; c++) {
+                if (pan.IsButtVisible(c, 5)) {
+                    if (applyButtToPanel(pan, c, ButtProp, clip, overwrite)) {
+                        count++;
+                        panMod = true;
+                    }
+                }
+            }
+            if (panMod) panelsMod++;
+        }
+
+        Action.Commit();
+        Action.Hint = 'Успешно! Облицовано открытых торцов: ' + count + ' (на ' + panelsMod + ' панелях)';
+    });
+};
+
+// 4. ВЫБОР ТОРЦОВ РАМКОЙ (2 ТОЧКИ)
 btnFrame.OnClick = function() {
     Action.AsyncExec(function() {
         var targets = getPanelsToProcess();
@@ -303,136 +310,34 @@ btnFrame.OnClick = function() {
 
         var clip = ClipProp.Value;
         var overwrite = OverwriteProp.Value;
-        var onlyVis = OnlyVisibleInFrameProp.Value;
-        var totalButts = 0;
+        var count = 0;
         var panelsMod = 0;
 
         for (var p = 0; p < targets.length; p++) {
             var pan = targets[p];
-            var panChanged = false;
-            var frontIdx = getFrontContourIndex(pan);
+            var panMod = false;
 
             for (var c = 0; c < pan.Contour.Count; c++) {
-                var midPt = getButtMidPoint3D(pan, c);
-                if (midPt && isPointInScreenFrame(midPt, p1, p2)) {
-                    // Если включен фильтр только видимых/лицевых:
-                    if (onlyVis) {
-                        var isFront = (c === frontIdx);
-                        var isVis = pan.IsButtVisible(c, 5);
-                        var isFacade = (pan.GabMax.z - pan.GabMin.z <= 35);
-                        if (!isFront && !isVis && !isFacade) {
-                            continue; // пропускаем невидимый задний торец
-                        }
-                    }
-
+                var mid = getEdge3D(pan, c);
+                if (mid && isPointInScreenFrame(mid, p1, p2)) {
                     if (applyButtToPanel(pan, c, ButtProp, clip, overwrite)) {
-                        totalButts++;
-                        panChanged = true;
+                        count++;
+                        panMod = true;
                     }
                 }
             }
-            if (panChanged) panelsMod++;
+            if (panMod) panelsMod++;
         }
 
         Action.Commit();
-        Action.Hint = 'Успешно! Облицовано торцов рамкой: ' + totalButts + ' (на ' + panelsMod + ' панелях)';
-    });
-};
-
-// 2. ТОЛЬКО ЛИЦЕВЫЕ ТОРЦЫ
-btnFront.OnClick = function() {
-    Action.AsyncExec(function() {
-        var targets = getPanelsToProcess();
-        if (targets.length === 0) {
-            alert('Нет панелей для обработки!');
-            return;
-        }
-
-        var clip = ClipProp.Value;
-        var overwrite = OverwriteProp.Value;
-        var total = 0;
-        var panelsMod = 0;
-
-        for (var i = 0; i < targets.length; i++) {
-            var pan = targets[i];
-            var fIdx = getFrontContourIndex(pan);
-            if (fIdx >= 0) {
-                if (applyButtToPanel(pan, fIdx, ButtProp, clip, overwrite)) {
-                    total++;
-                    panelsMod++;
-                }
-            }
-        }
-
-        Action.Commit();
-        Action.Hint = 'Успешно! Облицовано передних торцов: ' + total + ' (на ' + panelsMod + ' панелях)';
-    });
-};
-
-// 3. ПО ПЕРИМЕТРУ (ВСЕ 4 СТОРОНЫ)
-btnPerim.OnClick = function() {
-    Action.AsyncExec(function() {
-        var targets = getTargetPanels();
-        if (targets.length === 0) {
-            alert('Сначала выделите нужные панели (например, фасады) в Базисе!');
-            return;
-        }
-
-        var clip = ClipProp.Value;
-        var overwrite = OverwriteProp.Value;
-        var total = 0;
-
-        for (var i = 0; i < targets.length; i++) {
-            var pan = targets[i];
-            for (var c = 0; c < pan.Contour.Count; c++) {
-                if (applyButtToPanel(pan, c, ButtProp, clip, overwrite)) {
-                    total++;
-                }
-            }
-        }
-
-        Action.Commit();
-        Action.Hint = 'Успешно! Облицовано по периметру: ' + targets.length + ' панелей (' + total + ' торцов)';
-    });
-};
-
-// 4. ВСЕ ОТКРЫТЫЕ ТОРЦЫ
-btnOpen.OnClick = function() {
-    Action.AsyncExec(function() {
-        var targets = getPanelsToProcess();
-        if (targets.length === 0) {
-            alert('Нет панелей для обработки!');
-            return;
-        }
-
-        var clip = ClipProp.Value;
-        var overwrite = OverwriteProp.Value;
-        var total = 0;
-        var panelsMod = 0;
-
-        for (var i = 0; i < targets.length; i++) {
-            var pan = targets[i];
-            var panChanged = false;
-            for (var c = 0; c < pan.Contour.Count; c++) {
-                if (pan.IsButtVisible(c, 5)) {
-                    if (applyButtToPanel(pan, c, ButtProp, clip, overwrite)) {
-                        total++;
-                        panChanged = true;
-                    }
-                }
-            }
-            if (panChanged) panelsMod++;
-        }
-
-        Action.Commit();
-        Action.Hint = 'Успешно! Облицовано открытых торцов: ' + total + ' (на ' + panelsMod + ' панелях)';
+        Action.Hint = 'Облицовано торцов рамкой: ' + count + ' (на ' + panelsMod + ' панелях)';
     });
 };
 
 // 5. УКАЗАТЬ ТОРИЦ КЛИКОМ
 btnClick.OnClick = function() {
     Action.AsyncExec(function() {
-        Action.Hint = 'Кликните ребро детали (нажмите Esc для завершения)';
+        Action.Hint = 'Кликните ребро детали (Esc - завершить)';
         var clip = ClipProp.Value;
         var overwrite = OverwriteProp.Value;
         var allPanels = getAllPanels();
@@ -451,17 +356,17 @@ btnClick.OnClick = function() {
             for (var p = 0; p < allPanels.length; p++) {
                 var pan = allPanels[p];
                 for (var c = 0; c < pan.Contour.Count; c++) {
-                    var cMid = getButtMidPoint3D(pan, c);
+                    var cMid = getEdge3D(pan, c);
                     if (cMid) {
                         var dist = Math.sqrt(
                             Math.pow(cMid.x - edgeMid.x, 2) +
                             Math.pow(cMid.y - edgeMid.y, 2) +
                             Math.pow(cMid.z - edgeMid.z, 2)
                         );
-                        if (dist < 20) {
+                        if (dist < 15) {
                             applyButtToPanel(pan, c, ButtProp, clip, overwrite);
                             Action.Commit();
-                            Action.Hint = 'Облицован торец панели: ' + pan.Name;
+                            Action.Hint = 'Облицован торец детали: ' + pan.Name;
                             found = true;
                             break;
                         }
@@ -505,9 +410,8 @@ btnAutoCabinet.OnClick = function() {
             return;
         }
 
-        // Запрос кромки 0.8 и 0.4
         Action.Hint = 'Выберите кромку 0.8 мм (для фасадов и переда)';
-        var mat08 = NewButtMaterialInput('Кромка 0.8 мм (фасады и лицевые)');
+        var mat08 = NewButtMaterialInput('Кромка 0.8 мм (фасады и перед)');
         if (!mat08) return;
 
         Action.Hint = 'Выберите кромку 0.4 мм (для открытых торцов корпуса)';
@@ -519,52 +423,46 @@ btnAutoCabinet.OnClick = function() {
         var frontCount = 0;
         var openCount = 0;
 
-        // Помечаем фасады (если были выделены пользователем, либо фронтальные по геометрии)
+        // Если были выделены фасады — кромим их 0.8 по кругу
         for (var f = 0; f < selectedFacades.length; f++) {
             var fac = selectedFacades[f];
-            StartEditing(fac);
-            fac.Butts.Clear();
             for (var fe = 0; fe < fac.Contour.Count; fe++) {
-                var b1 = fac.AddButt(mat08, fe);
-                if (b1) b1.ClipPanel = true;
+                if (applyButtToPanel(fac, fe, mat08, true, true)) {
+                    facadeCount++;
+                }
             }
-            fac.Build();
-            facadeCount++;
         }
 
-        // Корпус: лицевые 0.8, открытые 0.4
+        // Корпус: передние торцы 0.8, открытые 0.4
         for (var i = 0; i < allPanels.length; i++) {
             var p = allPanels[i];
-            // Пропускаем фасады, которые уже обработали
-            var alreadyDone = false;
+
+            // Пропускаем уже облицованные фасады
+            var isFac = false;
             for (var sf = 0; sf < selectedFacades.length; sf++) {
                 if (selectedFacades[sf] === p) {
-                    alreadyDone = true;
+                    isFac = true;
                     break;
                 }
             }
-            if (alreadyDone) continue;
+            if (isFac) continue;
 
             var fIndex = getFrontContourIndex(p);
-            StartEditing(p);
-            p.Butts.Clear();
-
             for (var e = 0; e < p.Contour.Count; e++) {
                 if (e === fIndex) {
-                    var bF = p.AddButt(mat08, e);
-                    if (bF) bF.ClipPanel = true;
-                    frontCount++;
+                    if (applyButtToPanel(p, e, mat08, true, true)) {
+                        frontCount++;
+                    }
                 } else if (p.IsButtVisible(e, 5)) {
-                    var bO = p.AddButt(mat04, e);
-                    if (bO) bO.ClipPanel = true;
-                    openCount++;
+                    if (applyButtToPanel(p, e, mat04, true, false)) {
+                        openCount++;
+                    }
                 }
             }
-            p.Build();
         }
 
         Action.Commit();
-        Action.Hint = 'Экспресс-облицовка завершена! Фасадов: ' + facadeCount + ', переда: ' + frontCount + ', корпуса 0.4: ' + openCount;
+        Action.Hint = 'Экспресс-облицовка завершена! Фасадов: ' + selectedFacades.length + ', передних: ' + frontCount + ', корпуса 0.4: ' + openCount;
     });
 };
 
