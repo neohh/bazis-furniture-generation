@@ -1,8 +1,6 @@
 // =============================================================================
 // Базис-Мебельщик: Скрипт формирования ведомости деталей и кромления
-// Создает производственную таблицу (Поз., Длина, Ширина, Кол-во)
-// с наглядным обозначением кромок (сплошная, пунктир, точки и т.д.)
-// и автоматическим расчетом требуемой длины каждой кромки (в метрах)
+// Версия 2.0 (с интерактивной регулировкой компактности и умещением на 1 лист)
 // =============================================================================
 
 (function() {
@@ -84,7 +82,6 @@
     for (var m = 0; m < edgeMaterialsList.length; m++) {
         var matObj = edgeMaterialsList[m];
         var defaultIdx = m % styleKeys.length;
-        // По умолчанию: первая кромка (0.8) - Сплошная, вторая (0.4) - Пунктир
         var combo = grEdges.NewCombo(matObj.name + ' (' + matObj.thickness + ' мм)', styleOptions.join('\n'));
         combo.ItemIndex = defaultIdx;
         edgeStyleSelectors[matObj.name] = combo;
@@ -93,6 +90,7 @@
     var grParams = prop.NewGroup('Параметры таблицы');
     var marginProp = grParams.NewNumber('Запас на кромку (%)', 5);
     var groupProp = grParams.NewBool('Группировать одинаковые', true);
+    var smartGroupProp = grParams.NewBool('Умное объединение полок (1, 2...)', true);
     var sortProp = grParams.NewCombo('Сортировка деталей', 'По позиции (Поз. 1, 2...)\nПо длине (убывание)\nПо наименованию');
     sortProp.ItemIndex = 0;
 
@@ -103,7 +101,6 @@
 
     // Функция генерации отчета
     function generateReport(isExcelExport) {
-        // Карта стилей
         var chosenStyles = {};
         for (var matName in edgeStyleSelectors) {
             var idx = edgeStyleSelectors[matName].ItemIndex;
@@ -117,7 +114,6 @@
         var marginPct = marginProp.Value;
         if (isNaN(marginPct) || marginPct < 0) marginPct = 0;
 
-        // Обработка деталей
         var partsData = [];
         var totalEdgeLengths = {};
         for (var em = 0; em < edgeMaterialsList.length; em++) {
@@ -135,20 +131,18 @@
             var dimH = Math.round(rawH * 10) / 10;
             var thick = Math.round(rawTh * 10) / 10;
 
-            // Определение ориентации: Длина и Ширина
             var lengthDim, widthDim, isLengthAlongX;
             var texDir = panel.TextureOrientation;
             
-            if (texDir === 1) { // Horizontal / Along width
+            if (texDir === 1) {
                 lengthDim = dimW;
                 widthDim = dimH;
                 isLengthAlongX = true;
-            } else if (texDir === 2) { // Vertical / Along height
+            } else if (texDir === 2) {
                 lengthDim = dimH;
                 widthDim = dimW;
                 isLengthAlongX = false;
             } else {
-                // По стандарту: Длина >= Ширина
                 if (dimW >= dimH) {
                     lengthDim = dimW;
                     widthDim = dimH;
@@ -160,7 +154,6 @@
                 }
             }
 
-            // Анализ торцов контура
             var lengthEdges = [];
             var widthEdges = [];
 
@@ -172,7 +165,6 @@
                     var elemLen = Math.sqrt(dx * dx + dy * dy);
                     var isHoriz = (dx >= dy);
 
-                    // Ищем кромку на элементе c
                     var elemEdgeMat = null;
                     if (panel.Butts && panel.Butts.Count) {
                         for (var bIdx = 0; bIdx < panel.Butts.Count; bIdx++) {
@@ -185,7 +177,6 @@
                     }
 
                     if (elemEdgeMat) {
-                        // Суммируем метраж
                         if (totalEdgeLengths[elemEdgeMat] !== undefined) {
                             totalEdgeLengths[elemEdgeMat] += (elemLen / 1000.0);
                         } else {
@@ -193,7 +184,6 @@
                         }
                     }
 
-                    // Относим к длине или ширине
                     var belongsToLength = isLengthAlongX ? isHoriz : (!isHoriz);
                     if (belongsToLength) {
                         if (elemEdgeMat) lengthEdges.push(elemEdgeMat);
@@ -203,15 +193,19 @@
                 }
             }
 
-            // Наименование и позиция
             var posStr = panel.ArtPos ? ('' + panel.ArtPos).trim() : '';
             var nameStr = panel.Name ? ('' + panel.Name).trim() : 'Деталь';
+            var baseName = nameStr.replace(/\s*\d+$/, ''); // Базовое имя без индекса в конце
+            
             var fullTitle = posStr ? ('Поз ' + posStr + ' (' + nameStr + ')') : nameStr;
+            var cleanTitle = posStr ? ('Поз ' + posStr + ' (' + baseName + ')') : baseName;
 
             partsData.push({
                 posStr: posStr,
                 nameStr: nameStr,
+                baseName: baseName,
                 fullTitle: fullTitle,
+                cleanTitle: cleanTitle,
                 length: lengthDim,
                 width: widthDim,
                 thickness: thick,
@@ -221,16 +215,18 @@
             });
         }
 
-        // Группировка одинаковых деталей
-        var groupedParts = [];
-        if (groupProp.Value) {
+        // Функция группировки списка деталей
+        function groupPartsList(rawList, useSmartGroup) {
             var groupMap = {};
-            for (var p = 0; p < partsData.length; p++) {
-                var item = partsData[p];
+            var result = [];
+
+            for (var p = 0; p < rawList.length; p++) {
+                var item = rawList[p];
+                var titleToUse = useSmartGroup ? item.cleanTitle : item.fullTitle;
                 var lSort = item.lengthEdges.slice().sort().join('__');
                 var wSort = item.widthEdges.slice().sort().join('__');
                 var groupKey = [
-                    item.fullTitle,
+                    titleToUse,
                     item.length,
                     item.width,
                     item.thickness,
@@ -244,7 +240,8 @@
                     var copy = {
                         posStr: item.posStr,
                         nameStr: item.nameStr,
-                        fullTitle: item.fullTitle,
+                        baseName: item.baseName,
+                        fullTitle: titleToUse,
                         length: item.length,
                         width: item.width,
                         thickness: item.thickness,
@@ -253,51 +250,49 @@
                         count: 1
                     };
                     groupMap[groupKey] = copy;
-                    groupedParts.push(copy);
+                    result.push(copy);
                 }
             }
-        } else {
-            groupedParts = partsData;
+            return result;
         }
+
+        var isGrouped = groupProp.Value;
+        var useSmart = smartGroupProp.Value;
+        var finalParts = isGrouped ? groupPartsList(partsData, useSmart) : partsData;
 
         // Сортировка
         var sortMode = sortProp.ItemIndex;
-        groupedParts.sort(function(a, b) {
-            if (sortMode === 0) { // По позиции
-                var numA = parseInt(a.posStr.replace(/\D/g, ''), 10) || 0;
-                var numB = parseInt(b.posStr.replace(/\D/g, ''), 10) || 0;
-                if (numA !== numB) return numB - numA; // По убыванию как на фото (Поз 21, 20, 19, 18, 13, 8...)
-                return a.fullTitle.localeCompare(b.fullTitle);
-            } else if (sortMode === 1) { // По длине
-                if (b.length !== a.length) return b.length - a.length;
-                return b.width - a.width;
-            } else { // По наименованию
-                return a.fullTitle.localeCompare(b.fullTitle);
-            }
-        });
-
-        // Пересчет метража с учетом количества после группировки (если считали по 1 шт.)
-        // totalEdgeLengths уже собран точно по всем панелям модели!
+        function sortParts(list) {
+            list.sort(function(a, b) {
+                if (sortMode === 0) { // По позиции
+                    var numA = parseInt(a.posStr.replace(/\D/g, ''), 10) || 0;
+                    var numB = parseInt(b.posStr.replace(/\D/g, ''), 10) || 0;
+                    if (numA !== numB) return numB - numA;
+                    return a.fullTitle.localeCompare(b.fullTitle);
+                } else if (sortMode === 1) { // По длине
+                    if (b.length !== a.length) return b.length - a.length;
+                    return b.width - a.width;
+                } else { // По наименованию
+                    return a.fullTitle.localeCompare(b.fullTitle);
+                }
+            });
+        }
+        sortParts(finalParts);
 
         if (isExcelExport) {
-            exportToCSV(groupedParts, totalEdgeLengths, chosenStyles, marginPct);
+            exportToCSV(finalParts, totalEdgeLengths, chosenStyles, marginPct);
             return;
         }
 
-        // Формирование HTML
-        generateHTMLReport(groupedParts, totalEdgeLengths, chosenStyles, marginPct);
+        // Передаем также сырой список, чтобы в браузере можно было переключать группировку на лету!
+        generateHTMLReport(finalParts, partsData, totalEdgeLengths, chosenStyles, marginPct, useSmart);
     }
 
-    function generateHTMLReport(parts, edgeTotals, styles, marginPct) {
+    function generateHTMLReport(parts, rawParts, edgeTotals, styles, marginPct, initialSmartGroup) {
         var modelName = 'Шкаф';
         if (Model.FileName) {
             var partsPath = Model.FileName.split('\\');
             modelName = partsPath[partsPath.length - 1];
-        }
-
-        var totalPartsCount = 0;
-        for (var i = 0; i < parts.length; i++) {
-            totalPartsCount += parts[i].count;
         }
 
         var now = new Date();
@@ -314,65 +309,125 @@
         html.push('<meta charset="windows-1251">');
         html.push('<title>Ведомость деталей и кромления - ' + modelName + '</title>');
         html.push('<style>');
-        html.push('@page { size: A4 portrait; margin: 10mm 10mm 10mm 10mm; }');
-        html.push('body { font-family: "Segoe UI", Arial, sans-serif; background: #f4f6f8; margin: 20px; color: #111; }');
+        html.push('@page { size: A4 portrait; margin: 8mm 6mm 8mm 6mm; }');
+        html.push('body { font-family: "Segoe UI", Arial, sans-serif; background: #eef1f5; margin: 15px auto; color: #111; }');
         html.push('@media print {');
-        html.push('  body { background: #fff; margin: 0; }');
+        html.push('  body { background: #fff !important; margin: 0 !important; }');
         html.push('  .no-print { display: none !important; }');
-        html.push('  .container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }');
+        html.push('  .page-box { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }');
         html.push('}');
-        html.push('.container { max-width: 900px; margin: 0 auto; background: #fff; padding: 25px 30px; border-radius: 8px; box-shadow: 0 3px 15px rgba(0,0,0,0.08); border: 1px solid #e1e4e8; }');
-        html.push('.btn-bar { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 20px; }');
-        html.push('.btn { background: #0066cc; color: #fff; border: none; padding: 9px 18px; font-size: 13.5px; font-weight: 600; border-radius: 5px; cursor: pointer; transition: 0.2s; }');
-        html.push('.btn:hover { background: #004d99; }');
-        html.push('.btn-copy { background: #28a745; }');
-        html.push('.btn-copy:hover { background: #1e7e34; }');
-        html.push('.title { text-align: center; font-size: 21px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }');
-        html.push('.subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 22px; }');
         
-        // Сводная таблица кромок
-        html.push('.summary-card { background: #fbfcfe; border: 1.5px solid #d0d7de; border-radius: 6px; padding: 14px 18px; margin-bottom: 22px; }');
-        html.push('.summary-title { font-weight: bold; font-size: 14.5px; margin-bottom: 10px; color: #24292f; }');
-        html.push('.summary-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }');
-        html.push('.summary-table th, .summary-table td { border: 1px solid #d0d7de; padding: 7px 12px; text-align: left; }');
+        // Toolbar
+        html.push('.toolbar { max-width: 960px; margin: 0 auto 15px auto; background: #24292f; color: #fff; padding: 10px 16px; border-radius: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }');
+        html.push('.tb-group { display: flex; align-items: center; gap: 6px; }');
+        html.push('.tb-label { font-size: 12.5px; color: #cbd5e1; font-weight: 500; }');
+        html.push('.tb-btn { background: #334155; color: #fff; border: 1px solid #475569; padding: 5px 11px; font-size: 12.5px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.15s; user-select: none; }');
+        html.push('.tb-btn:hover { background: #475569; }');
+        html.push('.tb-btn.active { background: #0284c7; border-color: #38bdf8; }');
+        html.push('.tb-btn-primary { background: #0284c7; border-color: #0284c7; }');
+        html.push('.tb-btn-primary:hover { background: #0369a1; }');
+        html.push('.tb-btn-success { background: #16a34a; border-color: #16a34a; }');
+        html.push('.tb-btn-success:hover { background: #15803d; }');
+        html.push('.tb-btn-preset { background: #d97706; border-color: #f59e0b; color: #fff; font-weight: bold; }');
+        html.push('.tb-btn-preset:hover { background: #b45309; }');
+
+        // Page container
+        html.push('.page-box { max-width: 960px; margin: 0 auto; background: #fff; padding: 18px 24px; border-radius: 8px; box-shadow: 0 3px 15px rgba(0,0,0,0.08); border: 1px solid #e1e4e8; transition: transform 0.15s ease; transform-origin: top center; }');
+        html.push('.title-bar { text-align: center; margin-bottom: 12px; }');
+        html.push('.title { font-size: 19px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }');
+        html.push('.subtitle { font-size: 12px; color: #666; margin-top: 2px; }');
+
+        // Сводка кромки
+        html.push('.summary-card { background: #fbfcfe; border: 1px solid #d0d7de; border-radius: 5px; padding: 8px 12px; margin-bottom: 12px; }');
+        html.push('.summary-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #24292f; }');
+        html.push('.summary-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }');
+        html.push('.summary-table th, .summary-table td { border: 1px solid #d0d7de; padding: 4px 8px; text-align: left; }');
         html.push('.summary-table th { background: #f6f8fa; font-weight: 600; }');
-        html.push('.legend-swatch { display: inline-flex; align-items: center; gap: 10px; }');
-        html.push('.swatch-line { display: inline-block; width: 45px; height: 0; vertical-align: middle; }');
+        html.push('.legend-swatch { display: inline-flex; align-items: center; gap: 8px; }');
+        html.push('.swatch-line { display: inline-block; width: 40px; height: 0; vertical-align: middle; }');
 
         // Основная таблица деталей
-        html.push('table.parts-table { width: 100%; border-collapse: collapse; font-family: "ISOCPEUR", "Consolas", "Courier New", monospace; font-size: 15px; }');
-        html.push('table.parts-table th, table.parts-table td { border: 1.5px solid #222; padding: 6px 10px; text-align: center; }');
-        html.push('table.parts-table th { background: #ededed; font-weight: bold; font-size: 15px; letter-spacing: 0.5px; }');
-        html.push('table.parts-table td.col-pos { text-align: left; font-family: "Segoe UI", Arial, sans-serif; font-size: 13.5px; }');
-        html.push('table.parts-table tr.total-row { font-weight: bold; background: #fafafa; font-size: 15px; }');
+        html.push('table.parts-table { width: 100%; border-collapse: collapse; font-family: "ISOCPEUR", "Consolas", "Courier New", monospace; font-size: 14.5px; }');
+        html.push('table.parts-table th, table.parts-table td { border: 1.5px solid #222; padding: 5px 8px; text-align: center; }');
+        html.push('table.parts-table th { background: #ededed; font-weight: bold; font-size: 14px; letter-spacing: 0.5px; }');
+        html.push('table.parts-table td.col-pos { text-align: left; font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }');
+        html.push('table.parts-table tr.total-row { font-weight: bold; background: #fafafa; font-size: 14.5px; }');
 
-        // Стили подчеркиваний кромок
-        html.push('.cell-num { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 48px; padding: 1px 3px; }');
-        html.push('.val-text { font-size: 16px; font-weight: bold; line-height: 1.25; }');
-        html.push('.edge-lines-box { width: 100%; min-width: 42px; display: flex; flex-direction: column; gap: 2.5px; margin-top: 1.5px; }');
+        // Подчеркивания
+        html.push('.cell-num { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; padding: 1px 2px; }');
+        html.push('.val-text { font-size: 15.5px; font-weight: bold; line-height: 1.25; }');
+        html.push('.edge-lines-box { width: 100%; min-width: 38px; display: flex; flex-direction: column; gap: 2px; margin-top: 1.5px; }');
         html.push('.line-bar { width: 100%; display: block; }');
         html.push('.line-solid { border-bottom: 2.5px solid #000; }');
         html.push('.line-dashed { border-bottom: 2.5px dashed #000; }');
         html.push('.line-dotted { border-bottom: 3.5px dotted #000; }');
         html.push('.line-double { border-bottom: 3.5px double #000; }');
         html.push('.line-dashdot { border-bottom: 2.5px dashed #000; }');
+
+        // Плотность строк
+        html.push('.density-compact table.parts-table th, .density-compact table.parts-table td { padding: 2.5px 5px !important; }');
+        html.push('.density-compact .val-text { font-size: 14px !important; }');
+        html.push('.density-compact .col-pos { font-size: 12px !important; }');
+        html.push('.density-compact .edge-lines-box { gap: 1.5px !important; margin-top: 1px !important; }');
+        
+        html.push('.density-ultra table.parts-table th, .density-ultra table.parts-table td { padding: 1.5px 4px !important; }');
+        html.push('.density-ultra .val-text { font-size: 13px !important; }');
+        html.push('.density-ultra .col-pos { font-size: 11px !important; }');
+
+        // Двухколоночный режим
+        html.push('.cols-flex-wrapper { display: flex; gap: 12px; width: 100%; align-items: flex-start; }');
+        html.push('.col-half { flex: 1; min-width: 0; }');
+
         html.push('</style>');
         html.push('</head>');
         html.push('<body>');
-        html.push('<div class="container">');
+
+        // Панель управления компактностью в браузере
+        html.push('<div class="toolbar no-print">');
         
-        // Кнопки
-        html.push('<div class="btn-bar no-print">');
-        html.push('<button class="btn" onclick="window.print()">Печать Печать / Сохранить в PDF</button>');
-        html.push('<button class="btn btn-copy" onclick="copyTable()">Копировать Скопировать для Excel</button>');
+        html.push('<div class="tb-group">');
+        html.push('<button class="tb-btn tb-btn-primary" onclick="window.print()">Печать / Экспорт в PDF</button>');
+        html.push('<button class="tb-btn tb-btn-success" onclick="copyTable()">Копировать для Excel</button>');
         html.push('</div>');
 
-        // Заголовки
-        html.push('<div class="title">Ведомость деталей и кромления</div>');
-        html.push('<div class="subtitle">Модель: <strong>' + modelName + '</strong> | Дата формирования: ' + dateStr + '</div>');
+        html.push('<div class="tb-group">');
+        html.push('<button class="tb-btn tb-btn-preset" onclick="presetFitOnePage()" title="Автоматически настроит компактность, чтобы все влезло на 1 лист А4">&#9889; Вместить на 1 лист А4</button>');
+        html.push('</div>');
+
+        html.push('<div class="tb-group">');
+        html.push('<span class="tb-label">Вид:</span>');
+        html.push('<button id="btnCol1" class="tb-btn active" onclick="setColumns(1)">1 колонка</button>');
+        html.push('<button id="btnCol2" class="tb-btn" onclick="setColumns(2)">2 колонки</button>');
+        html.push('</div>');
+
+        html.push('<div class="tb-group">');
+        html.push('<span class="tb-label">Плотность:</span>');
+        html.push('<button id="btnDensity" class="tb-btn" onclick="cycleDensity()">Обычная</button>');
+        html.push('</div>');
+
+        html.push('<div class="tb-group">');
+        html.push('<span class="tb-label">Масштаб:</span>');
+        html.push('<button class="tb-btn" onclick="changeZoom(-5)">-</button>');
+        html.push('<span id="zoomLabel" style="font-weight:bold; font-size:12.5px; min-width:38px; text-align:center;">100%</span>');
+        html.push('<button class="tb-btn" onclick="changeZoom(+5)">+</button>');
+        html.push('</div>');
+
+        html.push('<div class="tb-group">');
+        html.push('<label class="tb-label" style="cursor:pointer;"><input type="checkbox" id="chkSmartGroup" ' + (initialSmartGroup ? 'checked' : '') + ' onchange="toggleSmartGroup(this.checked)"> Умное объединение полок</label>');
+        html.push('</div>');
+
+        html.push('</div>'); // .toolbar
+
+        // Тело документа
+        html.push('<div class="page-box" id="pageBox">');
+        
+        html.push('<div class="title-bar">');
+        html.push('<h1 class="title">Ведомость деталей и кромления</h1>');
+        html.push('<div class="subtitle">Модель: <strong>' + modelName + '</strong> | Дата: ' + dateStr + '</div>');
+        html.push('</div>');
 
         // Сводка по кромкам
-        html.push('<div class="summary-card">');
+        html.push('<div class="summary-card" id="summaryCard">');
         html.push('<div class="summary-title">Сводка необходимой кромки (запас: ' + marginPct + '%)</div>');
         html.push('<table class="summary-table">');
         html.push('<thead><tr><th>Кромочный материал</th><th>Обозначение в таблице</th><th>Чистая длина (м)</th><th>С учетом запаса ' + marginPct + '% (м)</th></tr></thead>');
@@ -395,72 +450,169 @@
 
         html.push('</tbody></table></div>');
 
-        // Основная таблица деталей
-        html.push('<table class="parts-table" id="partsTable">');
-        html.push('<thead>');
-        html.push('<tr><th style="width: 50%;">Поз.</th><th style="width: 17%;">Длина</th><th style="width: 17%;">Ширина</th><th style="width: 16%;">Кол-во</th></tr>');
-        html.push('</thead>');
-        html.push('<tbody>');
+        // Контейнер под таблицу деталей (динамически перерисовывается)
+        html.push('<div id="tableMount"></div>');
 
-        function renderDimensionCell(val, edgesArr) {
-            var res = '<div class="cell-num"><span class="val-text">' + val + '</span>';
-            if (edgesArr && edgesArr.length > 0) {
-                res += '<div class="edge-lines-box">';
-                for (var e = 0; e < edgesArr.length; e++) {
-                    var mName = edgesArr[e];
-                    var stKey = styles[mName] ? styles[mName].key : 'solid';
-                    res += '<span class="line-bar line-' + stKey + '"></span>';
-                }
-                res += '</div>';
-            }
-            res += '</div>';
-            return res;
-        }
+        html.push('</div>'); // .page-box
 
-        for (var pIdx = 0; pIdx < parts.length; pIdx++) {
-            var pt = parts[pIdx];
-            html.push('<tr>');
-            html.push('<td class="col-pos">' + pt.fullTitle + '</td>');
-            html.push('<td>' + renderDimensionCell(pt.length, pt.lengthEdges) + '</td>');
-            html.push('<td>' + renderDimensionCell(pt.width, pt.widthEdges) + '</td>');
-            html.push('<td>' + pt.count + '</td>');
-            html.push('</tr>');
-        }
+        // Передача сырых данных в JS для динамического переключения
+        var jsonRaw = JSON.stringify(rawParts);
+        var jsonStyles = JSON.stringify(styles);
 
-        html.push('<tr class="total-row">');
-        html.push('<td class="col-pos"><strong>Итого</strong></td>');
-        html.push('<td></td>');
-        html.push('<td></td>');
-        html.push('<td><strong>' + totalPartsCount + '</strong></td>');
-        html.push('</tr>');
-
-        html.push('</tbody></table>');
-        html.push('</div>'); // container
-
-        // JS для копирования
         html.push('<script>');
-        html.push('function copyTable() {');
-        html.push('  var tbl = document.getElementById("partsTable");');
-        html.push('  var rows = [];');
-        html.push('  for (var i = 0; i < tbl.rows.length; i++) {');
-        html.push('    var r = tbl.rows[i];');
-        html.push('    var cells = [];');
-        html.push('    for (var j = 0; j < r.cells.length; j++) {');
-        html.push('      cells.push(r.cells[j].innerText.trim().replace(/\\n/g, " "));');
+        html.push('var rawData = ' + jsonRaw + ';');
+        html.push('var stylesMap = ' + jsonStyles + ';');
+        html.push('var currentCols = 1;');
+        html.push('var currentDensity = 0; // 0 = normal, 1 = compact, 2 = ultra');
+        html.push('var currentZoom = 100;');
+        html.push('var isSmartGroup = ' + (initialSmartGroup ? 'true' : 'false') + ';');
+
+        html.push('function getGroupedData(smart) {');
+        html.push('  var map = {}; var res = [];');
+        html.push('  for (var i = 0; i < rawData.length; i++) {');
+        html.push('    var item = rawData[i];');
+        html.push('    var title = smart ? item.cleanTitle : item.fullTitle;');
+        html.push('    var lS = item.lengthEdges.slice().sort().join("__");');
+        html.push('    var wS = item.widthEdges.slice().sort().join("__");');
+        html.push('    var key = [title, item.length, item.width, item.thickness, lS, wS].join("###");');
+        html.push('    if (map[key]) { map[key].count++; } else {');
+        html.push('      var c = { fullTitle: title, posStr: item.posStr, length: item.length, width: item.width, thickness: item.thickness, lengthEdges: item.lengthEdges, widthEdges: item.widthEdges, count: 1 };');
+        html.push('      map[key] = c; res.push(c);');
         html.push('    }');
-        html.push('    rows.push(cells.join("\\t"));');
         html.push('  }');
+        html.push('  res.sort(function(a, b) {');
+        html.push('    var nA = parseInt(a.posStr.replace(/\\D/g, ""), 10) || 0;');
+        html.push('    var nB = parseInt(b.posStr.replace(/\\D/g, ""), 10) || 0;');
+        html.push('    if (nA !== nB) return nB - nA;');
+        html.push('    return a.fullTitle.localeCompare(b.fullTitle);');
+        html.push('  });');
+        html.push('  return res;');
+        html.push('}');
+
+        html.push('function renderDim(val, edges) {');
+        html.push('  var s = "<div class=\'cell-num\'><span class=\'val-text\'>" + val + "</span>";');
+        html.push('  if (edges && edges.length > 0) {');
+        html.push('    s += "<div class=\'edge-lines-box\'>";');
+        html.push('    for (var i = 0; i < edges.length; i++) {');
+        html.push('      var st = stylesMap[edges[i]] ? stylesMap[edges[i]].key : "solid";');
+        html.push('      s += "<span class=\'line-bar line-" + st + "\'></span>";');
+        html.push('    }');
+        html.push('    s += "</div>";');
+        html.push('  }');
+        html.push('  s += "</div>";');
+        html.push('  return s;');
+        html.push('}');
+
+        html.push('function buildTableHtml(items, startIdx, showTotal, totalSum) {');
+        html.push('  var h = "<table class=\'parts-table\'>";');
+        html.push('  h += "<thead><tr><th style=\'width:48%;\'>Поз.</th><th style=\'width:18%;\'>Длина</th><th style=\'width:18%;\'>Ширина</th><th style=\'width:16%;\'>Кол-во</th></tr></thead><tbody>";');
+        html.push('  for (var i = 0; i < items.length; i++) {');
+        html.push('    var it = items[i];');
+        html.push('    h += "<tr><td class=\'col-pos\'>" + it.fullTitle + "</td><td>" + renderDim(it.length, it.lengthEdges) + "</td><td>" + renderDim(it.width, it.widthEdges) + "</td><td>" + it.count + "</td></tr>";');
+        html.push('  }');
+        html.push('  if (showTotal) {');
+        html.push('    h += "<tr class=\'total-row\'><td class=\'col-pos\'><strong>Итого</strong></td><td></td><td></td><td><strong>" + totalSum + "</strong></td></tr>";');
+        html.push('  }');
+        html.push('  h += "</tbody></table>";');
+        html.push('  return h;');
+        html.push('}');
+
+        html.push('function render() {');
+        html.push('  var data = getGroupedData(isSmartGroup);');
+        html.push('  var total = 0; for (var k = 0; k < data.length; k++) total += data[k].count;');
+        html.push('  var mount = document.getElementById("tableMount");');
+        html.push('  if (currentCols === 1) {');
+        html.push('    mount.innerHTML = buildTableHtml(data, 0, true, total);');
+        html.push('  } else {');
+        html.push('    var mid = Math.ceil(data.length / 2);');
+        html.push('    var left = data.slice(0, mid);');
+        html.push('    var right = data.slice(mid);');
+        html.push('    var out = "<div class=\'cols-flex-wrapper\'>";');
+        html.push('    out += "<div class=\'col-half\'>" + buildTableHtml(left, 0, false, 0) + "</div>";');
+        html.push('    out += "<div class=\'col-half\'>" + buildTableHtml(right, mid, true, total) + "</div>";');
+        html.push('    out += "</div>";');
+        html.push('    mount.innerHTML = out;');
+        html.push('  }');
+        html.push('}');
+
+        html.push('function setColumns(c) {');
+        html.push('  currentCols = c;');
+        html.push('  document.getElementById("btnCol1").className = "tb-btn" + (c === 1 ? " active" : "");');
+        html.push('  document.getElementById("btnCol2").className = "tb-btn" + (c === 2 ? " active" : "");');
+        html.push('  render();');
+        html.push('}');
+
+        html.push('function cycleDensity() {');
+        html.push('  currentDensity = (currentDensity + 1) % 3;');
+        html.push('  applyDensity();');
+        html.push('}');
+
+        html.push('function applyDensity() {');
+        html.push('  var box = document.getElementById("pageBox");');
+        html.push('  box.classList.remove("density-compact", "density-ultra");');
+        html.push('  var b = document.getElementById("btnDensity");');
+        html.push('  if (currentDensity === 1) { box.classList.add("density-compact"); b.innerText = "Компактная"; }');
+        html.push('  else if (currentDensity === 2) { box.classList.add("density-ultra"); b.innerText = "Ультра"; }');
+        html.push('  else { b.innerText = "Обычная"; }');
+        html.push('}');
+
+        html.push('function changeZoom(delta) {');
+        html.push('  currentZoom = Math.max(60, Math.min(130, currentZoom + delta));');
+        html.push('  applyZoom();');
+        html.push('}');
+
+        html.push('function applyZoom() {');
+        html.push('  document.getElementById("zoomLabel").innerText = currentZoom + "%";');
+        html.push('  var box = document.getElementById("pageBox");');
+        html.push('  box.style.zoom = (currentZoom / 100);');
+        html.push('}');
+
+        html.push('function toggleSmartGroup(val) {');
+        html.push('  isSmartGroup = val;');
+        html.push('  render();');
+        html.push('}');
+
+        html.push('function presetFitOnePage() {');
+        html.push('  isSmartGroup = true;');
+        html.push('  document.getElementById("chkSmartGroup").checked = true;');
+        html.push('  var data = getGroupedData(true);');
+        html.push('  if (data.length > 18) {');
+        html.push('    setColumns(2);');
+        html.push('    currentDensity = 1;');
+        html.push('    currentZoom = 95;');
+        html.push('  } else {');
+        html.push('    setColumns(1);');
+        html.push('    currentDensity = 1;');
+        html.push('    currentZoom = 90;');
+        html.push('  }');
+        html.push('  applyDensity();');
+        html.push('  applyZoom();');
+        html.push('  render();');
+        html.push('  alert("Настройки оптимизированы под 1 лист А4! Теперь можете нажать «Печать / Экспорт в PDF».");');
+        html.push('}');
+
+        html.push('function copyTable() {');
+        html.push('  var data = getGroupedData(isSmartGroup);');
+        html.push('  var total = 0; for (var k = 0; k < data.length; k++) total += data[k].count;');
+        html.push('  var rows = ["Поз.\\tДлина\\tШирина\\tКол-во"];');
+        html.push('  for (var i = 0; i < data.length; i++) {');
+        html.push('    rows.push(data[i].fullTitle + "\\t" + data[i].length + "\\t" + data[i].width + "\\t" + data[i].count);');
+        html.push('  }');
+        html.push('  rows.push("Итого\\t\\t\\t" + total);');
         html.push('  navigator.clipboard.writeText(rows.join("\\n")).then(function() {');
-        html.push('    alert("Таблица скопирована в буфер обмена! Вы можете вставить ее в Excel (Ctrl+V).");');
+        html.push('    alert("Таблица скопирована в буфер обмена для Excel (Ctrl+V)!");');
         html.push('  });');
         html.push('}');
+
+        html.push('render();');
+        html.push('applyDensity();');
+        html.push('applyZoom();');
         html.push('</script>');
 
         html.push('</body></html>');
 
         var fullHtml = html.join('\n');
 
-        // Сохранение файла
         var savePath = '';
         if (Model.FileName) {
             savePath = Model.FileName.replace(/\.[^/.]+$/, "") + "_ведомость_деталей.html";
@@ -470,7 +622,6 @@
 
         system.writeTextFile(savePath, fullHtml);
 
-        // Открытие в браузере
         try {
             var sh = NewCOMObject('WScript.Shell');
             sh.Run('"' + savePath + '"');
@@ -509,7 +660,6 @@
         alert('Файл CSV успешно сохранен:\n' + csvPath);
     }
 
-    // Привязка кнопок
     btnMake.OnClick = function() {
         generateReport(false);
     };
@@ -522,8 +672,6 @@
         Action.Finish();
     };
 
-    // Автоматически генерируем отчет сразу при первом запуске!
     generateReport(false);
-
     Action.Continue();
 })();
