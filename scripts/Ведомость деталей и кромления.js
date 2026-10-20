@@ -1,12 +1,12 @@
 // =============================================================================
-// Р‘Р°Р·РёСЃ-РњРµР±РµР»СЊС‰РёРє: РЎРєСЂРёРїС‚ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РІРµРґРѕРјРѕСЃС‚Рё РґРµС‚Р°Р»РµР№ Рё РєСЂРѕРјР»РµРЅРёСЏ
-// РЎРѕР·РґР°РµС‚ РїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅСѓСЋ С‚Р°Р±Р»РёС†Сѓ (РџРѕР·., Р”Р»РёРЅР°, РЁРёСЂРёРЅР°, РљРѕР»-РІРѕ)
-// СЃ РЅР°РіР»СЏРґРЅС‹Рј РѕР±РѕР·РЅР°С‡РµРЅРёРµРј РєСЂРѕРјРѕРє (СЃРїР»РѕС€РЅР°СЏ, РїСѓРЅРєС‚РёСЂ, С‚РѕС‡РєРё Рё С‚.Рґ.)
-// Рё Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёРј СЂР°СЃС‡РµС‚РѕРј С‚СЂРµР±СѓРµРјРѕР№ РґР»РёРЅС‹ РєР°Р¶РґРѕР№ РєСЂРѕРјРєРё (РІ РјРµС‚СЂР°С…)
+// Базис-Мебельщик: Скрипт формирования ведомости деталей и кромления
+// Создает производственную таблицу (Поз., Длина, Ширина, Кол-во)
+// с наглядным обозначением кромок (сплошная, пунктир, точки и т.д.)
+// и автоматическим расчетом требуемой длины каждой кромки (в метрах)
 // =============================================================================
 
 (function() {
-    // 1. РЎР±РѕСЂ РІСЃРµС… РїР°РЅРµР»РµР№ РјРѕРґРµР»Рё
+    // 1. Сбор всех панелей модели
     var allPanels = [];
     
     function collectPanels(obj) {
@@ -29,12 +29,12 @@
     }
 
     if (allPanels.length === 0) {
-        alert('Р’ РјРѕРґРµР»Рё РЅРµ РЅР°Р№РґРµРЅРѕ РЅРё РѕРґРЅРѕР№ РїР°РЅРµР»Рё!');
+        alert('В модели не найдено ни одной панели!');
         Action.Finish();
         return;
     }
 
-    // 2. РџРѕРёСЃРє РІСЃРµС… СѓРЅРёРєР°Р»СЊРЅС‹С… РєСЂРѕРјРѕС‡РЅС‹С… РјР°С‚РµСЂРёР°Р»РѕРІ РІ РјРѕРґРµР»Рё
+    // 2. Поиск всех уникальных кромочных материалов в модели
     var uniqueButtsMap = {};
     for (var p = 0; p < allPanels.length; p++) {
         var pan = allPanels[p];
@@ -59,51 +59,51 @@
         edgeMaterialsList.push(uniqueButtsMap[k]);
     }
 
-    // РЎРѕСЂС‚РёСЂСѓРµРј РєСЂРѕРјРєРё: СЃРЅР°С‡Р°Р»Р° Р±РѕР»РµРµ С‚РѕР»СЃС‚С‹Рµ (0.8 / 1.0 / 2.0), Р·Р°С‚РµРј Р±РѕР»РµРµ С‚РѕРЅРєРёРµ (0.4)
+    // Сортируем кромки: сначала более толстые (0.8 / 1.0 / 2.0), затем более тонкие (0.4)
     edgeMaterialsList.sort(function(a, b) {
         return b.thickness - a.thickness;
     });
 
     var styleOptions = [
-        'РЎРїР»РѕС€РЅР°СЏ Р»РёРЅРёСЏ (вЂ”вЂ”вЂ”вЂ”)',
-        'РџСѓРЅРєС‚РёСЂРЅР°СЏ Р»РёРЅРёСЏ (вЂ“ вЂ“ вЂ“ вЂ“)',
-        'РўРѕС‡РµС‡РЅР°СЏ Р»РёРЅРёСЏ (В· В· В· В· В·)',
-        'Р”РІРѕР№РЅР°СЏ СЃРїР»РѕС€РЅР°СЏ (в•ђв•ђв•ђв•ђ)',
-        'РЁС‚СЂРёС…РїСѓРЅРєС‚РёСЂРЅР°СЏ (вЂ“ В· вЂ“ В·)'
+        'Сплошная линия (----)',
+        'Пунктирная линия (- - - -)',
+        'Точечная линия (. . . . .)',
+        'Двойная сплошная (====)',
+        'Штрихпунктирная (- . - .)'
     ];
 
     var styleKeys = ['solid', 'dashed', 'dotted', 'double', 'dashdot'];
 
-    // 3. РЎРѕР·РґР°РЅРёРµ РїР°РЅРµР»Рё СЃРІРѕР№СЃС‚РІ РІ Р‘Р°Р·РёСЃРµ
+    // 3. Создание панели свойств в Базисе
     var prop = Action.Properties;
     prop.Clear();
 
-    var grEdges = prop.NewGroup('РћР±РѕР·РЅР°С‡РµРЅРёРµ РєСЂРѕРјРѕРє РІ С‚Р°Р±Р»РёС†Рµ');
+    var grEdges = prop.NewGroup('Обозначение кромок в таблице');
     var edgeStyleSelectors = {};
 
     for (var m = 0; m < edgeMaterialsList.length; m++) {
         var matObj = edgeMaterialsList[m];
         var defaultIdx = m % styleKeys.length;
-        // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ: РїРµСЂРІР°СЏ РєСЂРѕРјРєР° (0.8) - РЎРїР»РѕС€РЅР°СЏ, РІС‚РѕСЂР°СЏ (0.4) - РџСѓРЅРєС‚РёСЂ
-        var combo = grEdges.NewCombo(matObj.name + ' (' + matObj.thickness + ' РјРј)', styleOptions.join('\n'));
+        // По умолчанию: первая кромка (0.8) - Сплошная, вторая (0.4) - Пунктир
+        var combo = grEdges.NewCombo(matObj.name + ' (' + matObj.thickness + ' мм)', styleOptions.join('\n'));
         combo.ItemIndex = defaultIdx;
         edgeStyleSelectors[matObj.name] = combo;
     }
 
-    var grParams = prop.NewGroup('РџР°СЂР°РјРµС‚СЂС‹ С‚Р°Р±Р»РёС†С‹');
-    var marginProp = grParams.NewNumber('Р—Р°РїР°СЃ РЅР° РєСЂРѕРјРєСѓ (%)', 5);
-    var groupProp = grParams.NewBool('Р“СЂСѓРїРїРёСЂРѕРІР°С‚СЊ РѕРґРёРЅР°РєРѕРІС‹Рµ', true);
-    var sortProp = grParams.NewCombo('РЎРѕСЂС‚РёСЂРѕРІРєР° РґРµС‚Р°Р»РµР№', 'РџРѕ РїРѕР·РёС†РёРё (РџРѕР·. 1, 2...)\nРџРѕ РґР»РёРЅРµ (СѓР±С‹РІР°РЅРёРµ)\nРџРѕ РЅР°РёРјРµРЅРѕРІР°РЅРёСЋ');
+    var grParams = prop.NewGroup('Параметры таблицы');
+    var marginProp = grParams.NewNumber('Запас на кромку (%)', 5);
+    var groupProp = grParams.NewBool('Группировать одинаковые', true);
+    var sortProp = grParams.NewCombo('Сортировка деталей', 'По позиции (Поз. 1, 2...)\nПо длине (убывание)\nПо наименованию');
     sortProp.ItemIndex = 0;
 
-    var grActions = prop.NewGroup('Р”РµР№СЃС‚РІРёСЏ');
-    var btnMake = grActions.NewButton('РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РІРµРґРѕРјРѕСЃС‚СЊ (HTML)');
-    var btnExcel = grActions.NewButton('Р­РєСЃРїРѕСЂС‚ РІ Excel (CSV)');
-    var btnClose = grActions.NewButton('Р—Р°РєСЂС‹С‚СЊ');
+    var grActions = prop.NewGroup('Действия');
+    var btnMake = grActions.NewButton('Сформировать ведомость (HTML)');
+    var btnExcel = grActions.NewButton('Экспорт в Excel (CSV)');
+    var btnClose = grActions.NewButton('Закрыть');
 
-    // Р¤СѓРЅРєС†РёСЏ РіРµРЅРµСЂР°С†РёРё РѕС‚С‡РµС‚Р°
+    // Функция генерации отчета
     function generateReport(isExcelExport) {
-        // РљР°СЂС‚Р° СЃС‚РёР»РµР№
+        // Карта стилей
         var chosenStyles = {};
         for (var matName in edgeStyleSelectors) {
             var idx = edgeStyleSelectors[matName].ItemIndex;
@@ -117,7 +117,7 @@
         var marginPct = marginProp.Value;
         if (isNaN(marginPct) || marginPct < 0) marginPct = 0;
 
-        // РћР±СЂР°Р±РѕС‚РєР° РґРµС‚Р°Р»РµР№
+        // Обработка деталей
         var partsData = [];
         var totalEdgeLengths = {};
         for (var em = 0; em < edgeMaterialsList.length; em++) {
@@ -135,7 +135,7 @@
             var dimH = Math.round(rawH * 10) / 10;
             var thick = Math.round(rawTh * 10) / 10;
 
-            // РћРїСЂРµРґРµР»РµРЅРёРµ РѕСЂРёРµРЅС‚Р°С†РёРё: Р”Р»РёРЅР° Рё РЁРёСЂРёРЅР°
+            // Определение ориентации: Длина и Ширина
             var lengthDim, widthDim, isLengthAlongX;
             var texDir = panel.TextureOrientation;
             
@@ -148,7 +148,7 @@
                 widthDim = dimW;
                 isLengthAlongX = false;
             } else {
-                // РџРѕ СЃС‚Р°РЅРґР°СЂС‚Сѓ: Р”Р»РёРЅР° >= РЁРёСЂРёРЅР°
+                // По стандарту: Длина >= Ширина
                 if (dimW >= dimH) {
                     lengthDim = dimW;
                     widthDim = dimH;
@@ -160,7 +160,7 @@
                 }
             }
 
-            // РђРЅР°Р»РёР· С‚РѕСЂС†РѕРІ РєРѕРЅС‚СѓСЂР°
+            // Анализ торцов контура
             var lengthEdges = [];
             var widthEdges = [];
 
@@ -172,7 +172,7 @@
                     var elemLen = Math.sqrt(dx * dx + dy * dy);
                     var isHoriz = (dx >= dy);
 
-                    // РС‰РµРј РєСЂРѕРјРєСѓ РЅР° СЌР»РµРјРµРЅС‚Рµ c
+                    // Ищем кромку на элементе c
                     var elemEdgeMat = null;
                     if (panel.Butts && panel.Butts.Count) {
                         for (var bIdx = 0; bIdx < panel.Butts.Count; bIdx++) {
@@ -185,7 +185,7 @@
                     }
 
                     if (elemEdgeMat) {
-                        // РЎСѓРјРјРёСЂСѓРµРј РјРµС‚СЂР°Р¶
+                        // Суммируем метраж
                         if (totalEdgeLengths[elemEdgeMat] !== undefined) {
                             totalEdgeLengths[elemEdgeMat] += (elemLen / 1000.0);
                         } else {
@@ -193,7 +193,7 @@
                         }
                     }
 
-                    // РћС‚РЅРѕСЃРёРј Рє РґР»РёРЅРµ РёР»Рё С€РёСЂРёРЅРµ
+                    // Относим к длине или ширине
                     var belongsToLength = isLengthAlongX ? isHoriz : (!isHoriz);
                     if (belongsToLength) {
                         if (elemEdgeMat) lengthEdges.push(elemEdgeMat);
@@ -203,10 +203,10 @@
                 }
             }
 
-            // РќР°РёРјРµРЅРѕРІР°РЅРёРµ Рё РїРѕР·РёС†РёСЏ
+            // Наименование и позиция
             var posStr = panel.ArtPos ? ('' + panel.ArtPos).trim() : '';
-            var nameStr = panel.Name ? ('' + panel.Name).trim() : 'Р”РµС‚Р°Р»СЊ';
-            var fullTitle = posStr ? ('РџРѕР· ' + posStr + ' (' + nameStr + ')') : nameStr;
+            var nameStr = panel.Name ? ('' + panel.Name).trim() : 'Деталь';
+            var fullTitle = posStr ? ('Поз ' + posStr + ' (' + nameStr + ')') : nameStr;
 
             partsData.push({
                 posStr: posStr,
@@ -221,7 +221,7 @@
             });
         }
 
-        // Р“СЂСѓРїРїРёСЂРѕРІРєР° РѕРґРёРЅР°РєРѕРІС‹С… РґРµС‚Р°Р»РµР№
+        // Группировка одинаковых деталей
         var groupedParts = [];
         if (groupProp.Value) {
             var groupMap = {};
@@ -260,36 +260,36 @@
             groupedParts = partsData;
         }
 
-        // РЎРѕСЂС‚РёСЂРѕРІРєР°
+        // Сортировка
         var sortMode = sortProp.ItemIndex;
         groupedParts.sort(function(a, b) {
-            if (sortMode === 0) { // РџРѕ РїРѕР·РёС†РёРё
+            if (sortMode === 0) { // По позиции
                 var numA = parseInt(a.posStr.replace(/\D/g, ''), 10) || 0;
                 var numB = parseInt(b.posStr.replace(/\D/g, ''), 10) || 0;
-                if (numA !== numB) return numB - numA; // РџРѕ СѓР±С‹РІР°РЅРёСЋ РєР°Рє РЅР° С„РѕС‚Рѕ (РџРѕР· 21, 20, 19, 18, 13, 8...)
+                if (numA !== numB) return numB - numA; // По убыванию как на фото (Поз 21, 20, 19, 18, 13, 8...)
                 return a.fullTitle.localeCompare(b.fullTitle);
-            } else if (sortMode === 1) { // РџРѕ РґР»РёРЅРµ
+            } else if (sortMode === 1) { // По длине
                 if (b.length !== a.length) return b.length - a.length;
                 return b.width - a.width;
-            } else { // РџРѕ РЅР°РёРјРµРЅРѕРІР°РЅРёСЋ
+            } else { // По наименованию
                 return a.fullTitle.localeCompare(b.fullTitle);
             }
         });
 
-        // РџРµСЂРµСЃС‡РµС‚ РјРµС‚СЂР°Р¶Р° СЃ СѓС‡РµС‚РѕРј РєРѕР»РёС‡РµСЃС‚РІР° РїРѕСЃР»Рµ РіСЂСѓРїРїРёСЂРѕРІРєРё (РµСЃР»Рё СЃС‡РёС‚Р°Р»Рё РїРѕ 1 С€С‚.)
-        // totalEdgeLengths СѓР¶Рµ СЃРѕР±СЂР°РЅ С‚РѕС‡РЅРѕ РїРѕ РІСЃРµРј РїР°РЅРµР»СЏРј РјРѕРґРµР»Рё!
+        // Пересчет метража с учетом количества после группировки (если считали по 1 шт.)
+        // totalEdgeLengths уже собран точно по всем панелям модели!
 
         if (isExcelExport) {
             exportToCSV(groupedParts, totalEdgeLengths, chosenStyles, marginPct);
             return;
         }
 
-        // Р¤РѕСЂРјРёСЂРѕРІР°РЅРёРµ HTML
+        // Формирование HTML
         generateHTMLReport(groupedParts, totalEdgeLengths, chosenStyles, marginPct);
     }
 
     function generateHTMLReport(parts, edgeTotals, styles, marginPct) {
-        var modelName = 'РЁРєР°С„';
+        var modelName = 'Шкаф';
         if (Model.FileName) {
             var partsPath = Model.FileName.split('\\');
             modelName = partsPath[partsPath.length - 1];
@@ -311,8 +311,8 @@
         html.push('<!DOCTYPE html>');
         html.push('<html lang="ru">');
         html.push('<head>');
-        html.push('<meta charset="UTF-8">');
-        html.push('<title>Р’РµРґРѕРјРѕСЃС‚СЊ РґРµС‚Р°Р»РµР№ Рё РєСЂРѕРјР»РµРЅРёСЏ - ' + modelName + '</title>');
+        html.push('<meta charset="windows-1251">');
+        html.push('<title>Ведомость деталей и кромления - ' + modelName + '</title>');
         html.push('<style>');
         html.push('@page { size: A4 portrait; margin: 10mm 10mm 10mm 10mm; }');
         html.push('body { font-family: "Segoe UI", Arial, sans-serif; background: #f4f6f8; margin: 20px; color: #111; }');
@@ -330,7 +330,7 @@
         html.push('.title { text-align: center; font-size: 21px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }');
         html.push('.subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 22px; }');
         
-        // РЎРІРѕРґРЅР°СЏ С‚Р°Р±Р»РёС†Р° РєСЂРѕРјРѕРє
+        // Сводная таблица кромок
         html.push('.summary-card { background: #fbfcfe; border: 1.5px solid #d0d7de; border-radius: 6px; padding: 14px 18px; margin-bottom: 22px; }');
         html.push('.summary-title { font-weight: bold; font-size: 14.5px; margin-bottom: 10px; color: #24292f; }');
         html.push('.summary-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }');
@@ -339,14 +339,14 @@
         html.push('.legend-swatch { display: inline-flex; align-items: center; gap: 10px; }');
         html.push('.swatch-line { display: inline-block; width: 45px; height: 0; vertical-align: middle; }');
 
-        // РћСЃРЅРѕРІРЅР°СЏ С‚Р°Р±Р»РёС†Р° РґРµС‚Р°Р»РµР№
+        // Основная таблица деталей
         html.push('table.parts-table { width: 100%; border-collapse: collapse; font-family: "ISOCPEUR", "Consolas", "Courier New", monospace; font-size: 15px; }');
         html.push('table.parts-table th, table.parts-table td { border: 1.5px solid #222; padding: 6px 10px; text-align: center; }');
         html.push('table.parts-table th { background: #ededed; font-weight: bold; font-size: 15px; letter-spacing: 0.5px; }');
         html.push('table.parts-table td.col-pos { text-align: left; font-family: "Segoe UI", Arial, sans-serif; font-size: 13.5px; }');
         html.push('table.parts-table tr.total-row { font-weight: bold; background: #fafafa; font-size: 15px; }');
 
-        // РЎС‚РёР»Рё РїРѕРґС‡РµСЂРєРёРІР°РЅРёР№ РєСЂРѕРјРѕРє
+        // Стили подчеркиваний кромок
         html.push('.cell-num { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 48px; padding: 1px 3px; }');
         html.push('.val-text { font-size: 16px; font-weight: bold; line-height: 1.25; }');
         html.push('.edge-lines-box { width: 100%; min-width: 42px; display: flex; flex-direction: column; gap: 2.5px; margin-top: 1.5px; }');
@@ -361,32 +361,32 @@
         html.push('<body>');
         html.push('<div class="container">');
         
-        // РљРЅРѕРїРєРё
+        // Кнопки
         html.push('<div class="btn-bar no-print">');
-        html.push('<button class="btn" onclick="window.print()">рџ–ЁпёЏ РџРµС‡Р°С‚СЊ / РЎРѕС…СЂР°РЅРёС‚СЊ РІ PDF</button>');
-        html.push('<button class="btn btn-copy" onclick="copyTable()">рџ“‹ РЎРєРѕРїРёСЂРѕРІР°С‚СЊ РґР»СЏ Excel</button>');
+        html.push('<button class="btn" onclick="window.print()">Печать Печать / Сохранить в PDF</button>');
+        html.push('<button class="btn btn-copy" onclick="copyTable()">Копировать Скопировать для Excel</button>');
         html.push('</div>');
 
-        // Р—Р°РіРѕР»РѕРІРєРё
-        html.push('<div class="title">Р’РµРґРѕРјРѕСЃС‚СЊ РґРµС‚Р°Р»РµР№ Рё РєСЂРѕРјР»РµРЅРёСЏ</div>');
-        html.push('<div class="subtitle">РњРѕРґРµР»СЊ: <strong>' + modelName + '</strong> | Р”Р°С‚Р° С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ: ' + dateStr + '</div>');
+        // Заголовки
+        html.push('<div class="title">Ведомость деталей и кромления</div>');
+        html.push('<div class="subtitle">Модель: <strong>' + modelName + '</strong> | Дата формирования: ' + dateStr + '</div>');
 
-        // РЎРІРѕРґРєР° РїРѕ РєСЂРѕРјРєР°Рј
+        // Сводка по кромкам
         html.push('<div class="summary-card">');
-        html.push('<div class="summary-title">РЎРІРѕРґРєР° РЅРµРѕР±С…РѕРґРёРјРѕР№ РєСЂРѕРјРєРё (Р·Р°РїР°СЃ: ' + marginPct + '%)</div>');
+        html.push('<div class="summary-title">Сводка необходимой кромки (запас: ' + marginPct + '%)</div>');
         html.push('<table class="summary-table">');
-        html.push('<thead><tr><th>РљСЂРѕРјРѕС‡РЅС‹Р№ РјР°С‚РµСЂРёР°Р»</th><th>РћР±РѕР·РЅР°С‡РµРЅРёРµ РІ С‚Р°Р±Р»РёС†Рµ</th><th>Р§РёСЃС‚Р°СЏ РґР»РёРЅР° (Рј)</th><th>РЎ СѓС‡РµС‚РѕРј Р·Р°РїР°СЃР° ' + marginPct + '% (Рј)</th></tr></thead>');
+        html.push('<thead><tr><th>Кромочный материал</th><th>Обозначение в таблице</th><th>Чистая длина (м)</th><th>С учетом запаса ' + marginPct + '% (м)</th></tr></thead>');
         html.push('<tbody>');
 
         for (var em = 0; em < edgeMaterialsList.length; em++) {
             var emName = edgeMaterialsList[em].name;
             var emThick = edgeMaterialsList[em].thickness;
-            var sInfo = styles[emName] || { key: 'solid', label: 'РЎРїР»РѕС€РЅР°СЏ Р»РёРЅРёСЏ' };
+            var sInfo = styles[emName] || { key: 'solid', label: 'Сплошная линия' };
             var netMeters = edgeTotals[emName] || 0;
             var grossMeters = netMeters * (1.0 + marginPct / 100.0);
 
             html.push('<tr>');
-            html.push('<td><strong>' + emName + '</strong> (' + emThick + ' РјРј)</td>');
+            html.push('<td><strong>' + emName + '</strong> (' + emThick + ' мм)</td>');
             html.push('<td><span class="legend-swatch"><span class="swatch-line line-' + sInfo.key + '"></span><span>' + sInfo.label + '</span></span></td>');
             html.push('<td>' + netMeters.toFixed(2) + '</td>');
             html.push('<td><strong>' + grossMeters.toFixed(2) + '</strong></td>');
@@ -395,10 +395,10 @@
 
         html.push('</tbody></table></div>');
 
-        // РћСЃРЅРѕРІРЅР°СЏ С‚Р°Р±Р»РёС†Р° РґРµС‚Р°Р»РµР№
+        // Основная таблица деталей
         html.push('<table class="parts-table" id="partsTable">');
         html.push('<thead>');
-        html.push('<tr><th style="width: 50%;">РџРѕР·.</th><th style="width: 17%;">Р”Р»РёРЅР°</th><th style="width: 17%;">РЁРёСЂРёРЅР°</th><th style="width: 16%;">РљРѕР»-РІРѕ</th></tr>');
+        html.push('<tr><th style="width: 50%;">Поз.</th><th style="width: 17%;">Длина</th><th style="width: 17%;">Ширина</th><th style="width: 16%;">Кол-во</th></tr>');
         html.push('</thead>');
         html.push('<tbody>');
 
@@ -428,7 +428,7 @@
         }
 
         html.push('<tr class="total-row">');
-        html.push('<td class="col-pos"><strong>РС‚РѕРіРѕ</strong></td>');
+        html.push('<td class="col-pos"><strong>Итого</strong></td>');
         html.push('<td></td>');
         html.push('<td></td>');
         html.push('<td><strong>' + totalPartsCount + '</strong></td>');
@@ -437,7 +437,7 @@
         html.push('</tbody></table>');
         html.push('</div>'); // container
 
-        // JS РґР»СЏ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+        // JS для копирования
         html.push('<script>');
         html.push('function copyTable() {');
         html.push('  var tbl = document.getElementById("partsTable");');
@@ -451,7 +451,7 @@
         html.push('    rows.push(cells.join("\\t"));');
         html.push('  }');
         html.push('  navigator.clipboard.writeText(rows.join("\\n")).then(function() {');
-        html.push('    alert("РўР°Р±Р»РёС†Р° СЃРєРѕРїРёСЂРѕРІР°РЅР° РІ Р±СѓС„РµСЂ РѕР±РјРµРЅР°! Р’С‹ РјРѕР¶РµС‚Рµ РІСЃС‚Р°РІРёС‚СЊ РµРµ РІ Excel (Ctrl+V).");');
+        html.push('    alert("Таблица скопирована в буфер обмена! Вы можете вставить ее в Excel (Ctrl+V).");');
         html.push('  });');
         html.push('}');
         html.push('</script>');
@@ -460,17 +460,17 @@
 
         var fullHtml = html.join('\n');
 
-        // РЎРѕС…СЂР°РЅРµРЅРёРµ С„Р°Р№Р»Р°
+        // Сохранение файла
         var savePath = '';
         if (Model.FileName) {
-            savePath = Model.FileName.replace(/\.[^/.]+$/, "") + "_РІРµРґРѕРјРѕСЃС‚СЊ_РґРµС‚Р°Р»РµР№.html";
+            savePath = Model.FileName.replace(/\.[^/.]+$/, "") + "_ведомость_деталей.html";
         } else {
-            savePath = 'C:\\Users\\maxim\\OneDrive\\Desktop\\Р’РµРґРѕРјРѕСЃС‚СЊ_РґРµС‚Р°Р»РµР№_Рё_РєСЂРѕРјР»РµРЅРёСЏ.html';
+            savePath = 'C:\\Users\\maxim\\OneDrive\\Desktop\\Ведомость_деталей_и_кромления.html';
         }
 
         system.writeTextFile(savePath, fullHtml);
 
-        // РћС‚РєСЂС‹С‚РёРµ РІ Р±СЂР°СѓР·РµСЂРµ
+        // Открытие в браузере
         try {
             var sh = NewCOMObject('WScript.Shell');
             sh.Run('"' + savePath + '"');
@@ -481,7 +481,7 @@
 
     function exportToCSV(parts, edgeTotals, styles, marginPct) {
         var csvLines = [];
-        csvLines.push('РџРѕР·.;Р”Р»РёРЅР°;РЁРёСЂРёРЅР°;РљРѕР»-РІРѕ;РљСЂРѕРјРєР°_Р”Р»РёРЅР°;РљСЂРѕРјРєР°_РЁРёСЂРёРЅР°');
+        csvLines.push('Поз.;Длина;Ширина;Кол-во;Кромка_Длина;Кромка_Ширина');
         for (var i = 0; i < parts.length; i++) {
             var p = parts[i];
             var lEdges = p.lengthEdges.join(', ');
@@ -490,7 +490,7 @@
         }
 
         csvLines.push('');
-        csvLines.push('РЎР’РћР”РљРђ РљР РћРњРљР;Р§РёСЃС‚Р°СЏ_РґР»РёРЅР°_Рј;Р—Р°РїР°СЃ_' + marginPct + '%;РС‚РѕРіРѕ_Рј');
+        csvLines.push('СВОДКА КРОМКИ;Чистая_длина_м;Запас_' + marginPct + '%;Итого_м');
         for (var em = 0; em < edgeMaterialsList.length; em++) {
             var emName = edgeMaterialsList[em].name;
             var net = edgeTotals[emName] || 0;
@@ -500,16 +500,16 @@
 
         var csvPath = '';
         if (Model.FileName) {
-            csvPath = Model.FileName.replace(/\.[^/.]+$/, "") + "_РІРµРґРѕРјРѕСЃС‚СЊ_РґРµС‚Р°Р»РµР№.csv";
+            csvPath = Model.FileName.replace(/\.[^/.]+$/, "") + "_ведомость_деталей.csv";
         } else {
-            csvPath = 'C:\\Users\\maxim\\OneDrive\\Desktop\\Р’РµРґРѕРјРѕСЃС‚СЊ_РґРµС‚Р°Р»РµР№_Рё_РєСЂРѕРјР»РµРЅРёСЏ.csv';
+            csvPath = 'C:\\Users\\maxim\\OneDrive\\Desktop\\Ведомость_деталей_и_кромления.csv';
         }
 
         system.writeTextFile(csvPath, csvLines.join('\r\n'));
-        alert('Р¤Р°Р№Р» CSV СѓСЃРїРµС€РЅРѕ СЃРѕС…СЂР°РЅРµРЅ:\n' + csvPath);
+        alert('Файл CSV успешно сохранен:\n' + csvPath);
     }
 
-    // РџСЂРёРІСЏР·РєР° РєРЅРѕРїРѕРє
+    // Привязка кнопок
     btnMake.OnClick = function() {
         generateReport(false);
     };
@@ -522,7 +522,7 @@
         Action.Finish();
     };
 
-    // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРё РіРµРЅРµСЂРёСЂСѓРµРј РѕС‚С‡РµС‚ СЃСЂР°Р·Сѓ РїСЂРё РїРµСЂРІРѕРј Р·Р°РїСѓСЃРєРµ!
+    // Автоматически генерируем отчет сразу при первом запуске!
     generateReport(false);
 
     Action.Continue();
