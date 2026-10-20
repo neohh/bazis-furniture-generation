@@ -1,10 +1,9 @@
 // =============================================================================
 // Базис-Мебельщик: Скрипт формирования ведомости деталей и кромления
-// Версия 2.0 (с интерактивной регулировкой компактности и умещением на 1 лист)
+// Версия 2.5: Скачивание в PNG, альбомная/книжная ориентация, компактность
 // =============================================================================
 
 (function() {
-    // 1. Сбор всех панелей модели
     var allPanels = [];
     
     function collectPanels(obj) {
@@ -32,7 +31,6 @@
         return;
     }
 
-    // 2. Поиск всех уникальных кромочных материалов в модели
     var uniqueButtsMap = {};
     for (var p = 0; p < allPanels.length; p++) {
         var pan = allPanels[p];
@@ -57,7 +55,6 @@
         edgeMaterialsList.push(uniqueButtsMap[k]);
     }
 
-    // Сортируем кромки: сначала более толстые (0.8 / 1.0 / 2.0), затем более тонкие (0.4)
     edgeMaterialsList.sort(function(a, b) {
         return b.thickness - a.thickness;
     });
@@ -72,7 +69,6 @@
 
     var styleKeys = ['solid', 'dashed', 'dotted', 'double', 'dashdot'];
 
-    // 3. Создание панели свойств в Базисе
     var prop = Action.Properties;
     prop.Clear();
 
@@ -99,7 +95,6 @@
     var btnExcel = grActions.NewButton('Экспорт в Excel (CSV)');
     var btnClose = grActions.NewButton('Закрыть');
 
-    // Функция генерации отчета
     function generateReport(isExcelExport) {
         var chosenStyles = {};
         for (var matName in edgeStyleSelectors) {
@@ -195,7 +190,7 @@
 
             var posStr = panel.ArtPos ? ('' + panel.ArtPos).trim() : '';
             var nameStr = panel.Name ? ('' + panel.Name).trim() : 'Деталь';
-            var baseName = nameStr.replace(/\s*\d+$/, ''); // Базовое имя без индекса в конце
+            var baseName = nameStr.replace(/\s*\d+$/, '');
             
             var fullTitle = posStr ? ('Поз ' + posStr + ' (' + nameStr + ')') : nameStr;
             var cleanTitle = posStr ? ('Поз ' + posStr + ' (' + baseName + ')') : baseName;
@@ -215,80 +210,15 @@
             });
         }
 
-        // Функция группировки списка деталей
-        function groupPartsList(rawList, useSmartGroup) {
-            var groupMap = {};
-            var result = [];
-
-            for (var p = 0; p < rawList.length; p++) {
-                var item = rawList[p];
-                var titleToUse = useSmartGroup ? item.cleanTitle : item.fullTitle;
-                var lSort = item.lengthEdges.slice().sort().join('__');
-                var wSort = item.widthEdges.slice().sort().join('__');
-                var groupKey = [
-                    titleToUse,
-                    item.length,
-                    item.width,
-                    item.thickness,
-                    lSort,
-                    wSort
-                ].join('###');
-
-                if (groupMap[groupKey]) {
-                    groupMap[groupKey].count += 1;
-                } else {
-                    var copy = {
-                        posStr: item.posStr,
-                        nameStr: item.nameStr,
-                        baseName: item.baseName,
-                        fullTitle: titleToUse,
-                        length: item.length,
-                        width: item.width,
-                        thickness: item.thickness,
-                        lengthEdges: item.lengthEdges,
-                        widthEdges: item.widthEdges,
-                        count: 1
-                    };
-                    groupMap[groupKey] = copy;
-                    result.push(copy);
-                }
-            }
-            return result;
-        }
-
-        var isGrouped = groupProp.Value;
-        var useSmart = smartGroupProp.Value;
-        var finalParts = isGrouped ? groupPartsList(partsData, useSmart) : partsData;
-
-        // Сортировка
-        var sortMode = sortProp.ItemIndex;
-        function sortParts(list) {
-            list.sort(function(a, b) {
-                if (sortMode === 0) { // По позиции
-                    var numA = parseInt(a.posStr.replace(/\D/g, ''), 10) || 0;
-                    var numB = parseInt(b.posStr.replace(/\D/g, ''), 10) || 0;
-                    if (numA !== numB) return numB - numA;
-                    return a.fullTitle.localeCompare(b.fullTitle);
-                } else if (sortMode === 1) { // По длине
-                    if (b.length !== a.length) return b.length - a.length;
-                    return b.width - a.width;
-                } else { // По наименованию
-                    return a.fullTitle.localeCompare(b.fullTitle);
-                }
-            });
-        }
-        sortParts(finalParts);
-
         if (isExcelExport) {
-            exportToCSV(finalParts, totalEdgeLengths, chosenStyles, marginPct);
+            exportToCSV(partsData, totalEdgeLengths, chosenStyles, marginPct);
             return;
         }
 
-        // Передаем также сырой список, чтобы в браузере можно было переключать группировку на лету!
-        generateHTMLReport(finalParts, partsData, totalEdgeLengths, chosenStyles, marginPct, useSmart);
+        generateHTMLReport(partsData, totalEdgeLengths, chosenStyles, marginPct, smartGroupProp.Value);
     }
 
-    function generateHTMLReport(parts, rawParts, edgeTotals, styles, marginPct, initialSmartGroup) {
+    function generateHTMLReport(rawParts, edgeTotals, styles, marginPct, initialSmartGroup) {
         var modelName = 'Шкаф';
         if (Model.FileName) {
             var partsPath = Model.FileName.split('\\');
@@ -310,12 +240,12 @@
         html.push('<title>Ведомость деталей и кромления - ' + modelName + '</title>');
         html.push('<script src="html2canvas.min.js"></script>');
         html.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>');
+        
         html.push('<style id="printOrientationStyle">');
-        html.push('@page { size: A4 landscape; margin: 8mm 6mm 8mm 6mm; }');
+        html.push('@page { size: landscape; margin: 8mm; }');
         html.push('</style>');
+
         html.push('<style>');
-        html.push('.tb-btn-png { background: #7c3aed; border-color: #6d28d9; color: #fff; font-weight: bold; }');
-        html.push('.tb-btn-png:hover { background: #6d28d9; }');
         html.push('body { font-family: "Segoe UI", Arial, sans-serif; background: #eef1f5; margin: 15px auto; color: #111; }');
         html.push('@media print {');
         html.push('  body { background: #fff !important; margin: 0 !important; }');
@@ -323,13 +253,14 @@
         html.push('  .page-box { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }');
         html.push('}');
         
-        // Toolbar
-        html.push('.toolbar { max-width: 960px; margin: 0 auto 15px auto; background: #24292f; color: #fff; padding: 10px 16px; border-radius: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }');
+        html.push('.toolbar { max-width: 1100px; margin: 0 auto 15px auto; background: #1e293b; color: #fff; padding: 10px 16px; border-radius: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }');
         html.push('.tb-group { display: flex; align-items: center; gap: 6px; }');
         html.push('.tb-label { font-size: 12.5px; color: #cbd5e1; font-weight: 500; }');
-        html.push('.tb-btn { background: #334155; color: #fff; border: 1px solid #475569; padding: 5px 11px; font-size: 12.5px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: 0.15s; user-select: none; }');
+        html.push('.tb-btn { background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 12px; font-size: 12.5px; font-weight: 600; border-radius: 5px; cursor: pointer; transition: 0.15s; user-select: none; }');
         html.push('.tb-btn:hover { background: #475569; }');
         html.push('.tb-btn.active { background: #0284c7; border-color: #38bdf8; }');
+        html.push('.tb-btn-png { background: #7c3aed; border-color: #6d28d9; color: #fff; font-weight: bold; }');
+        html.push('.tb-btn-png:hover { background: #6d28d9; }');
         html.push('.tb-btn-primary { background: #0284c7; border-color: #0284c7; }');
         html.push('.tb-btn-primary:hover { background: #0369a1; }');
         html.push('.tb-btn-success { background: #16a34a; border-color: #16a34a; }');
@@ -337,29 +268,25 @@
         html.push('.tb-btn-preset { background: #d97706; border-color: #f59e0b; color: #fff; font-weight: bold; }');
         html.push('.tb-btn-preset:hover { background: #b45309; }');
 
-        // Page container
-        html.push('.page-box { max-width: 960px; margin: 0 auto; background: #fff; padding: 18px 24px; border-radius: 8px; box-shadow: 0 3px 15px rgba(0,0,0,0.08); border: 1px solid #e1e4e8; transition: transform 0.15s ease; transform-origin: top center; }');
-        html.push('.title-bar { text-align: center; margin-bottom: 12px; }');
-        html.push('.title { font-size: 19px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }');
+        html.push('.page-box { max-width: 1100px; margin: 0 auto; background: #fff; padding: 16px 22px; border-radius: 8px; box-shadow: 0 3px 15px rgba(0,0,0,0.08); border: 1px solid #e1e4e8; transition: max-width 0.2s ease; transform-origin: top center; }');
+        html.push('.title-bar { text-align: center; margin-bottom: 10px; }');
+        html.push('.title { font-size: 18.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }');
         html.push('.subtitle { font-size: 12px; color: #666; margin-top: 2px; }');
 
-        // Сводка кромки
-        html.push('.summary-card { background: #fbfcfe; border: 1px solid #d0d7de; border-radius: 5px; padding: 8px 12px; margin-bottom: 12px; }');
-        html.push('.summary-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #24292f; }');
+        html.push('.summary-card { background: #fbfcfe; border: 1px solid #d0d7de; border-radius: 5px; padding: 7px 12px; margin-bottom: 10px; }');
+        html.push('.summary-title { font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #24292f; }');
         html.push('.summary-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }');
         html.push('.summary-table th, .summary-table td { border: 1px solid #d0d7de; padding: 4px 8px; text-align: left; }');
         html.push('.summary-table th { background: #f6f8fa; font-weight: 600; }');
         html.push('.legend-swatch { display: inline-flex; align-items: center; gap: 8px; }');
         html.push('.swatch-line { display: inline-block; width: 40px; height: 0; vertical-align: middle; }');
 
-        // Основная таблица деталей
         html.push('table.parts-table { width: 100%; border-collapse: collapse; font-family: "ISOCPEUR", "Consolas", "Courier New", monospace; font-size: 14.5px; }');
-        html.push('table.parts-table th, table.parts-table td { border: 1.5px solid #222; padding: 5px 8px; text-align: center; }');
+        html.push('table.parts-table th, table.parts-table td { border: 1.5px solid #222; padding: 4.5px 7px; text-align: center; }');
         html.push('table.parts-table th { background: #ededed; font-weight: bold; font-size: 14px; letter-spacing: 0.5px; }');
         html.push('table.parts-table td.col-pos { text-align: left; font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }');
         html.push('table.parts-table tr.total-row { font-weight: bold; background: #fafafa; font-size: 14.5px; }');
 
-        // Подчеркивания
         html.push('.cell-num { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; padding: 1px 2px; }');
         html.push('.val-text { font-size: 15.5px; font-weight: bold; line-height: 1.25; }');
         html.push('.edge-lines-box { width: 100%; min-width: 38px; display: flex; flex-direction: column; gap: 2px; margin-top: 1.5px; }');
@@ -370,29 +297,25 @@
         html.push('.line-double { border-bottom: 3.5px double #000; }');
         html.push('.line-dashdot { border-bottom: 2.5px dashed #000; }');
 
-        // Плотность строк
         html.push('.density-compact table.parts-table th, .density-compact table.parts-table td { padding: 2.5px 5px !important; }');
         html.push('.density-compact .val-text { font-size: 14px !important; }');
         html.push('.density-compact .col-pos { font-size: 12px !important; }');
         html.push('.density-compact .edge-lines-box { gap: 1.5px !important; margin-top: 1px !important; }');
-        
+
         html.push('.density-ultra table.parts-table th, .density-ultra table.parts-table td { padding: 1.5px 4px !important; }');
         html.push('.density-ultra .val-text { font-size: 13px !important; }');
         html.push('.density-ultra .col-pos { font-size: 11px !important; }');
 
-        // Двухколоночный режим
         html.push('.cols-flex-wrapper { display: flex; gap: 12px; width: 100%; align-items: flex-start; }');
         html.push('.col-half { flex: 1; min-width: 0; }');
-
         html.push('</style>');
         html.push('</head>');
         html.push('<body>');
 
-        // Панель управления компактностью в браузере
         html.push('<div class="toolbar no-print">');
         
         html.push('<div class="tb-group">');
-        html.push('<button class="tb-btn tb-btn-png" onclick="downloadPNG()" title="Сохранить всю таблицу как картинку PNG высокого качества">&#128247; Скачать как PNG</button>');
+        html.push('<button class="tb-btn tb-btn-png" onclick="downloadPNG()" title="Сохранить всю таблицу как картинку PNG">&#128247; Скачать как PNG</button>');
         html.push('<button class="tb-btn tb-btn-primary" onclick="window.print()">Печать / Экспорт в PDF</button>');
         html.push('<button class="tb-btn tb-btn-success" onclick="copyTable()">Копировать для Excel</button>');
         html.push('</div>');
@@ -404,18 +327,14 @@
         html.push('</div>');
 
         html.push('<div class="tb-group">');
-        html.push('<button class="tb-btn tb-btn-preset" onclick="presetFitOnePage()" title="Автоматически настроит компактность, чтобы все влезло на 1 лист А4">&#9889; Вместить на 1 лист А4</button>');
-        html.push('</div>');
-
-        html.push('<div class="tb-group">');
         html.push('<span class="tb-label">Вид:</span>');
-        html.push('<button id="btnCol1" class="tb-btn active" onclick="setColumns(1)">1 колонка</button>');
-        html.push('<button id="btnCol2" class="tb-btn" onclick="setColumns(2)">2 колонки</button>');
+        html.push('<button id="btnCol2" class="tb-btn active" onclick="setColumns(2)">2 колонки</button>');
+        html.push('<button id="btnCol1" class="tb-btn" onclick="setColumns(1)">1 колонка</button>');
         html.push('</div>');
 
         html.push('<div class="tb-group">');
         html.push('<span class="tb-label">Плотность:</span>');
-        html.push('<button id="btnDensity" class="tb-btn" onclick="cycleDensity()">Обычная</button>');
+        html.push('<button id="btnDensity" class="tb-btn" onclick="cycleDensity()">Компактная</button>');
         html.push('</div>');
 
         html.push('<div class="tb-group">');
@@ -426,20 +345,17 @@
         html.push('</div>');
 
         html.push('<div class="tb-group">');
-        html.push('<label class="tb-label" style="cursor:pointer;"><input type="checkbox" id="chkSmartGroup" ' + (initialSmartGroup ? 'checked' : '') + ' onchange="toggleSmartGroup(this.checked)"> Умное объединение полок</label>');
+        html.push('<label class="tb-label" style="cursor:pointer;"><input type="checkbox" id="chkSmartGroup" checked onchange="toggleSmartGroup(this.checked)"> Умное объединение полок</label>');
         html.push('</div>');
 
         html.push('</div>'); // .toolbar
 
-        // Тело документа
-        html.push('<div class="page-box" id="pageBox">');
-        
+        html.push('<div class="page-box density-compact" id="pageBox">');
         html.push('<div class="title-bar">');
         html.push('<h1 class="title">Ведомость деталей и кромления</h1>');
         html.push('<div class="subtitle">Модель: <strong>' + modelName + '</strong> | Дата: ' + dateStr + '</div>');
         html.push('</div>');
 
-        // Сводка по кромкам
         html.push('<div class="summary-card" id="summaryCard">');
         html.push('<div class="summary-title">Сводка необходимой кромки (запас: ' + marginPct + '%)</div>');
         html.push('<table class="summary-table">');
@@ -463,22 +379,20 @@
 
         html.push('</tbody></table></div>');
 
-        // Контейнер под таблицу деталей (динамически перерисовывается)
         html.push('<div id="tableMount"></div>');
-
         html.push('</div>'); // .page-box
 
-        // Передача сырых данных в JS для динамического переключения
         var jsonRaw = JSON.stringify(rawParts);
         var jsonStyles = JSON.stringify(styles);
 
         html.push('<script>');
         html.push('var rawData = ' + jsonRaw + ';');
         html.push('var stylesMap = ' + jsonStyles + ';');
-        html.push('var currentCols = 1;');
-        html.push('var currentDensity = 0; // 0 = normal, 1 = compact, 2 = ultra');
+        html.push('var currentCols = 2;');
+        html.push('var currentDensity = 1;');
         html.push('var currentZoom = 100;');
-        html.push('var isSmartGroup = ' + (initialSmartGroup ? 'true' : 'false') + ';');
+        html.push('var isSmartGroup = true;');
+        html.push('var isLandscape = true;');
 
         html.push('function getGroupedData(smart) {');
         html.push('  var map = {}; var res = [];');
@@ -555,6 +469,23 @@
         html.push('  render();');
         html.push('}');
 
+        html.push('function setOrientation(landscape) {');
+        html.push('  isLandscape = landscape;');
+        html.push('  document.getElementById("btnOrientLandscape").className = "tb-btn" + (landscape ? " active" : "");');
+        html.push('  document.getElementById("btnOrientPortrait").className = "tb-btn" + (!landscape ? " active" : "");');
+        html.push('  var st = document.getElementById("printOrientationStyle");');
+        html.push('  var box = document.getElementById("pageBox");');
+        html.push('  if (landscape) {');
+        html.push('    st.innerHTML = "@page { size: landscape; margin: 8mm; }";');
+        html.push('    box.style.maxWidth = "1100px";');
+        html.push('    setColumns(2);');
+        html.push('  } else {');
+        html.push('    st.innerHTML = "@page { size: portrait; margin: 8mm; }";');
+        html.push('    box.style.maxWidth = "880px";');
+        html.push('    setColumns(1);');
+        html.push('  }');
+        html.push('}');
+
         html.push('function cycleDensity() {');
         html.push('  currentDensity = (currentDensity + 1) % 3;');
         html.push('  applyDensity();');
@@ -585,23 +516,34 @@
         html.push('  render();');
         html.push('}');
 
-        html.push('function presetFitOnePage() {');
-        html.push('  isSmartGroup = true;');
-        html.push('  document.getElementById("chkSmartGroup").checked = true;');
-        html.push('  var data = getGroupedData(true);');
-        html.push('  if (data.length > 18) {');
-        html.push('    setColumns(2);');
-        html.push('    currentDensity = 1;');
-        html.push('    currentZoom = 95;');
-        html.push('  } else {');
-        html.push('    setColumns(1);');
-        html.push('    currentDensity = 1;');
-        html.push('    currentZoom = 90;');
+        html.push('function downloadPNG() {');
+        html.push('  var box = document.getElementById("pageBox");');
+        html.push('  var prevZoom = box.style.zoom;');
+        html.push('  box.style.zoom = 1;');
+        html.push('  function doCapture() {');
+        html.push('    html2canvas(box, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false }).then(function(canvas) {');
+        html.push('      box.style.zoom = prevZoom;');
+        html.push('      canvas.toBlob(function(blob) {');
+        html.push('        var url = URL.createObjectURL(blob);');
+        html.push('        var link = document.createElement("a");');
+        html.push('        link.download = "Ведомость_деталей_кромления.png";');
+        html.push('        link.href = url;');
+        html.push('        document.body.appendChild(link);');
+        html.push('        link.click();');
+        html.push('        setTimeout(function() { document.body.removeChild(link); URL.revokeObjectURL(url); }, 200);');
+        html.push('      }, "image/png");');
+        html.push('    }).catch(function(err) {');
+        html.push('      box.style.zoom = prevZoom;');
+        html.push('      alert("Ошибка при создании PNG: " + err);');
+        html.push('    });');
         html.push('  }');
-        html.push('  applyDensity();');
-        html.push('  applyZoom();');
-        html.push('  render();');
-        html.push('  alert("Настройки оптимизированы под 1 лист А4! Теперь можете нажать «Печать / Экспорт в PDF».");');
+        html.push('  if (typeof html2canvas === "undefined") {');
+        html.push('    var s = document.createElement("script");');
+        html.push('    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";');
+        html.push('    s.onload = doCapture;');
+        html.push('    s.onerror = function() { box.style.zoom = prevZoom; alert("Не удалось загрузить библиотеку сохранения PNG."); };');
+        html.push('    document.head.appendChild(s);');
+        html.push('  } else { doCapture(); }');
         html.push('}');
 
         html.push('function copyTable() {');
@@ -621,7 +563,6 @@
         html.push('applyDensity();');
         html.push('applyZoom();');
         html.push('</script>');
-
         html.push('</body></html>');
 
         var fullHtml = html.join('\n');
