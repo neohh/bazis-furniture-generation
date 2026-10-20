@@ -308,8 +308,14 @@
         html.push('<head>');
         html.push('<meta charset="windows-1251">');
         html.push('<title>Ведомость деталей и кромления - ' + modelName + '</title>');
+        html.push('<script src="html2canvas.min.js"></script>');
+        html.push('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>');
+        html.push('<style id="printOrientationStyle">');
+        html.push('@page { size: A4 landscape; margin: 8mm 6mm 8mm 6mm; }');
+        html.push('</style>');
         html.push('<style>');
-        html.push('@page { size: A4 portrait; margin: 8mm 6mm 8mm 6mm; }');
+        html.push('.tb-btn-png { background: #7c3aed; border-color: #6d28d9; color: #fff; font-weight: bold; }');
+        html.push('.tb-btn-png:hover { background: #6d28d9; }');
         html.push('body { font-family: "Segoe UI", Arial, sans-serif; background: #eef1f5; margin: 15px auto; color: #111; }');
         html.push('@media print {');
         html.push('  body { background: #fff !important; margin: 0 !important; }');
@@ -386,8 +392,15 @@
         html.push('<div class="toolbar no-print">');
         
         html.push('<div class="tb-group">');
+        html.push('<button class="tb-btn tb-btn-png" onclick="downloadPNG()" title="Сохранить всю таблицу как картинку PNG высокого качества">&#128247; Скачать как PNG</button>');
         html.push('<button class="tb-btn tb-btn-primary" onclick="window.print()">Печать / Экспорт в PDF</button>');
         html.push('<button class="tb-btn tb-btn-success" onclick="copyTable()">Копировать для Excel</button>');
+        html.push('</div>');
+
+        html.push('<div class="tb-group">');
+        html.push('<span class="tb-label">Ориентация:</span>');
+        html.push('<button id="btnOrientLandscape" class="tb-btn active" onclick="setOrientation(true)">Альбомная (А4)</button>');
+        html.push('<button id="btnOrientPortrait" class="tb-btn" onclick="setOrientation(false)">Книжная</button>');
         html.push('</div>');
 
         html.push('<div class="tb-group">');
