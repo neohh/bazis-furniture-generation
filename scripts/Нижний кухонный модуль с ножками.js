@@ -1,6 +1,9 @@
 // =============================================================================
-// Базис-Мебельщик: Генератор нижнего кухонного модуля (базы) с ножками под цоколь
-// Версия 2.0: Поддержка моделей ножек с готовой заводской присадкой (отверстиями)
+// Базис-Мебельщик: Генератор нижнего кухонного модуля (базы) под столешницу
+// Версия 3.0: 
+// - Две планки (царги 80 мм) под столешницу по умолчанию
+// - Ножки с 4-мя симметричными вычитающими цилиндрами d=5x12 мм
+// - Фасады (распашные двери) с зазорами по 1.5 мм по стандарту и петлями
 // =============================================================================
 
 var FileOptions = 'Kitchen_Base_Config.xml';
@@ -12,7 +15,7 @@ function getLegPathByChoice(choiceIndex, height) {
     
     var subPath = '';
     if (choiceIndex === 0) {
-        // Неопласт H.100 (с готовыми вычитающими цилиндрами присадки d=5x12 мм под саморезы)
+        // Полная ножка H.100 (4 симметричных цилиндра d=5x12 мм, без ушек, со стойкой и пяткой)
         subPath = 'Неопласт\\Ножка под цоколь H.100 с присадкой d.5x12.f3d';
     } else if (choiceIndex === 1) {
         // UNION PLAST с бобышкой d=10 мм (под присадку ЧПУ)
@@ -21,10 +24,10 @@ function getLegPathByChoice(choiceIndex, height) {
         // Неопласт с бобышкой d=15 мм (под присадку ЧПУ)
         subPath = 'Неопласт\\База на бобышке d.15 для ножек разборных серии РНЦ, цвет черный.f3d';
     } else if (choiceIndex === 3) {
-        // Неопласт H.100 (заводской накол под шурупы 3x3 мм)
+        // Неопласт H.100 исходная (крепление шуруп)
         subPath = 'Неопласт\\Ножка под цоколь H.100 (95-130) неразборная (крепление шуруп) цвет черный.f3d';
     } else {
-        // VOLPATO (чистая 3D-модель без присадки)
+        // VOLPATO (чистая 3D-модель)
         subPath = 'VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d';
     }
 
@@ -49,26 +52,14 @@ var propBodyHeight = grSize.NewNumber('Высота корпуса (мм)', 720)
 var propLegHeight = grSize.NewCombo('Высота ножек (мм)', '100\n150\n80\n60');
 propLegHeight.ItemIndex = 0; // 100 мм
 
-// Группа 2: Выбор ножек и присадки
-var grLegs = prop.NewGroup('Опоры и присадка (отверстия)');
-var propLegModel = grLegs.NewCombo('Модель опоры', 
-    'Неопласт H.100 (вычитающие цилиндры d=5x12 мм)\n' +
-    'UNION PLAST (бобышка ЧПУ d=10x12 мм)\n' +
-    'Неопласт (бобышка ЧПУ d=15x12 мм)\n' +
-    'Неопласт H.100 (заводской накол под шурупы 3x3 мм)\n' +
-    'VOLPATO H.100 (чистая 3D-модель)'
-);
-propLegModel.ItemIndex = 0; // По умолчанию: ножка с полноценными цилиндрами d=5x12 мм!
-
-var propThroughHole = grLegs.NewBool('Отверстие d=10 мм в дне для регулировки изнутри', false);
-var propLegFrontOffset = grLegs.NewNumber('Отступ передних ножек (мм)', 60);
-var propLegBackOffset = grLegs.NewNumber('Отступ задних ножек (мм)', 50);
-var propLegSideOffset = grLegs.NewNumber('Отступ ножек с боков (мм)', 50);
-
-// Группа 3: Конструкция каркаса
+// Группа 2: Конструкция верха и каркаса
 var grConst = prop.NewGroup('Конструкция каркаса');
-var propTopType = grConst.NewCombo('Верх модуля', 'Сплошная крышка (горизонт)\nПланки под столешницу (царги)');
-propTopType.ItemIndex = 0;
+var propTopType = grConst.NewCombo('Верх модуля', 
+    'Две планки под столешницу (царги 80 мм)\n' +
+    'Сплошная крышка (горизонт)'
+);
+propTopType.ItemIndex = 0; // По умолчанию: две планки (царги) 80 мм!
+var propPlankWidth = grConst.NewNumber('Ширина царг (мм)', 80);
 
 var propBottomType = grConst.NewCombo('Тип дна', 'Проходное дно (боковины на дне)\nВкладное дно (между боковин)');
 propBottomType.ItemIndex = 0;
@@ -76,7 +67,35 @@ propBottomType.ItemIndex = 0;
 var propHasShelf = grConst.NewBool('Съемная полка', true);
 var propHasBack = grConst.NewBool('Задняя стенка (ХДФ 4 мм)', true);
 
-// Группа 4: Материалы и кромка
+// Группа 3: Фасады и двери
+var grDoors = prop.NewGroup('Фасады и двери');
+var propDoorType = grDoors.NewCombo('Двери (фасады)', 
+    '2 двери (распашные)\n' +
+    '1 дверь (петли слева)\n' +
+    '1 дверь (петли справа)\n' +
+    'Без дверей (открытый каркас)'
+);
+propDoorType.ItemIndex = 0; // По умолчанию: 2 двери, как на фото!
+var propDoorGap = grDoors.NewNumber('Зазор по периметру (мм)', 1.5);
+var propHinges = grDoors.NewBool('Устанавливать петли "петля МОЯ"', true);
+var propHandles = grDoors.NewBool('Устанавливать ручки', true);
+
+// Группа 4: Опоры и присадка (отверстия)
+var grLegs = prop.NewGroup('Опоры и ножки');
+var propLegModel = grLegs.NewCombo('Модель опоры', 
+    'Неопласт H.100 (4 цилиндра d=5x12 мм)\n' +
+    'UNION PLAST (бобышка ЧПУ d=10x12 мм)\n' +
+    'Неопласт (бобышка ЧПУ d=15x12 мм)\n' +
+    'VOLPATO H.100 (чистая 3D-модель)'
+);
+propLegModel.ItemIndex = 0; // По умолчанию: полная ножка с 4 цилиндрами
+
+var propThroughHole = grLegs.NewBool('Отверстие d=10 мм в дне для регулировки изнутри', false);
+var propLegFrontOffset = grLegs.NewNumber('Отступ передних ножек (мм)', 60);
+var propLegBackOffset = grLegs.NewNumber('Отступ задних ножек (мм)', 50);
+var propLegSideOffset = grLegs.NewNumber('Отступ ножек с боков (мм)', 50);
+
+// Группа 5: Материалы и кромка
 var grMat = prop.NewGroup('Материалы');
 var propMatBody = grMat.NewMaterial('Материал корпуса');
 var propEdgeFront = grMat.NewButt('Кромка фасадная (0.8 мм)');
@@ -104,7 +123,8 @@ function buildKitchenBase() {
     var backOffset = propLegBackOffset.Value;
     var sideOffset = propLegSideOffset.Value;
 
-    var isSolidTop = (propTopType.ItemIndex === 0);
+    var isPlanksTop = (propTopType.ItemIndex === 0);
+    var isSolidTop = (propTopType.ItemIndex === 1);
     var isThroughBottom = (propBottomType.ItemIndex === 0);
 
     var floorY = legH;
@@ -136,7 +156,6 @@ function buildKitchenBase() {
     if (propThroughHole.Value) {
         for (var h = 0; h < legPoints.length; h++) {
             var lp = legPoints[h];
-            // В 2D контуре дна: X = lp.x, Y = lp.z
             dno.Contour.AddCircle(lp.x, lp.z, 5); // радиус 5 = диаметр 10 мм
         }
     }
@@ -167,9 +186,25 @@ function buildKitchenBase() {
     pravBok.Build();
 
     // -------------------------------------------------------------------------
-    // В. ВЕРХ (КРЫШКА ИЛИ ЦАРГИ)
+    // В. ВЕРХ (ДВЕ ПЛАНКИ ПО 80 мм ПОД СТОЛЕШНИЦУ ИЛИ СПЛОШНАЯ КРЫШКА)
     // -------------------------------------------------------------------------
-    if (isSolidTop) {
+    if (isPlanksTop) {
+        var pWidth = propPlankWidth.Value || 80;
+
+        // Передняя планка (царга) плашмя вровень с верхом боковин
+        var plPer = AddHorizPanel(thick, depth - pWidth, width - thick, depth, floorY + bodyHeight - thick);
+        plPer.Name = 'Планка столешницы передняя (царга)';
+        plPer.AddButt(propEdgeFront, 1); // Передний край - фасадная кромка 0.8
+        plPer.AddButt(propEdgeBody, 3);  // Внутренний край - корпусная 0.4
+        plPer.Build();
+
+        // Задняя планка (царга) плашмя у задней стенки
+        var plZad = AddHorizPanel(thick, 0, width - thick, pWidth, floorY + bodyHeight - thick);
+        plZad.Name = 'Планка столешницы задняя (царга)';
+        plZad.AddButt(propEdgeBody, 1);
+        plZad.AddButt(propEdgeBody, 3);
+        plZad.Build();
+    } else {
         var krishka = AddHorizPanel(0, 0, width, depth, floorY + bodyHeight - thick);
         krishka.Name = 'Крышка (горизонт)';
         krishka.AddButt(propEdgeFront, 1);
@@ -177,19 +212,6 @@ function buildKitchenBase() {
         krishka.AddButt(propEdgeBody, 2);
         krishka.AddButt(propEdgeBody, 3);
         krishka.Build();
-    } else {
-        var plankWidth = 80;
-        var plPer = AddHorizPanel(thick, depth - plankWidth, width - thick, depth, floorY + bodyHeight - thick);
-        plPer.Name = 'Планка столешницы передняя';
-        plPer.AddButt(propEdgeBody, 1);
-        plPer.AddButt(propEdgeBody, 3);
-        plPer.Build();
-
-        var plZad = AddHorizPanel(thick, 0, width - thick, plankWidth, floorY + bodyHeight - thick);
-        plZad.Name = 'Планка столешницы задняя';
-        plZad.AddButt(propEdgeBody, 1);
-        plZad.AddButt(propEdgeBody, 3);
-        plZad.Build();
     }
 
     // -------------------------------------------------------------------------
@@ -218,7 +240,7 @@ function buildKitchenBase() {
     }
 
     // -------------------------------------------------------------------------
-    // Е. МОНТАЖ НОЖЕК (с реальной присадкой / отверстиями)
+    // Е. МОНТАЖ НОЖЕК (полная ножка с 4-мя цилиндрами d=5x12 мм)
     // -------------------------------------------------------------------------
     var legPath = getLegPathByChoice(propLegModel.ItemIndex, legH);
     var legModel = null;
@@ -252,6 +274,117 @@ function buildKitchenBase() {
             var footCyl = AddCylinder(NewVector(lp.x, 10, lp.z), 25, -10);
             footCyl.Name = 'Подпятник опоры';
             EndBlock();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Ж. ФАСАДЫ (ДВЕРИ) И ПЕТЛИ ПО СТАНДАРТУ (отступ 1.5 мм, зазор 3.0 мм)
+    // -------------------------------------------------------------------------
+    var doorChoice = propDoorType.ItemIndex;
+    if (doorChoice !== 3) { // Не "Без дверей"
+        var gap = propDoorGap.Value || 1.5;
+        var doorThick = thick;
+        var doorH = bodyHeight - 2 * gap;
+        var doorY = floorY + gap;
+        var doorZ = depth;
+
+        var doorsToMake = [];
+
+        if (doorChoice === 0) {
+            // 2 двери: ширина каждой = (width - 2*gap - 3.0) / 2
+            var doorW = (width - 2 * gap - 3.0) / 2;
+            doorsToMake.push({
+                name: 'Фасад левый',
+                x1: gap,
+                x2: gap + doorW,
+                hingeSide: 'left',
+                post: levBok
+            });
+            doorsToMake.push({
+                name: 'Фасад правый',
+                x1: width - gap - doorW,
+                x2: width - gap,
+                hingeSide: 'right',
+                post: pravBok
+            });
+        } else if (doorChoice === 1) {
+            // 1 дверь левая: ширина = width - 2*gap
+            var doorW = width - 2 * gap;
+            doorsToMake.push({
+                name: 'Фасад (петли слева)',
+                x1: gap,
+                x2: gap + doorW,
+                hingeSide: 'left',
+                post: levBok
+            });
+        } else if (doorChoice === 2) {
+            // 1 дверь правая: ширина = width - 2*gap
+            var doorW = width - 2 * gap;
+            doorsToMake.push({
+                name: 'Фасад (петли справа)',
+                x1: gap,
+                x2: gap + doorW,
+                hingeSide: 'right',
+                post: pravBok
+            });
+        }
+
+        // Поиск настроенной петли "петля МОЯ"
+        var hingeObj = null;
+        if (propHinges.Value) {
+            var hingePaths = [
+                'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Петли\\петля_моя.f3d',
+                'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\петля_моя.f3d',
+                'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\Петли без заглушек и крестообр. планка\\Петля_CLIP top, CLIP без заглушек\\петля МОЯ.f3d'
+            ];
+            for (var hp = 0; hp < hingePaths.length; hp++) {
+                if (system.fileExists(hingePaths[hp])) {
+                    try {
+                        hingeObj = OpenFurniture(hingePaths[hp]);
+                        if (hingeObj) break;
+                    } catch (eH) {}
+                }
+            }
+        }
+
+        for (var dIdx = 0; dIdx < doorsToMake.length; dIdx++) {
+            var dInfo = doorsToMake[dIdx];
+            var doorPanel = AddFrontPanel(dInfo.x1, doorY, dInfo.x2, doorY + doorH, doorZ);
+            doorPanel.Name = dInfo.name;
+            doorPanel.Thickness = doorThick;
+            doorPanel.AddButt(propEdgeFront, 0);
+            doorPanel.AddButt(propEdgeFront, 1);
+            doorPanel.AddButt(propEdgeFront, 2);
+            doorPanel.AddButt(propEdgeFront, 3);
+            doorPanel.Build();
+
+            // Монтаж петель (строго 70 мм от низа и 70 мм от верха двери)
+            if (hingeObj && dInfo.post) {
+                var hingeYBottom = doorY + 70;
+                var hingeYTop = doorY + doorH - 70;
+                var mountX = (dInfo.hingeSide === 'left') ? thick : (width - thick);
+
+                try {
+                    hingeObj.Mount(dInfo.post, doorPanel, mountX, hingeYBottom, depth);
+                    hingeObj.Mount(dInfo.post, doorPanel, mountX, hingeYTop, depth);
+                } catch (eMount) {}
+            }
+
+            // Ручка на фасад (горизонтальная ручка-скоба)
+            if (propHandles.Value) {
+                var handleBlock = BeginBlock('Ручка ' + dInfo.name);
+                var handleH = 128;
+                var handleMargin = 40;
+                var handleX = (dInfo.hingeSide === 'left') ? (dInfo.x2 - handleMargin - handleH / 2) : (dInfo.x1 + handleMargin + handleH / 2);
+                var handleY = doorY + doorH - 80; // 80 мм от верхнего края двери
+                var handleZ = doorZ + doorThick + 25;
+
+                // Ручка
+                var bar = AddCylinder(NewVector(handleX - handleH / 2, handleY, handleZ), 6, handleH);
+                var leg1 = AddCylinder(NewVector(handleX - handleH / 2, handleY, doorZ + doorThick), 5, 25);
+                var leg2 = AddCylinder(NewVector(handleX + handleH / 2, handleY, doorZ + doorThick), 5, 25);
+                EndBlock();
+            }
         }
     }
 
