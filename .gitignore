@@ -22,3 +22,6 @@ ehthumbs_vista.db
 .idea/
 *.sublime-workspace
 *.sublime-project
+
+# Archives
+*.zip
