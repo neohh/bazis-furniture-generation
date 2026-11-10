@@ -1,17 +1,17 @@
 // =============================================================================
-// Базис-Мебельщик: Генератор нижнего кухонного модуля (базы) с ножками под цоколь
-// Соответствует стандартам кухонного конструирования (евростандарт)
+// Р‘Р°Р·РёСЃ-РњРµР±РµР»СЊС‰РёРє: Р“РµРЅРµСЂР°С‚РѕСЂ РЅРёР¶РЅРµРіРѕ РєСѓС…РѕРЅРЅРѕРіРѕ РјРѕРґСѓР»СЏ (Р±Р°Р·С‹) СЃ РЅРѕР¶РєР°РјРё РїРѕРґ С†РѕРєРѕР»СЊ
+// РЎРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ СЃС‚Р°РЅРґР°СЂС‚Р°Рј РєСѓС…РѕРЅРЅРѕРіРѕ РєРѕРЅСЃС‚СЂСѓРёСЂРѕРІР°РЅРёСЏ (РµРІСЂРѕСЃС‚Р°РЅРґР°СЂС‚)
 // =============================================================================
 
 var FileOptions = 'Kitchen_Base_Config.xml';
 
-// 1. Поиск файла кухонной ножки в доступных библиотеках
+// 1. РџРѕРёСЃРє С„Р°Р№Р»Р° РєСѓС…РѕРЅРЅРѕР№ РЅРѕР¶РєРё РІ РґРѕСЃС‚СѓРїРЅС‹С… Р±РёР±Р»РёРѕС‚РµРєР°С…
 function findLegModelPath(height) {
     var candidatePaths = [
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Ножки_для_кухни_под_цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'Z:\\Work\\генерация мебели\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.100 разборная, черная.f3d'
+        'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СѓСЂРЅРёС‚СѓСЂР°\\РќРѕР¶РєРё РґР»СЏ РєСѓС…РЅРё РїРѕРґ С†РѕРєРѕР»СЊ\\VOLPATO\\РќРѕР¶РєР° РїРѕРґ С†РѕРєРѕР»СЊ H.' + height + ' СЂР°Р·Р±РѕСЂРЅР°СЏ, С‡РµСЂРЅР°СЏ.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Desktop\\РџР РћР•РљРў_РЁРљРђР¤_Р_Р‘РђР—РРЎ\\05_Р¤РЈР РќРРўРЈР Рђ_Р_РќРћР–РљР_Р”Р›РЇ_РљРЈРҐРќР\\РќРѕР¶РєРё_РґР»СЏ_РєСѓС…РЅРё_РїРѕРґ_С†РѕРєРѕР»СЊ\\VOLPATO\\РќРѕР¶РєР° РїРѕРґ С†РѕРєРѕР»СЊ H.' + height + ' СЂР°Р·Р±РѕСЂРЅР°СЏ, С‡РµСЂРЅР°СЏ.f3d',
+        'Z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\Р¤СѓСЂРЅРёС‚СѓСЂР°\\РќРѕР¶РєРё РґР»СЏ РєСѓС…РЅРё РїРѕРґ С†РѕРєРѕР»СЊ\\VOLPATO\\РќРѕР¶РєР° РїРѕРґ С†РѕРєРѕР»СЊ H.' + height + ' СЂР°Р·Р±РѕСЂРЅР°СЏ, С‡РµСЂРЅР°СЏ.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СѓСЂРЅРёС‚СѓСЂР°\\РќРѕР¶РєРё РґР»СЏ РєСѓС…РЅРё РїРѕРґ С†РѕРєРѕР»СЊ\\VOLPATO\\РќРѕР¶РєР° РїРѕРґ С†РѕРєРѕР»СЊ H.100 СЂР°Р·Р±РѕСЂРЅР°СЏ, С‡РµСЂРЅР°СЏ.f3d'
     ];
 
     for (var i = 0; i < candidatePaths.length; i++) {
@@ -23,48 +23,48 @@ function findLegModelPath(height) {
     return candidatePaths[0];
 }
 
-// 2. Инициализация параметров
+// 2. РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїР°СЂР°РјРµС‚СЂРѕРІ
 var prop = Action.Properties;
 prop.Clear();
 
-// Группа 1: Габариты модуля
-var grSize = prop.NewGroup('Габариты модуля кухни');
-var propWidth = grSize.NewNumber('Ширина модуля (мм)', 600);
-var propDepth = grSize.NewNumber('Глубина корпуса (мм)', 510);
-var propBodyHeight = grSize.NewNumber('Высота корпуса (мм)', 720);
-var propLegHeight = grSize.NewCombo('Высота ножек (мм)', '100\n150\n80\n60');
-propLegHeight.ItemIndex = 0; // 100 мм по умолчанию
+// Р“СЂСѓРїРїР° 1: Р“Р°Р±Р°СЂРёС‚С‹ РјРѕРґСѓР»СЏ
+var grSize = prop.NewGroup('Р“Р°Р±Р°СЂРёС‚С‹ РјРѕРґСѓР»СЏ РєСѓС…РЅРё');
+var propWidth = grSize.NewNumber('РЁРёСЂРёРЅР° РјРѕРґСѓР»СЏ (РјРј)', 600);
+var propDepth = grSize.NewNumber('Р“Р»СѓР±РёРЅР° РєРѕСЂРїСѓСЃР° (РјРј)', 510);
+var propBodyHeight = grSize.NewNumber('Р’С‹СЃРѕС‚Р° РєРѕСЂРїСѓСЃР° (РјРј)', 720);
+var propLegHeight = grSize.NewCombo('Р’С‹СЃРѕС‚Р° РЅРѕР¶РµРє (РјРј)', '100\n150\n80\n60');
+propLegHeight.ItemIndex = 0; // 100 РјРј РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
-// Группа 2: Конструкция верха и полок
-var grConst = prop.NewGroup('Конструкция каркаса');
-var propTopType = grConst.NewCombo('Верх модуля', 'Сплошная крышка (горизонт)\nПланки под столешницу (царги)');
-propTopType.ItemIndex = 0; // Сплошная крышка как на фото
+// Р“СЂСѓРїРїР° 2: РљРѕРЅСЃС‚СЂСѓРєС†РёСЏ РІРµСЂС…Р° Рё РїРѕР»РѕРє
+var grConst = prop.NewGroup('РљРѕРЅСЃС‚СЂСѓРєС†РёСЏ РєР°СЂРєР°СЃР°');
+var propTopType = grConst.NewCombo('Р’РµСЂС… РјРѕРґСѓР»СЏ', 'РЎРїР»РѕС€РЅР°СЏ РєСЂС‹С€РєР° (РіРѕСЂРёР·РѕРЅС‚)\nРџР»Р°РЅРєРё РїРѕРґ СЃС‚РѕР»РµС€РЅРёС†Сѓ (С†Р°СЂРіРё)');
+propTopType.ItemIndex = 0; // РЎРїР»РѕС€РЅР°СЏ РєСЂС‹С€РєР° РєР°Рє РЅР° С„РѕС‚Рѕ
 
-var propBottomType = grConst.NewCombo('Тип дна', 'Проходное дно (боковины на дне)\nВкладное дно (между боковин)');
-propBottomType.ItemIndex = 0; // Проходное дно - стандарт кухни
+var propBottomType = grConst.NewCombo('РўРёРї РґРЅР°', 'РџСЂРѕС…РѕРґРЅРѕРµ РґРЅРѕ (Р±РѕРєРѕРІРёРЅС‹ РЅР° РґРЅРµ)\nР’РєР»Р°РґРЅРѕРµ РґРЅРѕ (РјРµР¶РґСѓ Р±РѕРєРѕРІРёРЅ)');
+propBottomType.ItemIndex = 0; // РџСЂРѕС…РѕРґРЅРѕРµ РґРЅРѕ - СЃС‚Р°РЅРґР°СЂС‚ РєСѓС…РЅРё
 
-var propHasShelf = grConst.NewBool('Съемная полка', true);
-var propHasBack = grConst.NewBool('Задняя стенка (ХДФ 4 мм)', true);
+var propHasShelf = grConst.NewBool('РЎСЉРµРјРЅР°СЏ РїРѕР»РєР°', true);
+var propHasBack = grConst.NewBool('Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° (РҐР”Р¤ 4 РјРј)', true);
 
-// Группа 3: Отступы ножек (под цоколь)
-var grLegs = prop.NewGroup('Привязка кухонных ножек');
-var propLegFrontOffset = grLegs.NewNumber('Отступ передних ножек (мм)', 60);
-var propLegBackOffset = grLegs.NewNumber('Отступ задних ножек (мм)', 50);
-var propLegSideOffset = grLegs.NewNumber('Отступ ножек с боков (мм)', 50);
-var propMountLegs3D = grLegs.NewBool('Устанавливать 3D ножки', true);
+// Р“СЂСѓРїРїР° 3: РћС‚СЃС‚СѓРїС‹ РЅРѕР¶РµРє (РїРѕРґ С†РѕРєРѕР»СЊ)
+var grLegs = prop.NewGroup('РџСЂРёРІСЏР·РєР° РєСѓС…РѕРЅРЅС‹С… РЅРѕР¶РµРє');
+var propLegFrontOffset = grLegs.NewNumber('РћС‚СЃС‚СѓРї РїРµСЂРµРґРЅРёС… РЅРѕР¶РµРє (РјРј)', 60);
+var propLegBackOffset = grLegs.NewNumber('РћС‚СЃС‚СѓРї Р·Р°РґРЅРёС… РЅРѕР¶РµРє (РјРј)', 50);
+var propLegSideOffset = grLegs.NewNumber('РћС‚СЃС‚СѓРї РЅРѕР¶РµРє СЃ Р±РѕРєРѕРІ (РјРј)', 50);
+var propMountLegs3D = grLegs.NewBool('РЈСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ 3D РЅРѕР¶РєРё', true);
 
-// Группа 4: Материалы и кромка
-var grMat = prop.NewGroup('Материалы');
-var propMatBody = grMat.NewMaterial('Материал корпуса');
-var propEdgeFront = grMat.NewButt('Кромка фасадная (0.8 мм)');
-var propEdgeBody = grMat.NewButt('Кромка корпусная (0.4 мм)');
+// Р“СЂСѓРїРїР° 4: РњР°С‚РµСЂРёР°Р»С‹ Рё РєСЂРѕРјРєР°
+var grMat = prop.NewGroup('РњР°С‚РµСЂРёР°Р»С‹');
+var propMatBody = grMat.NewMaterial('РњР°С‚РµСЂРёР°Р» РєРѕСЂРїСѓСЃР°');
+var propEdgeFront = grMat.NewButt('РљСЂРѕРјРєР° С„Р°СЃР°РґРЅР°СЏ (0.8 РјРј)');
+var propEdgeBody = grMat.NewButt('РљСЂРѕРјРєР° РєРѕСЂРїСѓСЃРЅР°СЏ (0.4 РјРј)');
 
-// Кнопки действий
-var grActions = prop.NewGroup('Действия');
-var btnBuild = grActions.NewButton('Сгенерировать модуль');
-var btnFinish = grActions.NewButton('Готово (сохранить)');
+// РљРЅРѕРїРєРё РґРµР№СЃС‚РІРёР№
+var grActions = prop.NewGroup('Р”РµР№СЃС‚РІРёСЏ');
+var btnBuild = grActions.NewButton('РЎРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ РјРѕРґСѓР»СЊ');
+var btnFinish = grActions.NewButton('Р“РѕС‚РѕРІРѕ (СЃРѕС…СЂР°РЅРёС‚СЊ)');
 
-// 3. Основная функция построения
+// 3. РћСЃРЅРѕРІРЅР°СЏ С„СѓРЅРєС†РёСЏ РїРѕСЃС‚СЂРѕРµРЅРёСЏ
 function buildKitchenBase() {
     DeleteNewObjects();
 
@@ -84,54 +84,54 @@ function buildKitchenBase() {
     var isSolidTop = (propTopType.ItemIndex === 0);
     var isThroughBottom = (propBottomType.ItemIndex === 0);
 
-    var floorY = legH; // Нижняя плоскость дна находится на высоте ножек
+    var floorY = legH; // РќРёР¶РЅСЏСЏ РїР»РѕСЃРєРѕСЃС‚СЊ РґРЅР° РЅР°С…РѕРґРёС‚СЃСЏ РЅР° РІС‹СЃРѕС‚Рµ РЅРѕР¶РµРє
 
     // -------------------------------------------------------------------------
-    // А. ДНО МОДУЛЯ
+    // Рђ. Р”РќРћ РњРћР”РЈР›РЇ
     // -------------------------------------------------------------------------
     var dno;
     if (isThroughBottom) {
-        // Проходное дно на всю ширину W x D
+        // РџСЂРѕС…РѕРґРЅРѕРµ РґРЅРѕ РЅР° РІСЃСЋ С€РёСЂРёРЅСѓ W x D
         dno = AddHorizPanel(0, 0, width, depth, floorY);
     } else {
-        // Вкладное дно между боковинами
+        // Р’РєР»Р°РґРЅРѕРµ РґРЅРѕ РјРµР¶РґСѓ Р±РѕРєРѕРІРёРЅР°РјРё
         dno = AddHorizPanel(thick, 0, width - thick, depth, floorY);
     }
-    dno.Name = 'Дно';
-    dno.AddButt(propEdgeFront, 1); // Передний торец - 0.8 мм
-    dno.AddButt(propEdgeBody, 0);  // Левый - 0.4 мм
-    dno.AddButt(propEdgeBody, 2);  // Правый - 0.4 мм
-    dno.AddButt(propEdgeBody, 3);  // Задний - 0.4 мм
+    dno.Name = 'Р”РЅРѕ';
+    dno.AddButt(propEdgeFront, 1); // РџРµСЂРµРґРЅРёР№ С‚РѕСЂРµС† - 0.8 РјРј
+    dno.AddButt(propEdgeBody, 0);  // Р›РµРІС‹Р№ - 0.4 РјРј
+    dno.AddButt(propEdgeBody, 2);  // РџСЂР°РІС‹Р№ - 0.4 РјРј
+    dno.AddButt(propEdgeBody, 3);  // Р—Р°РґРЅРёР№ - 0.4 РјРј
     dno.Build();
 
     // -------------------------------------------------------------------------
-    // Б. БОКОВИНЫ (ЛЕВАЯ И ПРАВАЯ)
+    // Р‘. Р‘РћРљРћР’РРќР« (Р›Р•Р’РђРЇ Р РџР РђР’РђРЇ)
     // -------------------------------------------------------------------------
     var sideY1, sideY2;
     if (isThroughBottom) {
-        sideY1 = floorY + thick; // Боковина стоит сверху на дне
+        sideY1 = floorY + thick; // Р‘РѕРєРѕРІРёРЅР° СЃС‚РѕРёС‚ СЃРІРµСЂС…Сѓ РЅР° РґРЅРµ
     } else {
-        sideY1 = floorY;         // Боковина спускается до уровня ножек
+        sideY1 = floorY;         // Р‘РѕРєРѕРІРёРЅР° СЃРїСѓСЃРєР°РµС‚СЃСЏ РґРѕ СѓСЂРѕРІРЅСЏ РЅРѕР¶РµРє
     }
 
     if (isSolidTop) {
-        sideY2 = floorY + bodyHeight - thick; // Под сплошную крышку
+        sideY2 = floorY + bodyHeight - thick; // РџРѕРґ СЃРїР»РѕС€РЅСѓСЋ РєСЂС‹С€РєСѓ
     } else {
-        sideY2 = floorY + bodyHeight;         // До самого верха под планки-царги
+        sideY2 = floorY + bodyHeight;         // Р”Рѕ СЃР°РјРѕРіРѕ РІРµСЂС…Р° РїРѕРґ РїР»Р°РЅРєРё-С†Р°СЂРіРё
     }
 
-    // Левая боковина (X = 0)
+    // Р›РµРІР°СЏ Р±РѕРєРѕРІРёРЅР° (X = 0)
     var levBok = AddVertPanel(0, sideY1, depth, sideY2, 0);
-    levBok.Name = 'Боковина левая';
-    levBok.AddButt(propEdgeFront, 1); // Передний торец - 0.8 мм
-    levBok.AddButt(propEdgeBody, 0);  // Низ - 0.4 мм
-    levBok.AddButt(propEdgeBody, 2);  // Верх - 0.4 мм
-    levBok.AddButt(propEdgeBody, 3);  // Задний торец - 0.4 мм
+    levBok.Name = 'Р‘РѕРєРѕРІРёРЅР° Р»РµРІР°СЏ';
+    levBok.AddButt(propEdgeFront, 1); // РџРµСЂРµРґРЅРёР№ С‚РѕСЂРµС† - 0.8 РјРј
+    levBok.AddButt(propEdgeBody, 0);  // РќРёР· - 0.4 РјРј
+    levBok.AddButt(propEdgeBody, 2);  // Р’РµСЂС… - 0.4 РјРј
+    levBok.AddButt(propEdgeBody, 3);  // Р—Р°РґРЅРёР№ С‚РѕСЂРµС† - 0.4 РјРј
     levBok.Build();
 
-    // Правая боковина (X = width - thick)
+    // РџСЂР°РІР°СЏ Р±РѕРєРѕРІРёРЅР° (X = width - thick)
     var pravBok = AddVertPanel(0, sideY1, depth, sideY2, width - thick);
-    pravBok.Name = 'Боковина правая';
+    pravBok.Name = 'Р‘РѕРєРѕРІРёРЅР° РїСЂР°РІР°СЏ';
     pravBok.AddButt(propEdgeFront, 1);
     pravBok.AddButt(propEdgeBody, 0);
     pravBok.AddButt(propEdgeBody, 2);
@@ -139,52 +139,52 @@ function buildKitchenBase() {
     pravBok.Build();
 
     // -------------------------------------------------------------------------
-    // В. ВЕРХ МОДУЛЯ (КРЫШКА ИЛИ ЦАРГИ)
+    // Р’. Р’Р•Р РҐ РњРћР”РЈР›РЇ (РљР Р«РЁРљРђ РР›Р Р¦РђР Р“Р)
     // -------------------------------------------------------------------------
     if (isSolidTop) {
-        // Сплошная крышка на весь модуль
+        // РЎРїР»РѕС€РЅР°СЏ РєСЂС‹С€РєР° РЅР° РІРµСЃСЊ РјРѕРґСѓР»СЊ
         var krishka = AddHorizPanel(0, 0, width, depth, floorY + bodyHeight - thick);
-        krishka.Name = 'Крышка (горизонт)';
+        krishka.Name = 'РљСЂС‹С€РєР° (РіРѕСЂРёР·РѕРЅС‚)';
         krishka.AddButt(propEdgeFront, 1);
         krishka.AddButt(propEdgeBody, 0);
         krishka.AddButt(propEdgeBody, 2);
         krishka.AddButt(propEdgeBody, 3);
         krishka.Build();
     } else {
-        // Две кухонные царги (стяжные планки под столешницу)
-        var plankWidth = 80; // Стандарт ширины планки 80 мм
+        // Р”РІРµ РєСѓС…РѕРЅРЅС‹Рµ С†Р°СЂРіРё (СЃС‚СЏР¶РЅС‹Рµ РїР»Р°РЅРєРё РїРѕРґ СЃС‚РѕР»РµС€РЅРёС†Сѓ)
+        var plankWidth = 80; // РЎС‚Р°РЅРґР°СЂС‚ С€РёСЂРёРЅС‹ РїР»Р°РЅРєРё 80 РјРј
         
-        // Передняя планка
+        // РџРµСЂРµРґРЅСЏСЏ РїР»Р°РЅРєР°
         var plPer = AddHorizPanel(thick, depth - plankWidth, width - thick, depth, floorY + bodyHeight - thick);
-        plPer.Name = 'Планка столешницы передняя';
+        plPer.Name = 'РџР»Р°РЅРєР° СЃС‚РѕР»РµС€РЅРёС†С‹ РїРµСЂРµРґРЅСЏСЏ';
         plPer.AddButt(propEdgeBody, 1);
         plPer.AddButt(propEdgeBody, 3);
         plPer.Build();
 
-        // Задняя планка
+        // Р—Р°РґРЅСЏСЏ РїР»Р°РЅРєР°
         var plZad = AddHorizPanel(thick, 0, width - thick, plankWidth, floorY + bodyHeight - thick);
-        plZad.Name = 'Планка столешницы задняя';
+        plZad.Name = 'РџР»Р°РЅРєР° СЃС‚РѕР»РµС€РЅРёС†С‹ Р·Р°РґРЅСЏСЏ';
         plZad.AddButt(propEdgeBody, 1);
         plZad.AddButt(propEdgeBody, 3);
         plZad.Build();
     }
 
     // -------------------------------------------------------------------------
-    // Г. СЪЕМНАЯ ВНУТРЕННЯЯ ПОЛКА
+    // Р“. РЎРЄР•РњРќРђРЇ Р’РќРЈРўР Р•РќРќРЇРЇ РџРћР›РљРђ
     // -------------------------------------------------------------------------
     if (propHasShelf.Value) {
         var shelfY = floorY + thick + (sideY2 - sideY1 - thick) / 2;
-        var shelfDepth = depth - 20; // Отступ 20 мм спереди под петли и фасад!
+        var shelfDepth = depth - 20; // РћС‚СЃС‚СѓРї 20 РјРј СЃРїРµСЂРµРґРё РїРѕРґ РїРµС‚Р»Рё Рё С„Р°СЃР°Рґ!
         
         var polka = AddHorizPanel(thick, 0, width - thick, shelfDepth, shelfY);
-        polka.Name = 'Полка съемная';
-        polka.AddButt(propEdgeFront, 1); // Передний рабочий торец - 0.8 мм
-        polka.AddButt(propEdgeBody, 3);  // Задний - 0.4 мм
+        polka.Name = 'РџРѕР»РєР° СЃСЉРµРјРЅР°СЏ';
+        polka.AddButt(propEdgeFront, 1); // РџРµСЂРµРґРЅРёР№ СЂР°Р±РѕС‡РёР№ С‚РѕСЂРµС† - 0.8 РјРј
+        polka.AddButt(propEdgeBody, 3);  // Р—Р°РґРЅРёР№ - 0.4 РјРј
         polka.Build();
     }
 
     // -------------------------------------------------------------------------
-    // Д. ЗАДНЯЯ СТЕНКА (ХДФ 4 мм)
+    // Р”. Р—РђР”РќРЇРЇ РЎРўР•РќРљРђ (РҐР”Р¤ 4 РјРј)
     // -------------------------------------------------------------------------
     if (propHasBack.Value) {
         var backThick = 4;
@@ -192,13 +192,13 @@ function buildKitchenBase() {
         var backY2 = floorY + bodyHeight;
         
         var zadStenka = AddFrontPanel(0, backY1, width, backY2, 0);
-        zadStenka.Name = 'Задняя стенка (ХДФ)';
+        zadStenka.Name = 'Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° (РҐР”Р¤)';
         zadStenka.Thickness = backThick;
         zadStenka.Build();
     }
 
     // -------------------------------------------------------------------------
-    // Е. КУХОННЫЕ НОЖКИ (4 шт. под цоколь)
+    // Р•. РљРЈРҐРћРќРќР«Р• РќРћР–РљР (4 С€С‚. РїРѕРґ С†РѕРєРѕР»СЊ)
     // -------------------------------------------------------------------------
     if (propMountLegs3D.Value) {
         var legPath = findLegModelPath(legH);
@@ -210,14 +210,14 @@ function buildKitchenBase() {
             legModel = null;
         }
 
-        // Центры 4 ножек:
-        // X: sideOffset (слева) и width - sideOffset (справа)
-        // Z: depth - frontOffset (спереди) и backOffset (сзади)
+        // Р¦РµРЅС‚СЂС‹ 4 РЅРѕР¶РµРє:
+        // X: sideOffset (СЃР»РµРІР°) Рё width - sideOffset (СЃРїСЂР°РІР°)
+        // Z: depth - frontOffset (СЃРїРµСЂРµРґРё) Рё backOffset (СЃР·Р°РґРё)
         var legPoints = [
-            { x: sideOffset, z: depth - frontOffset, name: 'Ножка передняя левая' },
-            { x: width - sideOffset, z: depth - frontOffset, name: 'Ножка передняя правая' },
-            { x: sideOffset, z: backOffset, name: 'Ножка задняя левая' },
-            { x: width - sideOffset, z: backOffset, name: 'Ножка задняя правая' }
+            { x: sideOffset, z: depth - frontOffset, name: 'РќРѕР¶РєР° РїРµСЂРµРґРЅСЏСЏ Р»РµРІР°СЏ' },
+            { x: width - sideOffset, z: depth - frontOffset, name: 'РќРѕР¶РєР° РїРµСЂРµРґРЅСЏСЏ РїСЂР°РІР°СЏ' },
+            { x: sideOffset, z: backOffset, name: 'РќРѕР¶РєР° Р·Р°РґРЅСЏСЏ Р»РµРІР°СЏ' },
+            { x: width - sideOffset, z: backOffset, name: 'РќРѕР¶РєР° Р·Р°РґРЅСЏСЏ РїСЂР°РІР°СЏ' }
         ];
 
         for (var l = 0; l < legPoints.length; l++) {
@@ -226,8 +226,8 @@ function buildKitchenBase() {
 
             if (legModel && dno) {
                 try {
-                    // Установка фурнитуры на плоскость дна
-                    // Mount1(панель, X_вдоль_длины, Y_смещение, Z_вдоль_ширины, угол)
+                    // РЈСЃС‚Р°РЅРѕРІРєР° С„СѓСЂРЅРёС‚СѓСЂС‹ РЅР° РїР»РѕСЃРєРѕСЃС‚СЊ РґРЅР°
+                    // Mount1(РїР°РЅРµР»СЊ, X_РІРґРѕР»СЊ_РґР»РёРЅС‹, Y_СЃРјРµС‰РµРЅРёРµ, Z_РІРґРѕР»СЊ_С€РёСЂРёРЅС‹, СѓРіРѕР»)
                     legModel.Mount1(dno, lp.x, -legH, lp.z, 0);
                     mountedSuccess = true;
                 } catch (err) {
@@ -235,18 +235,18 @@ function buildKitchenBase() {
                 }
             }
 
-            // Надежный визуальный fallback, если 3D-файл не найден:
+            // РќР°РґРµР¶РЅС‹Р№ РІРёР·СѓР°Р»СЊРЅС‹Р№ fallback, РµСЃР»Рё 3D-С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ:
             if (!mountedSuccess) {
                 var legBlock = BeginBlock(lp.name);
-                // База ножки (d=80 мм, h=15 мм)
+                // Р‘Р°Р·Р° РЅРѕР¶РєРё (d=80 РјРј, h=15 РјРј)
                 var baseCyl = AddCylinder(NewVector(lp.x, floorY, lp.z), 40, -15);
-                baseCyl.Name = 'База опоры';
-                // Стержень ножки (d=30 мм, h=legH-15)
+                baseCyl.Name = 'Р‘Р°Р·Р° РѕРїРѕСЂС‹';
+                // РЎС‚РµСЂР¶РµРЅСЊ РЅРѕР¶РєРё (d=30 РјРј, h=legH-15)
                 var stemCyl = AddCylinder(NewVector(lp.x, floorY - 15, lp.z), 15, -(legH - 25));
-                stemCyl.Name = 'Стойка опоры';
-                // Подпятник ножки (d=50 мм, h=10 мм)
+                stemCyl.Name = 'РЎС‚РѕР№РєР° РѕРїРѕСЂС‹';
+                // РџРѕРґРїСЏС‚РЅРёРє РЅРѕР¶РєРё (d=50 РјРј, h=10 РјРј)
                 var footCyl = AddCylinder(NewVector(lp.x, 10, lp.z), 25, -10);
-                footCyl.Name = 'Подпятник опоры';
+                footCyl.Name = 'РџРѕРґРїСЏС‚РЅРёРє РѕРїРѕСЂС‹';
                 EndBlock();
             }
         }
@@ -256,7 +256,7 @@ function buildKitchenBase() {
     SetCamera(p3dIsometric);
 }
 
-// 4. Назначение обработчиков
+// 4. РќР°Р·РЅР°С‡РµРЅРёРµ РѕР±СЂР°Р±РѕС‚С‡РёРєРѕРІ
 btnBuild.OnClick = function() {
     buildKitchenBase();
 };
@@ -271,6 +271,6 @@ prop.OnChange = function() {
     buildKitchenBase();
 };
 
-// Запуск первичного построения сразу при старте
+// Р—Р°РїСѓСЃРє РїРµСЂРІРёС‡РЅРѕРіРѕ РїРѕСЃС‚СЂРѕРµРЅРёСЏ СЃСЂР°Р·Сѓ РїСЂРё СЃС‚Р°СЂС‚Рµ
 buildKitchenBase();
 Action.Continue();
