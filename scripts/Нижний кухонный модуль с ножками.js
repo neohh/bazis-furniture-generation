@@ -1,26 +1,40 @@
 // =============================================================================
 // Базис-Мебельщик: Генератор нижнего кухонного модуля (базы) с ножками под цоколь
-// Соответствует стандартам кухонного конструирования (евростандарт)
+// Версия 2.0: Поддержка моделей ножек с готовой заводской присадкой (отверстиями)
 // =============================================================================
 
 var FileOptions = 'Kitchen_Base_Config.xml';
 
-// 1. Поиск файла кухонной ножки в доступных библиотеках
-function findLegModelPath(height) {
-    var candidatePaths = [
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Ножки_для_кухни_под_цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'Z:\\Work\\генерация мебели\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d',
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Ножки для кухни под цоколь\\VOLPATO\\Ножка под цоколь H.100 разборная, черная.f3d'
-    ];
-
-    for (var i = 0; i < candidatePaths.length; i++) {
-        var p = candidatePaths[i];
-        if (system.fileExists(p)) {
-            return p;
-        }
+// 1. Поиск модели кухонной ножки в доступных библиотеках
+function getLegPathByChoice(choiceIndex, height) {
+    var baseDir = 'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Ножки для кухни под цоколь\\';
+    var desktopDir = 'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Ножки_для_кухни_под_цоколь\\';
+    
+    var subPath = '';
+    if (choiceIndex === 0) {
+        // Неопласт H.100 (с заводскими отверстиями под шурупы)
+        subPath = 'Неопласт\\Ножка под цоколь H.100 (95-130) неразборная (крепление шуруп) цвет черный.f3d';
+    } else if (choiceIndex === 1) {
+        // Неопласт H.100 (с заводскими отверстиями под шуруп и винт)
+        subPath = 'Неопласт\\Ножка под цоколь H.100 (95-130) неразборная (крепление шуруп и винт), цвет черный.f3d';
+    } else if (choiceIndex === 2) {
+        // UNION PLAST с бобышкой d=10 мм (под присадку ЧПУ)
+        subPath = 'UNION PLAST\\База на бобышке d.10 для ножек разборных серии 220, черная.f3d';
+    } else if (choiceIndex === 3) {
+        // Неопласт с бобышкой d=15 мм (под присадку ЧПУ)
+        subPath = 'Неопласт\\База на бобышке d.15 для ножек разборных серии РНЦ, цвет черный.f3d';
+    } else {
+        // VOLPATO (чистая 3D-модель)
+        subPath = 'VOLPATO\\Ножка под цоколь H.' + height + ' разборная, черная.f3d';
     }
-    return candidatePaths[0];
+
+    if (system.fileExists(baseDir + subPath)) {
+        return baseDir + subPath;
+    }
+    if (system.fileExists(desktopDir + subPath)) {
+        return desktopDir + subPath;
+    }
+    return baseDir + subPath;
 }
 
 // 2. Инициализация параметров
@@ -33,25 +47,34 @@ var propWidth = grSize.NewNumber('Ширина модуля (мм)', 600);
 var propDepth = grSize.NewNumber('Глубина корпуса (мм)', 510);
 var propBodyHeight = grSize.NewNumber('Высота корпуса (мм)', 720);
 var propLegHeight = grSize.NewCombo('Высота ножек (мм)', '100\n150\n80\n60');
-propLegHeight.ItemIndex = 0; // 100 мм по умолчанию
+propLegHeight.ItemIndex = 0; // 100 мм
 
-// Группа 2: Конструкция верха и полок
-var grConst = prop.NewGroup('Конструкция каркаса');
-var propTopType = grConst.NewCombo('Верх модуля', 'Сплошная крышка (горизонт)\nПланки под столешницу (царги)');
-propTopType.ItemIndex = 0; // Сплошная крышка как на фото
+// Группа 2: Выбор ножек и присадки
+var grLegs = prop.NewGroup('Опоры и присадка (отверстия)');
+var propLegModel = grLegs.NewCombo('Модель опоры', 
+    'Неопласт H.100 (с заводскими отверстиями под шурупы)\n' +
+    'Неопласт H.100 (с отверстиями под шуруп и винт)\n' +
+    'UNION PLAST (с бобышкой d=10 мм под ЧПУ)\n' +
+    'Неопласт (с бобышкой d=15 мм под ЧПУ)\n' +
+    'VOLPATO H.100 (без отверстий, саморезы по месту)'
+);
+propLegModel.ItemIndex = 0; // По умолчанию: ножка С ОТВЕРСТИЯМИ!
 
-var propBottomType = grConst.NewCombo('Тип дна', 'Проходное дно (боковины на дне)\nВкладное дно (между боковин)');
-propBottomType.ItemIndex = 0; // Проходное дно - стандарт кухни
-
-var propHasShelf = grConst.NewBool('Съемная полка', true);
-var propHasBack = grConst.NewBool('Задняя стенка (ХДФ 4 мм)', true);
-
-// Группа 3: Отступы ножек (под цоколь)
-var grLegs = prop.NewGroup('Привязка кухонных ножек');
+var propThroughHole = grLegs.NewBool('Отверстие d=10 мм в дне для регулировки изнутри', false);
 var propLegFrontOffset = grLegs.NewNumber('Отступ передних ножек (мм)', 60);
 var propLegBackOffset = grLegs.NewNumber('Отступ задних ножек (мм)', 50);
 var propLegSideOffset = grLegs.NewNumber('Отступ ножек с боков (мм)', 50);
-var propMountLegs3D = grLegs.NewBool('Устанавливать 3D ножки', true);
+
+// Группа 3: Конструкция каркаса
+var grConst = prop.NewGroup('Конструкция каркаса');
+var propTopType = grConst.NewCombo('Верх модуля', 'Сплошная крышка (горизонт)\nПланки под столешницу (царги)');
+propTopType.ItemIndex = 0;
+
+var propBottomType = grConst.NewCombo('Тип дна', 'Проходное дно (боковины на дне)\nВкладное дно (между боковин)');
+propBottomType.ItemIndex = 0;
+
+var propHasShelf = grConst.NewBool('Съемная полка', true);
+var propHasBack = grConst.NewBool('Задняя стенка (ХДФ 4 мм)', true);
 
 // Группа 4: Материалы и кромка
 var grMat = prop.NewGroup('Материалы');
@@ -84,52 +107,57 @@ function buildKitchenBase() {
     var isSolidTop = (propTopType.ItemIndex === 0);
     var isThroughBottom = (propBottomType.ItemIndex === 0);
 
-    var floorY = legH; // Нижняя плоскость дна находится на высоте ножек
+    var floorY = legH;
 
     // -------------------------------------------------------------------------
     // А. ДНО МОДУЛЯ
     // -------------------------------------------------------------------------
     var dno;
     if (isThroughBottom) {
-        // Проходное дно на всю ширину W x D
         dno = AddHorizPanel(0, 0, width, depth, floorY);
     } else {
-        // Вкладное дно между боковинами
         dno = AddHorizPanel(thick, 0, width - thick, depth, floorY);
     }
     dno.Name = 'Дно';
-    dno.AddButt(propEdgeFront, 1); // Передний торец - 0.8 мм
+    dno.AddButt(propEdgeFront, 1); // Лицевой - 0.8 мм
     dno.AddButt(propEdgeBody, 0);  // Левый - 0.4 мм
     dno.AddButt(propEdgeBody, 2);  // Правый - 0.4 мм
     dno.AddButt(propEdgeBody, 3);  // Задний - 0.4 мм
+
+    // Точки центров 4 ножек:
+    var legPoints = [
+        { x: sideOffset, z: depth - frontOffset, name: 'Ножка передняя левая' },
+        { x: width - sideOffset, z: depth - frontOffset, name: 'Ножка передняя правая' },
+        { x: sideOffset, z: backOffset, name: 'Ножка задняя левая' },
+        { x: width - sideOffset, z: backOffset, name: 'Ножка задняя правая' }
+    ];
+
+    // Если включена опция сквозных отверстий d=10 мм под регулировку изнутри:
+    if (propThroughHole.Value) {
+        for (var h = 0; h < legPoints.length; h++) {
+            var lp = legPoints[h];
+            // В 2D контуре дна: X = lp.x, Y = lp.z
+            dno.Contour.AddCircle(lp.x, lp.z, 5); // радиус 5 = диаметр 10 мм
+        }
+    }
     dno.Build();
 
     // -------------------------------------------------------------------------
-    // Б. БОКОВИНЫ (ЛЕВАЯ И ПРАВАЯ)
+    // Б. БОКОВИНЫ
     // -------------------------------------------------------------------------
-    var sideY1, sideY2;
-    if (isThroughBottom) {
-        sideY1 = floorY + thick; // Боковина стоит сверху на дне
-    } else {
-        sideY1 = floorY;         // Боковина спускается до уровня ножек
-    }
+    var sideY1 = isThroughBottom ? (floorY + thick) : floorY;
+    var sideY2 = isSolidTop ? (floorY + bodyHeight - thick) : (floorY + bodyHeight);
 
-    if (isSolidTop) {
-        sideY2 = floorY + bodyHeight - thick; // Под сплошную крышку
-    } else {
-        sideY2 = floorY + bodyHeight;         // До самого верха под планки-царги
-    }
-
-    // Левая боковина (X = 0)
+    // Левая боковина
     var levBok = AddVertPanel(0, sideY1, depth, sideY2, 0);
     levBok.Name = 'Боковина левая';
-    levBok.AddButt(propEdgeFront, 1); // Передний торец - 0.8 мм
-    levBok.AddButt(propEdgeBody, 0);  // Низ - 0.4 мм
-    levBok.AddButt(propEdgeBody, 2);  // Верх - 0.4 мм
-    levBok.AddButt(propEdgeBody, 3);  // Задний торец - 0.4 мм
+    levBok.AddButt(propEdgeFront, 1);
+    levBok.AddButt(propEdgeBody, 0);
+    levBok.AddButt(propEdgeBody, 2);
+    levBok.AddButt(propEdgeBody, 3);
     levBok.Build();
 
-    // Правая боковина (X = width - thick)
+    // Правая боковина
     var pravBok = AddVertPanel(0, sideY1, depth, sideY2, width - thick);
     pravBok.Name = 'Боковина правая';
     pravBok.AddButt(propEdgeFront, 1);
@@ -139,10 +167,9 @@ function buildKitchenBase() {
     pravBok.Build();
 
     // -------------------------------------------------------------------------
-    // В. ВЕРХ МОДУЛЯ (КРЫШКА ИЛИ ЦАРГИ)
+    // В. ВЕРХ (КРЫШКА ИЛИ ЦАРГИ)
     // -------------------------------------------------------------------------
     if (isSolidTop) {
-        // Сплошная крышка на весь модуль
         var krishka = AddHorizPanel(0, 0, width, depth, floorY + bodyHeight - thick);
         krishka.Name = 'Крышка (горизонт)';
         krishka.AddButt(propEdgeFront, 1);
@@ -151,17 +178,13 @@ function buildKitchenBase() {
         krishka.AddButt(propEdgeBody, 3);
         krishka.Build();
     } else {
-        // Две кухонные царги (стяжные планки под столешницу)
-        var plankWidth = 80; // Стандарт ширины планки 80 мм
-        
-        // Передняя планка
+        var plankWidth = 80;
         var plPer = AddHorizPanel(thick, depth - plankWidth, width - thick, depth, floorY + bodyHeight - thick);
         plPer.Name = 'Планка столешницы передняя';
         plPer.AddButt(propEdgeBody, 1);
         plPer.AddButt(propEdgeBody, 3);
         plPer.Build();
 
-        // Задняя планка
         var plZad = AddHorizPanel(thick, 0, width - thick, plankWidth, floorY + bodyHeight - thick);
         plZad.Name = 'Планка столешницы задняя';
         plZad.AddButt(propEdgeBody, 1);
@@ -170,16 +193,15 @@ function buildKitchenBase() {
     }
 
     // -------------------------------------------------------------------------
-    // Г. СЪЕМНАЯ ВНУТРЕННЯЯ ПОЛКА
+    // Г. СЪЕМНАЯ ПОЛКА
     // -------------------------------------------------------------------------
     if (propHasShelf.Value) {
         var shelfY = floorY + thick + (sideY2 - sideY1 - thick) / 2;
-        var shelfDepth = depth - 20; // Отступ 20 мм спереди под петли и фасад!
-        
+        var shelfDepth = depth - 20;
         var polka = AddHorizPanel(thick, 0, width - thick, shelfDepth, shelfY);
         polka.Name = 'Полка съемная';
-        polka.AddButt(propEdgeFront, 1); // Передний рабочий торец - 0.8 мм
-        polka.AddButt(propEdgeBody, 3);  // Задний - 0.4 мм
+        polka.AddButt(propEdgeFront, 1);
+        polka.AddButt(propEdgeBody, 3);
         polka.Build();
     }
 
@@ -187,68 +209,49 @@ function buildKitchenBase() {
     // Д. ЗАДНЯЯ СТЕНКА (ХДФ 4 мм)
     // -------------------------------------------------------------------------
     if (propHasBack.Value) {
-        var backThick = 4;
         var backY1 = floorY + (isThroughBottom ? thick : 0);
         var backY2 = floorY + bodyHeight;
-        
         var zadStenka = AddFrontPanel(0, backY1, width, backY2, 0);
         zadStenka.Name = 'Задняя стенка (ХДФ)';
-        zadStenka.Thickness = backThick;
+        zadStenka.Thickness = 4;
         zadStenka.Build();
     }
 
     // -------------------------------------------------------------------------
-    // Е. КУХОННЫЕ НОЖКИ (4 шт. под цоколь)
+    // Е. МОНТАЖ НОЖЕК (с реальной присадкой / отверстиями)
     // -------------------------------------------------------------------------
-    if (propMountLegs3D.Value) {
-        var legPath = findLegModelPath(legH);
-        var legModel = null;
-        
-        try {
-            legModel = OpenFurniture(legPath);
-        } catch (e) {
-            legModel = null;
+    var legPath = getLegPathByChoice(propLegModel.ItemIndex, legH);
+    var legModel = null;
+    
+    try {
+        legModel = OpenFurniture(legPath);
+    } catch (e) {
+        legModel = null;
+    }
+
+    for (var l = 0; l < legPoints.length; l++) {
+        var lp = legPoints[l];
+        var mountedSuccess = false;
+
+        if (legModel && dno) {
+            try {
+                // Монтируем фурнитуру снизу на плоскость дна
+                legModel.Mount1(dno, lp.x, -legH, lp.z, 0);
+                mountedSuccess = true;
+            } catch (err) {
+                mountedSuccess = false;
+            }
         }
 
-        // Центры 4 ножек:
-        // X: sideOffset (слева) и width - sideOffset (справа)
-        // Z: depth - frontOffset (спереди) и backOffset (сзади)
-        var legPoints = [
-            { x: sideOffset, z: depth - frontOffset, name: 'Ножка передняя левая' },
-            { x: width - sideOffset, z: depth - frontOffset, name: 'Ножка передняя правая' },
-            { x: sideOffset, z: backOffset, name: 'Ножка задняя левая' },
-            { x: width - sideOffset, z: backOffset, name: 'Ножка задняя правая' }
-        ];
-
-        for (var l = 0; l < legPoints.length; l++) {
-            var lp = legPoints[l];
-            var mountedSuccess = false;
-
-            if (legModel && dno) {
-                try {
-                    // Установка фурнитуры на плоскость дна
-                    // Mount1(панель, X_вдоль_длины, Y_смещение, Z_вдоль_ширины, угол)
-                    legModel.Mount1(dno, lp.x, -legH, lp.z, 0);
-                    mountedSuccess = true;
-                } catch (err) {
-                    mountedSuccess = false;
-                }
-            }
-
-            // Надежный визуальный fallback, если 3D-файл не найден:
-            if (!mountedSuccess) {
-                var legBlock = BeginBlock(lp.name);
-                // База ножки (d=80 мм, h=15 мм)
-                var baseCyl = AddCylinder(NewVector(lp.x, floorY, lp.z), 40, -15);
-                baseCyl.Name = 'База опоры';
-                // Стержень ножки (d=30 мм, h=legH-15)
-                var stemCyl = AddCylinder(NewVector(lp.x, floorY - 15, lp.z), 15, -(legH - 25));
-                stemCyl.Name = 'Стойка опоры';
-                // Подпятник ножки (d=50 мм, h=10 мм)
-                var footCyl = AddCylinder(NewVector(lp.x, 10, lp.z), 25, -10);
-                footCyl.Name = 'Подпятник опоры';
-                EndBlock();
-            }
+        if (!mountedSuccess) {
+            var legBlock = BeginBlock(lp.name);
+            var baseCyl = AddCylinder(NewVector(lp.x, floorY, lp.z), 40, -15);
+            baseCyl.Name = 'База опоры';
+            var stemCyl = AddCylinder(NewVector(lp.x, floorY - 15, lp.z), 15, -(legH - 25));
+            stemCyl.Name = 'Стойка опоры';
+            var footCyl = AddCylinder(NewVector(lp.x, 10, lp.z), 25, -10);
+            footCyl.Name = 'Подпятник опоры';
+            EndBlock();
         }
     }
 
@@ -256,7 +259,6 @@ function buildKitchenBase() {
     SetCamera(p3dIsometric);
 }
 
-// 4. Назначение обработчиков
 btnBuild.OnClick = function() {
     buildKitchenBase();
 };
@@ -271,6 +273,5 @@ prop.OnChange = function() {
     buildKitchenBase();
 };
 
-// Запуск первичного построения сразу при старте
 buildKitchenBase();
 Action.Continue();
