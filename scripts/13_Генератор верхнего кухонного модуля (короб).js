@@ -85,7 +85,7 @@ function buildCarcass() {
     var D = pDepth.Value;
     var H = pHeight.Value;
 
-    var isInset = (pTopBottomType.ItemIndex === 0); // дно и крышка вкладные
+    var isInset = (pTopBottomType.ItemIndex === 0);
     var recess = pShelfRecess.Value;
 
     // Главный блок короба
@@ -185,7 +185,7 @@ btnFinish.OnClick = function() {
     Action.Finish();
     alert('Короб верхнего модуля успешно сгенерирован!\n\n' +
           'Теперь вы можете расставить свои евровинты, навесы, настроить плоскости эластичности ' +
-          'и сохранить как фрагмент "модуль верхний Базовый.fr3d".');
+          'и сохранить как фрагмент "Верхняя база.fr3d".');
 };
 
 Prop.OnChange = function() {

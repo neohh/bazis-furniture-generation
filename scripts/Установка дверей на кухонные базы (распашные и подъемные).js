@@ -333,7 +333,6 @@ function buildDoors() {
                 side: 'right'
             });
         } else if (choice === 4) {
-            // Горизонтальная 1 дверь (вверх) - петли к крышке!
             doorsToMake.push({
                 name: 'Фасад подъемный (вверх)',
                 x1: doorX1, x2: doorX2,
@@ -342,7 +341,6 @@ function buildDoors() {
                 side: 'up'
             });
         } else if (choice === 5) {
-            // 2 горизонтальные двери (нижняя + верхняя)
             var hSingle = (totalH - midGap) / 2;
             doorsToMake.push({
                 name: 'Фасад подъемный нижний',
@@ -351,7 +349,6 @@ function buildDoors() {
                 post: null,
                 side: 'lower_lift'
             });
-            // Верхняя крепится к крышке!
             doorsToMake.push({
                 name: 'Фасад подъемный верхний',
                 x1: doorX1, x2: doorX2,
@@ -375,7 +372,6 @@ function buildDoors() {
 
             if (installHinges && dInfo.post) {
                 if (dInfo.side === 'up') {
-                    // КРЕПЛЕНИЕ ПЕТЕЛЬ К КРЫШКЕ
                     var mountY = mod.topBotY || (mod.maxY - 16);
                     var hX1 = mod.minX + mod.thickL + 70;
                     var hX2 = mod.maxX - mod.thickR - 70;
@@ -388,7 +384,6 @@ function buildDoors() {
                         }
                     } catch (eHngUp) {}
                 } else {
-                    // Вертикальные петли
                     var mountX = (dInfo.side === 'left') ? (mod.minX + mod.thickL) : (mod.maxX - mod.thickR);
                     var hYBot = mod.bottomTopY + pHingeBottomOffset.Value;
                     var hYTop = dInfo.y2 - pHingeTopOffset.Value;

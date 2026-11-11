@@ -98,7 +98,7 @@ function buildCarcass() {
     var D = pDepth.Value;
     var H = pHeight.Value;
 
-    var isInset = (pTopBottomType.ItemIndex === 0); // дно и крышка вкладные
+    var isInset = (pTopBottomType.ItemIndex === 0);
     var recess = pShelfRecess.Value;
 
     // Главный блок короба
@@ -198,7 +198,7 @@ btnFinish.OnClick = function() {
     Action.Finish();
     alert('Короб верхнего модуля успешно сгенерирован!\n\n' +
           'Теперь вы можете расставить свои евровинты, навесы, настроить плоскости эластичности ' +
-          'и сохранить как фрагмент "модуль верхний Базовый.fr3d".');
+          'и сохранить как фрагмент "Верхняя база.fr3d".');
 };
 
 Prop.OnChange = function() {
@@ -211,12 +211,16 @@ Action.Continue();
 
 # ==============================================================================
 # SCRIPT 1: Быстрая расстановка верхних кухонных баз (ряд модулей).js
-# (с креплением петель к крышке на горизонтальных дверях и без кривых полкодержателей)
+# (использует Верхняя база.fr3d с эластичностью + крепление петель к крышке)
 # ==============================================================================
 SCRIPT1_CODE = r'''/**
  * =============================================================================
  * Быстрая расстановка верхних кухонных баз (ряд навесных модулей)
  * Для БАЗИС-Мебельщик (8, 9, 10, 11, 2021-2024)
+ * 
+ * Расстановка ряда навесных шкафов на основе эластичного мастер-фрагмента
+ * "Верхняя база.fr3d" (созданного пользователем с евровинтами и эластичностью)
+ * или параметрического каркаса с опциями дверей (распашные / подъемные вверх).
  * 
  * Параметры по умолчанию:
  * - Глубина корпусов D: 500 мм (настраивается: 300, 350, 400, 500 мм и т.д.)
@@ -231,10 +235,6 @@ SCRIPT1_CODE = r'''/**
  * - 3. Вертикальные 2 двери (распашные: левая + правая)
  * - 4. Горизонтальная 1 дверь (подъемная вверх, петли к крышке!)
  * - 5. Горизонтальные 2 двери (подъемные вверх, верхняя петли к крышке!)
- * 
- * Фурнитура:
- * - Кастомные петли "петля МОЯ" (70 мм от дна / 100 мм от края; к крышке для горизонтальных)
- * - Евровинты 7х50
  * =============================================================================
  */
 
@@ -247,6 +247,13 @@ function findFirstExistingFile(paths) {
     return paths[0];
 }
 
+var UPPER_BASE_PATHS = [
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\Верхняя база.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\модуль верхний Базовый.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\07_КУХОННЫЕ_МОДУЛИ_И_БАЗЫ_ЭЛАСТИЧНЫЕ\\Верхняя база.fr3d',
+    'z:\\Work\\генерация мебели\\Модели\\Кухонные модули\\Верхняя база.fr3d'
+];
+
 var HINGE_PATHS = [
     'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\Петли без заглушек и крестообр. планка\\Петля_CLIP top, CLIP без заглушек\\петля МОЯ.f3d',
     'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Петли\\петля_моя.f3d',
@@ -254,24 +261,43 @@ var HINGE_PATHS = [
     'z:\\Work\\генерация мебели\\furn\\петля_моя.f3d'
 ];
 
-var CONFIRMAT_PATHS = [
-    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\евровинт_7х50.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\confirmat_7x50.f3d',
-    'z:\\Work\\генерация мебели\\furn\\евровинт_7х50.f3d',
-    'z:\\Work\\генерация мебели\\furn\\confirmat_7x50.f3d'
-];
-
+var upperFragPath = findFirstExistingFile(UPPER_BASE_PATHS);
 var hingePath = findFirstExistingFile(HINGE_PATHS);
-var confirmatPath = findFirstExistingFile(CONFIRMAT_PATHS);
 
 var hingeObj = null;
 if (system.fileExists(hingePath)) {
     try { hingeObj = OpenFurniture(hingePath); } catch (eH) {}
 }
 
-var confirmatObj = null;
-if (system.fileExists(confirmatPath)) {
-    try { confirmatObj = OpenFurniture(confirmatPath); } catch (eC) {}
+function getPanelBox(o) {
+    if (!o) return null;
+    var minX = Infinity, maxX = -Infinity;
+    var minY = Infinity, maxY = -Infinity;
+    var minZ = Infinity, maxZ = -Infinity;
+    var found = false;
+
+    function checkObj(item) {
+        if (!item) return;
+        var bMin = item.GabMin || item.GMin;
+        var bMax = item.GabMax || item.GMax;
+        if (bMin && bMax && !isNaN(bMin.x) && !isNaN(bMax.x)) {
+            if (bMin.x < minX) minX = bMin.x;
+            if (bMax.x > maxX) maxX = bMax.x;
+            if (bMin.y < minY) minY = bMin.y;
+            if (bMax.y > maxY) maxY = bMax.y;
+            if (bMin.z < minZ) minZ = bMin.z;
+            if (bMax.z > maxZ) maxZ = bMax.z;
+            found = true;
+        }
+        if (item.Count && item.Count > 0) {
+            for (var c = 0; c < item.Count; c++) {
+                checkObj(item.Objects ? item.Objects[c] : item[c]);
+            }
+        }
+    }
+    checkObj(o);
+    if (!found) return { minX: 0, maxX: 0, minY: 0, maxY: 0, minZ: 0, maxZ: 0 };
+    return { minX: minX, maxX: maxX, minY: minY, maxY: maxY, minZ: minZ, maxZ: maxZ };
 }
 
 var Prop = Action.Properties;
@@ -332,12 +358,9 @@ for (var b = 0; b < MAX_BASES; b++) {
     pSlotH.MinValue = 0;
     pSlotH.MaxValue = 1500;
 
-    var pSlotShelves = grSlot.NewCombo('Количество полок', '2 полки\n1 полка\n3 полки\nБез полок');
-    pSlotShelves.ItemIndex = 0;
-
     var pSlotDoor = grSlot.NewCombo('Выбор дверей', doorOptions);
-    if (b < 2) pSlotDoor.ItemIndex = 3; // 2 двери
-    else if (b === 2) pSlotDoor.ItemIndex = 4; // 1 горизонтальная вверх
+    if (b < 2) pSlotDoor.ItemIndex = 3;
+    else if (b === 2) pSlotDoor.ItemIndex = 4;
     else pSlotDoor.ItemIndex = 3;
 
     baseSlots.push({
@@ -345,7 +368,6 @@ for (var b = 0; b < MAX_BASES; b++) {
         width: pSlotW,
         depth: pSlotD,
         height: pSlotH,
-        shelves: pSlotShelves,
         door: pSlotDoor
     });
 }
@@ -372,22 +394,13 @@ var pInstallHinges = grDoors.NewBool('Монтировать петли ("пет
 var pHingeBottomOffset = grDoors.NewNumber('Отступ нижней петли от дна, мм', 70);
 var pHingeTopOffset = grDoors.NewNumber('Отступ верхней петли от верха, мм', 100);
 
-// [Группа 4: Крепеж корпуса]
-var grHardware = Prop.NewGroup('4. Крепеж и задняя стенка');
-var pMountEuro = grHardware.NewBool('Евровинты 7х50 сборки корпуса', true);
-var pBackWall = grHardware.NewCombo('Задняя стенка', 'ХДФ 4 мм накладная сзади\nБез задней стенки');
-pBackWall.ItemIndex = 0;
-
-// [Группа 5: Материалы и кромка]
-var grMat = Prop.NewGroup('5. Материалы и кромка');
-var pMatBody = grMat.NewMaterial('Материал корпуса (ЛДСП 16 мм)');
+// [Группа 4: Материалы и кромка фасадов]
+var grMat = Prop.NewGroup('4. Материалы и кромка');
 var pMatDoor = grMat.NewMaterial('Материал фасадов (МДФ / Фасадный ЛДСП)');
-var pMatBack = grMat.NewMaterial('Материал задней стенки (ХДФ 4 мм)');
 var pEdgeFront = grMat.NewButt('Кромка лицевая (0.8 мм)');
-var pEdgeBody = grMat.NewButt('Кромка корпусная (0.4 мм)');
 
-// [Группа 6: Действия]
-var grActions = Prop.NewGroup('6. Действия');
+// [Группа 5: Действия]
+var grActions = Prop.NewGroup('5. Действия');
 var btnBuild = grActions.NewButton('Сгенерировать верхний ряд');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
 
@@ -407,20 +420,14 @@ function buildUpperRow() {
     var midGap = pDoorMidGap.Value;
     var bottomHang = pBottomHang.Value;
     var doorThick = pDoorThick.Value;
-
-    var isEuro = pMountEuro.Value;
-    var hasBackWall = (pBackWall.ItemIndex === 0);
     var installHinges = pInstallHinges.Value && (hingeObj !== null);
 
     for (var s = 0; s < MAX_BASES; s++) {
         baseSlots[s].group.Visible = (s < num);
     }
 
-    pMatBody.SetActive();
-    var thick = ActiveMaterial.Thickness;
-    if (!thick || thick <= 0) thick = 16;
-
     var curX = startX;
+    var hasFragment = (upperFragPath && system.fileExists(upperFragPath));
 
     var rowBlock = BeginBlock('Ряд верхних баз (' + num + ' модулей)');
 
@@ -433,10 +440,6 @@ function buildUpperRow() {
         var modH = (slot.height.Value > 0) ? slot.height.Value : defH;
         var doorChoice = slot.door.ItemIndex;
 
-        var modBlock = BeginBlock('Верхняя база ' + bNum + ' (' + modW + 'x' + modD + 'x' + modH + ')');
-
-        pMatBody.SetActive();
-
         var xL = curX;
         var xR = curX + modW;
         var yB = startY;
@@ -444,91 +447,101 @@ function buildUpperRow() {
         var zBack = startZ;
         var zFront = startZ + modD;
 
-        // 1. Боковины
-        var levBok = AddVertPanel(zBack, yB, zFront, yT, xL);
-        levBok.Name = 'Боковина левая';
-        levBok.AddButt(pEdgeBody, 0);  // низ
-        levBok.AddButt(pEdgeFront, 1); // перед
-        levBok.AddButt(pEdgeBody, 2);  // верх
-        levBok.AddButt(pEdgeBody, 3);  // зад
-        levBok.Build();
+        var levBok = null;
+        var pravBok = null;
+        var krishka = null;
+        var dno = null;
 
-        var pravBok = AddVertPanel(zBack, yB, zFront, yT, xR - thick);
-        pravBok.Name = 'Боковина правая';
-        pravBok.AddButt(pEdgeBody, 0);
-        pravBok.AddButt(pEdgeFront, 1);
-        pravBok.AddButt(pEdgeBody, 2);
-        pravBok.AddButt(pEdgeBody, 3);
-        pravBok.Build();
+        var modBlock = AddBlock('Верхняя база ' + bNum + ' (' + Math.round(modW) + 'x' + Math.round(modD) + 'x' + Math.round(modH) + ')');
+        var loadOk = false;
 
-        // 2. Дно и Крышка
-        var dno = AddHorizPanel(xL + thick, zBack, xR - thick, zFront, yB);
-        dno.Name = 'Дно';
-        dno.AddButt(pEdgeBody, 0);
-        dno.AddButt(pEdgeFront, 1);
-        dno.AddButt(pEdgeBody, 2);
-        dno.AddButt(pEdgeBody, 3);
-        dno.Build();
-
-        var krishka = AddHorizPanel(xL + thick, zBack, xR - thick, zFront, yT - thick);
-        krishka.Name = 'Крышка';
-        krishka.AddButt(pEdgeBody, 0);
-        krishka.AddButt(pEdgeFront, 1);
-        krishka.AddButt(pEdgeBody, 2);
-        krishka.AddButt(pEdgeBody, 3);
-        krishka.Build();
-
-        // 3. Евровинты каркаса
-        if (isEuro && confirmatObj) {
-            var zConfFront = zFront - 50;
-            var zConfBack = zBack + 50;
-            var yDnoConf = yB + thick / 2;
-            var yKriConf = yT - thick / 2;
-
+        if (hasFragment) {
             try {
-                confirmatObj.Mount(levBok, dno, xL, yDnoConf, zConfFront);
-                confirmatObj.Mount(levBok, dno, xL, yDnoConf, zConfBack);
-                confirmatObj.Mount(pravBok, dno, xR, yDnoConf, zConfFront);
-                confirmatObj.Mount(pravBok, dno, xR, yDnoConf, zConfBack);
-
-                confirmatObj.Mount(levBok, krishka, xL, yKriConf, zConfFront);
-                confirmatObj.Mount(levBok, krishka, xL, yKriConf, zConfBack);
-                confirmatObj.Mount(pravBok, krishka, xR, yKriConf, zConfFront);
-                confirmatObj.Mount(pravBok, krishka, xR, yKriConf, zConfBack);
-            } catch (eCnf) {}
+                loadOk = modBlock.Load(upperFragPath);
+            } catch(eLoad) {
+                loadOk = false;
+            }
         }
 
-        // 4. Задняя стенка (ХДФ 4 мм)
-        if (hasBackWall) {
-            pMatBack.SetActive();
+        if (loadOk) {
+            // Эластичное масштабирование фрагмента пользователя
+            var dBlock = modBlock;
+            if (modBlock.Count > 0) {
+                var firstChild = (modBlock.Objects && typeof modBlock.Objects[0] !== 'undefined') ? modBlock.Objects[0] : modBlock[0];
+                if (firstChild) dBlock = firstChild;
+            }
+
+            var resizeObj = dBlock.ElasticResize ? dBlock : (modBlock.ElasticResize ? modBlock : null);
+            if (resizeObj) {
+                try {
+                    resizeObj.ElasticResize(NewVector(modW, modH, modD));
+                } catch(eR1) {
+                    try {
+                        resizeObj.ElasticResize(NewVector(modW, modH, resizeObj.GSize ? resizeObj.GSize.z : modD));
+                    } catch(eR2) {}
+                }
+                resizeObj.Build();
+            }
+            modBlock.Build();
+
+            // Позиционирование в ряд
+            var box = getPanelBox(modBlock);
+            var shiftX = xL - box.minX;
+            var shiftY = yB - box.minY;
+            var shiftZ = zBack - box.minZ;
+
+            modBlock.Position = NewVector(modBlock.Position.x + shiftX, modBlock.Position.y + shiftY, modBlock.Position.z + shiftZ);
+            modBlock.Build();
+
+            // Поиск боковин и крышки внутри загруженного модуля для монтажа петель
+            function findPanels(container) {
+                if (!container) return;
+                for (var p = 0; p < container.Count; p++) {
+                    var obj = container.Objects ? container.Objects[p] : container[p];
+                    if (obj && obj.AsPanel) {
+                        var szX = obj.GabMax.x - obj.GabMin.x;
+                        var szY = obj.GabMax.y - obj.GabMin.y;
+                        var szZ = obj.GabMax.z - obj.GabMin.z;
+
+                        if (szX <= 35 && szY > (modH * 0.5)) {
+                            if (!levBok || obj.GabMin.x < levBok.GabMin.x) levBok = obj;
+                            if (!pravBok || obj.GabMax.x > pravBok.GabMax.x) pravBok = obj;
+                        }
+                        if (szY <= 35 && szX > (modW * 0.5)) {
+                            if (!krishka || obj.GabMax.y > krishka.GabMax.y) krishka = obj;
+                            if (!dno || obj.GabMin.y < dno.GabMin.y) dno = obj;
+                        }
+                    }
+                    if (obj && obj.Count && obj.Count > 0) findPanels(obj);
+                }
+            }
+            findPanels(modBlock);
+        } else {
+            // Fallback: чистый параметрический каркас
+            var thick = 16;
+            levBok = AddVertPanel(zBack, yB, zFront, yT, xL);
+            levBok.Name = 'Боковина левая';
+            levBok.Build();
+
+            pravBok = AddVertPanel(zBack, yB, zFront, yT, xR - thick);
+            pravBok.Name = 'Боковина правая';
+            pravBok.Build();
+
+            dno = AddHorizPanel(xL + thick, zBack, xR - thick, zFront, yB);
+            dno.Name = 'Дно';
+            dno.Build();
+
+            krishka = AddHorizPanel(xL + thick, zBack, xR - thick, zFront, yT - thick);
+            krishka.Name = 'Крышка';
+            krishka.Build();
+
             var backWall = AddFrontPanel(xL + 2, yB + 2, xR - 2, yT - 2, zBack - 4);
             backWall.Name = 'Задняя стенка (ХДФ)';
             backWall.Thickness = 4;
             backWall.Build();
         }
 
-        // 5. Полки съемные (чистые вкладные полки)
-        var numShelves = 2;
-        if (slot.shelves.ItemIndex === 1) numShelves = 1;
-        else if (slot.shelves.ItemIndex === 2) numShelves = 3;
-        else if (slot.shelves.ItemIndex === 3) numShelves = 0;
-
-        if (numShelves > 0) {
-            pMatBody.SetActive();
-            var innerH = (yT - thick) - (yB + thick);
-            var shelfStep = innerH / (numShelves + 1);
-            var shelfZFront = zFront - 15;
-
-            for (var sh = 1; sh <= numShelves; sh++) {
-                var shY = yB + thick + sh * shelfStep - thick / 2;
-                var polka = AddHorizPanel(xL + thick + 1, zBack, xR - thick - 1, shelfZFront, shY);
-                polka.Name = 'Полка вкладная ' + sh;
-                polka.AddButt(pEdgeBody, 1);
-                polka.Build();
-            }
-        }
-
-        // 6. Двери и фасады
+        // Двери и фасады
         if (doorChoice > 0) {
             pMatDoor.SetActive();
 
@@ -544,7 +557,6 @@ function buildUpperRow() {
             var doorsToCreate = [];
 
             if (doorChoice === 1) {
-                // 1 вертикальная дверь (петли слева)
                 doorsToCreate.push({
                     name: 'Фасад (петли слева)',
                     x1: doorX1, x2: doorX2,
@@ -553,7 +565,6 @@ function buildUpperRow() {
                     side: 'left'
                 });
             } else if (doorChoice === 2) {
-                // 1 вертикальная дверь (петли справа)
                 doorsToCreate.push({
                     name: 'Фасад (петли справа)',
                     x1: doorX1, x2: doorX2,
@@ -562,7 +573,6 @@ function buildUpperRow() {
                     side: 'right'
                 });
             } else if (doorChoice === 3) {
-                // 2 вертикальные двери (левая + правая)
                 var wSingle = (totalW - midGap) / 2;
                 doorsToCreate.push({
                     name: 'Фасад левый',
@@ -579,7 +589,7 @@ function buildUpperRow() {
                     side: 'right'
                 });
             } else if (doorChoice === 4) {
-                // 1 горизонтальная дверь (вверх) - петли к крышке!
+                // Горизонтальная 1 дверь - петли к крышке!
                 doorsToCreate.push({
                     name: 'Фасад подъемный (вверх)',
                     x1: doorX1, x2: doorX2,
@@ -588,7 +598,6 @@ function buildUpperRow() {
                     side: 'up'
                 });
             } else if (doorChoice === 5) {
-                // 2 горизонтальные двери (нижняя + верхняя)
                 var hSingle = (totalH - midGap) / 2;
                 doorsToCreate.push({
                     name: 'Фасад подъемный нижний',
@@ -597,7 +606,7 @@ function buildUpperRow() {
                     post: null,
                     side: 'lower_lift'
                 });
-                // Верхний фасад крепится петлями к крышке!
+                // Верхний фасад крепится к крышке!
                 doorsToCreate.push({
                     name: 'Фасад подъемный верхний',
                     x1: doorX1, x2: doorX2,
@@ -607,7 +616,6 @@ function buildUpperRow() {
                 });
             }
 
-            // Создание фасадов и установка петель
             for (var d = 0; d < doorsToCreate.length; d++) {
                 var dInfo = doorsToCreate[d];
                 var fPanel = AddFrontPanel(dInfo.x1, dInfo.y1, dInfo.x2, dInfo.y2, doorZ);
@@ -621,10 +629,10 @@ function buildUpperRow() {
 
                 if (installHinges && dInfo.post) {
                     if (dInfo.side === 'up') {
-                        // КРЕПЛЕНИЕ ПЕТЕЛЬ К КРЫШКЕ ШКАФА СВЕРХУ
-                        var mountY = yT - thick;
-                        var hX1 = xL + thick + 70;
-                        var hX2 = xR - thick - 70;
+                        // ПЕТЛИ К КРЫШКЕ ШКАФА
+                        var mountY = krishka ? krishka.GabMin.y : (yT - 16);
+                        var hX1 = xL + 16 + 70;
+                        var hX2 = xR - 16 - 70;
                         try {
                             hingeObj.Mount(dInfo.post, fPanel, hX1, mountY, doorZ);
                             hingeObj.Mount(dInfo.post, fPanel, hX2, mountY, doorZ);
@@ -634,9 +642,10 @@ function buildUpperRow() {
                             }
                         } catch (eHngUp) {}
                     } else {
-                        // Вертикальные распашные петли к боковинам
-                        var mountX = (dInfo.side === 'left') ? (xL + thick) : (xR - thick);
-                        var hYBot = yB + thick + pHingeBottomOffset.Value;
+                        // Распашные петли к боковинам
+                        var mountX = (dInfo.side === 'left') ? (xL + 16) : (xR - 16);
+                        var baseBottomY = dno ? dno.GabMax.y : (yB + 16);
+                        var hYBot = baseBottomY + pHingeBottomOffset.Value;
                         var hYTop = dInfo.y2 - pHingeTopOffset.Value;
                         if (hYTop <= hYBot) hYTop = hYBot + 100;
 
@@ -654,7 +663,6 @@ function buildUpperRow() {
             }
         }
 
-        EndBlock();
         curX += modW;
     }
 
@@ -1021,7 +1029,6 @@ function buildDoors() {
                 side: 'right'
             });
         } else if (choice === 4) {
-            // Горизонтальная 1 дверь (вверх) - петли к крышке!
             doorsToMake.push({
                 name: 'Фасад подъемный (вверх)',
                 x1: doorX1, x2: doorX2,
@@ -1030,7 +1037,6 @@ function buildDoors() {
                 side: 'up'
             });
         } else if (choice === 5) {
-            // 2 горизонтальные двери (нижняя + верхняя)
             var hSingle = (totalH - midGap) / 2;
             doorsToMake.push({
                 name: 'Фасад подъемный нижний',
@@ -1039,7 +1045,6 @@ function buildDoors() {
                 post: null,
                 side: 'lower_lift'
             });
-            // Верхняя крепится к крышке!
             doorsToMake.push({
                 name: 'Фасад подъемный верхний',
                 x1: doorX1, x2: doorX2,
@@ -1063,7 +1068,6 @@ function buildDoors() {
 
             if (installHinges && dInfo.post) {
                 if (dInfo.side === 'up') {
-                    // КРЕПЛЕНИЕ ПЕТЕЛЬ К КРЫШКЕ
                     var mountY = mod.topBotY || (mod.maxY - 16);
                     var hX1 = mod.minX + mod.thickL + 70;
                     var hX2 = mod.maxX - mod.thickR - 70;
@@ -1076,7 +1080,6 @@ function buildDoors() {
                         }
                     } catch (eHngUp) {}
                 } else {
-                    // Вертикальные петли
                     var mountX = (dInfo.side === 'left') ? (mod.minX + mod.thickL) : (mod.maxX - mod.thickR);
                     var hYBot = mod.bottomTopY + pHingeBottomOffset.Value;
                     var hYTop = dInfo.y2 - pHingeTopOffset.Value;
