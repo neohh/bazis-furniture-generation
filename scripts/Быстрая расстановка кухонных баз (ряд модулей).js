@@ -6,17 +6,19 @@
  * 2. Расстановка модулей слева направо на основе ПРЕДУСТАНОВЛЕННЫХ фрагментов:
  *    - База для полок (база кухни1 для шкафов полок.fr3d) - ножки + корпус + полка + распашные двери.
  *    - База для мойки (база кухни1 для мойки.fr3d) - ножки + корпус + планки мойки + распашные двери.
- *    - База с выдвижными ящиками - корпус (модуль под полки, ящику.fr3d) + ящики (Ящик Базовый.fr3d).
- *      Ящики позиционируются по фасаду: нижний ящик строго 2 мм над дном, верхний ящик строго под
- *      верхней планкой/столешницей, направляющие точно по внутренним плоскостям боковин.
+ *    - База с выдвижными ящиками - корпус (модуль под полки, ящику.fr3d) + ящики.
+ *    - База под духовку / печку - корпус + ниша под духовку (600 мм) + полка-перегородка + ящик снизу!
  *    - Модуль под полки / ящики (модуль под полки, ящику.fr3d) - открытый корпус с ножками.
  *    - Модуль Базовый (модуль Базовый.fr3d).
- * 3. Настройка РАЗМЕРОВ:
+ * 3. ВЫБОР СИСТЕМЫ ВЫДВИЖЕНИЯ (в свойствах каждой базы с ящиками или под духовку):
+ *    - 1. Ящик Базовый (Tandem скрытого монтажа из Ящик Базовый.fr3d)
+ *    - 2. TANDEMBOX antaro BLUM (оригинальные метабоксы Blum Antaro: царги D, M, N)
+ *    - 3. Шариковые направляющие (Boyard телескопы полного выдвижения)
+ * 4. Настройка РАЗМЕРОВ:
  *    - Общая глубина каркаса баз D (по умолчанию 560 мм; можно ставить 500, 450, 400, 300 мм и т.д.).
  *    - Индивидуальная глубина для каждой базы (для ступенчатых кухонь с перепадом глубин).
  *    - Общая высота баз H (по умолчанию 820 мм; можно ставить 850, 860, 900 мм под любые ножки).
  *    - Ширина каждой базы отдельно (или общим списком через запятую).
- * 4. Настройка количества ящиков (2, 3 или 4 ящика) для ящичной базы.
  * 5. Единая столешница:
  *    - Автоматическая глубина под глубину баз со свесом 40 мм (факт выводится в свойствах).
  *    - Стандартная индустриальная толщина 38 мм (постформинг, влагостойкая) или 28 мм.
@@ -60,21 +62,21 @@ function getBaseFragmentPath(typeIndex) {
             'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\модуль Базовый.fr3d',
             'z:\\Work\\генерация мебели\\Модели\\Кухонные модули\\модуль Базовый.fr3d'
         ];
-    } else if (typeIndex === 2) {
-        // База под ящики (открытый модуль)
+    } else if (typeIndex === 2 || typeIndex === 3) {
+        // База под ящики или База под духовку (открытый корпус с ножками)
         candidates = [
             'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\модуль под полки, ящику.fr3d',
             'z:\\Work\\генерация мебели\\Модели\\Кухонные модули\\модуль под полки, ящику.fr3d',
             'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\база кухни1 для шкафов полок.fr3d',
             'z:\\Work\\генерация мебели\\Модели\\Кухонные модули\\база кухни1 для шкафов полок.fr3d'
         ];
-    } else if (typeIndex === 3) {
+    } else if (typeIndex === 4) {
         // Модуль под полки / ящики
         candidates = [
             'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\модуль под полки, ящику.fr3d',
             'z:\\Work\\генерация мебели\\Модели\\Кухонные модули\\модуль под полки, ящику.fr3d'
         ];
-    } else if (typeIndex === 4) {
+    } else if (typeIndex === 5) {
         // Модуль Базовый
         candidates = [
             'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Кухонные модули (эластичные)\\модуль Базовый.fr3d',
@@ -90,6 +92,44 @@ var drawerFragmentPath = findFirstExistingFile([
     'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\08_ЯЩИКИ_И_ВЫДВИЖНЫЕ_СИСТЕМЫ\\Ящик Базовый.fr3d',
     'z:\\Work\\генерация мебели\\Модели\\Ящики\\Ящик Базовый.fr3d'
 ]);
+
+function getTandemboxFragment(subType, depth) {
+    var length = 500;
+    if (depth >= 580) length = 550;
+    else if (depth >= 530) length = 500;
+    else if (depth >= 480) length = 450;
+    else if (depth >= 430) length = 400;
+    else if (depth >= 380) length = 350;
+    else if (depth >= 330) length = 300;
+    else length = 270;
+
+    var baseDir = 'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\TANDEMBOX\\TANDEMBOX_antaro_BLUMOTION_белый_( 16 мм.)';
+    var folderName = 'TANDEMBOX_antaro_' + subType + '_белый_( 16 мм.)';
+    var fileName = 'TANDEMBOX_antaro_' + subType + ', L=' + length + ', белый.fr3d';
+    var fullPath = baseDir + '\\' + folderName + '\\' + fileName;
+
+    if (system.fileExists(fullPath)) return fullPath;
+
+    var lens = [500, 450, 400, 350, 300, 550, 270];
+    for (var i = 0; i < lens.length; i++) {
+        var alt = baseDir + '\\' + folderName + '\\TANDEMBOX_antaro_' + subType + ', L=' + lens[i] + ', белый.fr3d';
+        if (system.fileExists(alt)) return alt;
+    }
+    return '';
+}
+
+function getBallBearingSlideFragment(depth) {
+    var length = 500;
+    if (depth >= 530) length = 500;
+    else if (depth >= 480) length = 450;
+    else if (depth >= 430) length = 400;
+    else if (depth >= 380) length = 350;
+    else length = 300;
+
+    var path = 'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\направляющие боярд шариковые\\DB4518Zn\\Шариковые направ. DB4518Zn_' + length + '.fr3d';
+    if (system.fileExists(path)) return path;
+    return '';
+}
 
 // -----------------------------------------------------------------------------
 // 2. Запрос точки начала расстановки (по умолчанию 0, 0, 0)
@@ -140,10 +180,17 @@ var baseSlots = [];
 var baseTypeNames = [
     'База для полок (база кухни1 для шкафов полок)',
     'База для мойки (база кухни1 для мойки)',
-    'База с выдвижными ящиками (Ящик Базовый)',
+    'База с выдвижными ящиками (на выбор Tandembox / Базовый)',
+    'База под духовку / печку (духовка 600 мм + ящик снизу)',
     'Модуль под полки / ящики (открытый)',
     'Модуль Базовый'
 ];
+
+var drawerSystemOptions = [
+    'Ящик Базовый (Tandem)',
+    'TANDEMBOX antaro BLUM',
+    'Шариковые направляющие (Boyard)'
+].join('\n');
 
 var baseTypeOptions = baseTypeNames.join('\n');
 var defaultWidths = [600, 600, 600, 600, 450, 800, 600, 600];
@@ -153,10 +200,9 @@ for (var b = 0; b < MAX_BASES; b++) {
     var grSlot = grMain.NewGroup('База ' + bNum);
     
     var pSlotType = grSlot.NewCombo('Тип базы', baseTypeOptions);
-    // По умолчанию: база 1 = полки (0), база 2 = ящики (2), база 3 = мойка (1)
     if (b === 0) pSlotType.ItemIndex = 0;
-    else if (b === 1) pSlotType.ItemIndex = 2;
-    else if (b === 2) pSlotType.ItemIndex = 1;
+    else if (b === 1) pSlotType.ItemIndex = 2; // база с ящиками
+    else if (b === 2) pSlotType.ItemIndex = 1; // мойка
     else pSlotType.ItemIndex = 0;
     
     var pSlotW = grSlot.NewNumber('Ширина W' + bNum + ', мм', defaultWidths[b]);
@@ -167,8 +213,15 @@ for (var b = 0; b < MAX_BASES; b++) {
     pSlotD.MinValue = 0;
     pSlotD.MaxValue = 1200;
 
-    var pSlotDrawers = grSlot.NewCombo('Ящики (если база с ящиками)', '3 ящика (1 высокий снизу + 2 равных сверху)\n2 ящика (равные по высоте)\n4 ящика (равные по высоте)');
+    var pSlotDrawerSys = grSlot.NewCombo('Система выдвижения', drawerSystemOptions);
+    pSlotDrawerSys.ItemIndex = 0; // по умолчанию Ящик Базовый, можно переключить на TANDEMBOX
+
+    var pSlotDrawers = grSlot.NewCombo('Раскладка ящиков', '3 ящика (1 высокий снизу + 2 равных сверху)\n2 ящика (равные по высоте)\n4 ящика (равные по высоте)');
     pSlotDrawers.ItemIndex = 0;
+
+    var pSlotOvenH = grSlot.NewNumber('Высота ниши духовки, мм', 600);
+    pSlotOvenH.MinValue = 350;
+    pSlotOvenH.MaxValue = 700;
 
     var pSlotFile = grSlot.NewString('Файл фрагмента', '');
     pSlotFile.Enabled = false;
@@ -178,7 +231,9 @@ for (var b = 0; b < MAX_BASES; b++) {
         type: pSlotType,
         width: pSlotW,
         depth: pSlotD,
+        drawerSys: pSlotDrawerSys,
         drawers: pSlotDrawers,
+        ovenH: pSlotOvenH,
         fileInfo: pSlotFile
     });
 }
@@ -393,6 +448,149 @@ function getPanelBox(o) {
     };
 }
 
+// Построение отдельного ящика по выбранной системе выдвижения
+function buildSingleDrawer(sysType, isBottomOrOnly, x1, x2, curFY, fh, secD, carcassFrontZ, drawerIndex) {
+    var secW = Math.round(x2 - x1);
+    var dObj = AddBlock('Ящик ' + drawerIndex + ' (H=' + Math.round(fh) + ')');
+
+    // ВАРИАНТ 1: TANDEMBOX antaro BLUM
+    if (sysType === 1) {
+        var subType = isBottomOrOnly ? 'D' : 'M';
+        if (fh < 130) subType = 'N'; // ультра-низкий для духовки
+
+        var tbFile = getTandemboxFragment(subType, secD);
+        var loaded = false;
+        if (tbFile && system.fileExists(tbFile)) {
+            try { loaded = dObj.Load(tbFile); } catch(eTB) { loaded = false; }
+        }
+
+        if (loaded) {
+            var dSub = dObj;
+            if (dObj.Count > 0) {
+                var firstChild = (dObj.Objects && typeof dObj.Objects[0] !== 'undefined') ? dObj.Objects[0] : dObj[0];
+                if (firstChild) dSub = firstChild;
+            }
+
+            var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
+            if (rObj) {
+                try { rObj.ElasticResize(NewVector(secW, rObj.GSize ? rObj.GSize.y : 200, rObj.GSize ? rObj.GSize.z : 500)); } catch(eTR) {}
+                rObj.Build();
+            }
+            dObj.Build();
+
+            var dBox = getPanelBox(dObj);
+            var minX = dBox ? dBox.minX : 0;
+            var minY = dBox ? dBox.minY : 0;
+            var maxZ = dBox ? dBox.maxZ : 0;
+
+            var dShiftX = x1 - minX;
+            var dShiftY = (curFY + 15) - minY; // дно ящика на 15 мм выше кромки фасада
+            var dShiftZ = carcassFrontZ - maxZ;
+
+            dObj.Translate(NewVector(dShiftX, dShiftY, dShiftZ));
+            dObj.Build();
+        }
+
+        // Строим фасад Tandembox (накладной, толщина 16 мм, с зазорами 2 мм по краям)
+        safeFront(x1 - 14, curFY, x2 + 14, curFY + fh, carcassFrontZ + 16, 'Фасад Tandembox (H=' + Math.round(fh) + ')');
+        return;
+    }
+
+    // ВАРИАНТ 2: Шариковые направляющие (Boyard)
+    if (sysType === 2) {
+        var T = 16;
+        var boxGapSide = 13; // 12.7 мм зазор на направляющие
+        var boxX1 = x1 + boxGapSide;
+        var boxX2 = x2 - boxGapSide;
+        var boxW = boxX2 - boxX1;
+        var boxH = Math.min(Math.round(fh * 0.7), 180);
+        if (boxH < 60) boxH = 60;
+        var boxD = 450;
+        if (secD >= 530) boxD = 500;
+        else if (secD >= 480) boxD = 450;
+        else if (secD >= 430) boxD = 400;
+        else if (secD >= 380) boxD = 350;
+        else boxD = 300;
+
+        var boxZFront = carcassFrontZ - 2;
+        var boxZBack = boxZFront - boxD;
+        var boxBotY = curFY + 15;
+        var boxTopY = boxBotY + boxH;
+
+        // Короб ящика
+        safeHoriz(boxX1, boxZBack, boxX2, boxZFront, boxBotY, 'Дно ящика');
+        safeVert(boxZBack, boxBotY + T, boxZFront, boxTopY, boxX1 + T, 'Боковина ящика Лев');
+        safeVert(boxZBack, boxBotY + T, boxZFront, boxTopY, boxX2, 'Боковина ящика Прав');
+        safeFront(boxX1 + T, boxBotY + T, boxX2 - T, boxTopY, boxZBack + T, 'Задняя стенка ящика');
+        safeFront(boxX1 + T, boxBotY + T, boxX2 - T, boxTopY, boxZFront, 'Передняя стенка ящика');
+
+        // Шариковые направляющие Boyard
+        var slideFile = getBallBearingSlideFragment(secD);
+        if (slideFile && system.fileExists(slideFile)) {
+            var slideBlock = AddBlock('Направляющие шариковые L=' + boxD);
+            try {
+                if (slideBlock.Load(slideFile)) {
+                    var sBox = getPanelBox(slideBlock);
+                    var sMinX = sBox ? sBox.minX : 0;
+                    var sMinY = sBox ? sBox.minY : 0;
+                    var sMaxZ = sBox ? sBox.maxZ : 0;
+                    slideBlock.Translate(NewVector(x1 - sMinX, (boxBotY + 10) - sMinY, carcassFrontZ - sMaxZ));
+                    slideBlock.Build();
+                }
+            } catch(eSl) {}
+        }
+
+        // Фасад
+        safeFront(x1 - 14, curFY, x2 + 14, curFY + fh, carcassFrontZ + 16, 'Фасад ящика (H=' + Math.round(fh) + ')');
+        return;
+    }
+
+    // ВАРИАНТ 0 (по умолчанию): Ящик Базовый (Tandem)
+    if (drawerFragmentPath && system.fileExists(drawerFragmentPath)) {
+        var dOk = false;
+        try { dOk = dObj.Load(drawerFragmentPath); } catch(eDLoad) { dOk = false; }
+
+        if (dOk) {
+            var dSub = dObj;
+            if (dObj.Count > 0) {
+                var firstChild = (dObj.Objects && typeof dObj.Objects[0] !== 'undefined') ? dObj.Objects[0] : dObj[0];
+                if (firstChild) dSub = firstChild;
+            }
+
+            var nativeD = 500;
+            if (dSub.GSize && dSub.GSize.z > 0) nativeD = dSub.GSize.z;
+            else if (dObj.GSize && dObj.GSize.z > 0) nativeD = dObj.GSize.z;
+
+            var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
+            if (rObj) {
+                try {
+                    rObj.ElasticResize(NewVector(secW, fh, nativeD));
+                } catch(eDr1) {
+                    try {
+                        rObj.ElasticResize(NewVector(secW, rObj.GSize.y, nativeD));
+                    } catch(eDr2) {}
+                }
+                rObj.Build();
+            }
+            dObj.Build();
+
+            var facadeObj = searchFacade(dObj) || findFrontPanel(dObj);
+            var bMin = dObj.GabMin || dSub.GabMin;
+            var bMax = dObj.GabMax || dSub.GabMax;
+
+            var boxMinY = facadeObj ? (facadeObj.GabMin ? facadeObj.GabMin.y : facadeObj.Position.y) : ((bMin && !isNaN(bMin.y)) ? bMin.y : 0);
+            var boxMaxZ = (bMax && !isNaN(bMax.z)) ? bMax.z : 0;
+
+            var dShiftX = x1;
+            var dShiftY = curFY - boxMinY;
+            var dShiftZ = carcassFrontZ - boxMaxZ;
+
+            dObj.Translate(NewVector(dShiftX, dShiftY, dShiftZ));
+            dObj.Build();
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // 5. Главный алгоритм построения ряда баз из предустановленных фрагментов
 // -----------------------------------------------------------------------------
@@ -412,9 +610,15 @@ function BuildKitchenRow() {
         var visible = (b < numBases);
         baseSlots[b].group.Visible = visible;
         if (visible) {
-            var fPath = getBaseFragmentPath(baseSlots[b].type.ItemIndex);
+            var bTypeIdx = baseSlots[b].type.ItemIndex;
+            var fPath = getBaseFragmentPath(bTypeIdx);
             var fName = fPath ? fPath.split(/[\\\/]/).pop() : 'Не найден';
             baseSlots[b].fileInfo.Value = fName;
+
+            var hasDrawers = (bTypeIdx === 2 || bTypeIdx === 3);
+            baseSlots[b].drawerSys.Visible = hasDrawers;
+            baseSlots[b].drawers.Visible = (bTypeIdx === 2);
+            baseSlots[b].ovenH.Visible = (bTypeIdx === 3);
         }
     }
 
@@ -481,15 +685,12 @@ function BuildKitchenRow() {
             var resizeObj = dBlock.ElasticResize ? dBlock : (baseBlock.ElasticResize ? baseBlock : null);
             if (resizeObj) {
                 try {
-                    // Пробуем полное растяжение по всем 3 осям (Ш, В, Г)
                     resizeObj.ElasticResize(NewVector(bWidth, bHeight, bDepth));
                 } catch(eR1) {
                     try {
-                        // Если нет плоскости по глубине, пробуем Ш и В
                         resizeObj.ElasticResize(NewVector(bWidth, bHeight, resizeObj.GSize ? resizeObj.GSize.z : bDepth));
                     } catch(eR2) {
                         try {
-                            // Если нет плоскости по высоте/глубине, пробуем только ширину
                             resizeObj.ElasticResize(NewVector(bWidth, resizeObj.GSize.y, resizeObj.GSize.z));
                         } catch(eR3) {}
                     }
@@ -516,83 +717,79 @@ function BuildKitchenRow() {
                 if (box.maxZ + shiftZ > rowMaxZ) rowMaxZ = box.maxZ + shiftZ;
             }
 
-            // Если выбран тип 2: "База с выдвижными ящиками", встраиваем ящики Tandem
-            if (bType === 2 && drawerFragmentPath && system.fileExists(drawerFragmentPath)) {
-                // Точное сканирование ниши базы по панелям каркаса
-                var allPanels = collectPanels(baseBlock, []);
-                var sides = [];
-                var horiz = [];
-                var backs = [];
+            // СКАНИРОВАНИЕ ВНУТРЕННЕГО ПРОЕМА НИШИ
+            var allPanels = collectPanels(baseBlock, []);
+            var sides = [];
+            var horiz = [];
+            var backs = [];
 
-                for (var pIdx = 0; pIdx < allPanels.length; pIdx++) {
-                    var pItem = allPanels[pIdx];
-                    if (pItem.sx <= 35 && pItem.sy > 150 && pItem.sz > 100) {
-                        sides.push(pItem);
-                    } else if (pItem.sy <= 35 && pItem.sx >= 180 && pItem.sz >= 150) {
-                        horiz.push(pItem);
-                    } else if (pItem.sz <= 25 && pItem.sx > 150 && pItem.sy > 150) {
-                        backs.push(pItem);
+            for (var pIdx = 0; pIdx < allPanels.length; pIdx++) {
+                var pItem = allPanels[pIdx];
+                if (pItem.sx <= 35 && pItem.sy > 150 && pItem.sz > 100) {
+                    sides.push(pItem);
+                } else if (pItem.sy <= 35 && pItem.sx >= 180 && pItem.sz >= 150) {
+                    horiz.push(pItem);
+                } else if (pItem.sz <= 25 && pItem.sx > 150 && pItem.sy > 150) {
+                    backs.push(pItem);
+                }
+            }
+
+            sides.sort(function(a, b) { return a.minX - b.minX; });
+            horiz.sort(function(a, b) { return a.minY - b.minY; });
+
+            var nicheX1 = curBaseX + 16;
+            var nicheX2 = curBaseX + bWidth - 16;
+            var nicheY1 = startPoint.y + 100 + 16; // верхняя пласть дна
+            var nicheY2 = startPoint.y + bHeight - 16; // низ верхних планок
+            var carcassFrontZ = startPoint.z + bDepth;
+            var carcassBackZ = startPoint.z;
+
+            if (sides.length >= 2) {
+                nicheX1 = sides[0].maxX;
+                nicheX2 = sides[sides.length - 1].minX;
+                carcassFrontZ = Math.max(sides[0].maxZ, sides[sides.length - 1].maxZ);
+                carcassBackZ = Math.min(sides[0].minZ, sides[sides.length - 1].minZ);
+            }
+
+            var minSidesY = (sides.length > 0) ? sides[0].minY : (startPoint.y + 100);
+            var validHoriz = [];
+            for (var hI = 0; hI < horiz.length; hI++) {
+                if (horiz[hI].maxY >= minSidesY - 30) validHoriz.push(horiz[hI]);
+            }
+
+            if (validHoriz.length > 0) {
+                nicheY1 = validHoriz[0].maxY; // ВЕРХНЯЯ ПЛАСТЬ ДНА
+            }
+            if (validHoriz.length > 1) {
+                var maxHY = validHoriz[validHoriz.length - 1].maxY;
+                var topP = [];
+                for (var h2 = 0; h2 < validHoriz.length; h2++) {
+                    if (validHoriz[h2].maxY >= maxHY - 40) topP.push(validHoriz[h2]);
+                }
+                if (topP.length > 0) {
+                    var minTopY = topP[0].minY;
+                    for (var tI = 1; tI < topP.length; tI++) {
+                        if (topP[tI].minY < minTopY) minTopY = topP[tI].minY;
                     }
+                    nicheY2 = minTopY; // НИЗ ВЕРХНИХ ПЛАНОК
                 }
+            }
 
-                sides.sort(function(a, b) { return a.minX - b.minX; });
-                horiz.sort(function(a, b) { return a.minY - b.minY; });
+            var secW = Math.round(nicheX2 - nicheX1);
+            var secH = Math.round(nicheY2 - nicheY1);
+            var secD = Math.round(carcassFrontZ - carcassBackZ);
+            if (secW <= 0) secW = bWidth - 32;
+            if (secH <= 0) secH = bHeight - 132;
+            if (secD <= 0) secD = bDepth - 20;
 
-                var nicheX1 = curBaseX + 16;
-                var nicheX2 = curBaseX + bWidth - 16;
-                var nicheY1 = startPoint.y + 100 + 16; // верхняя пласть дна
-                var nicheY2 = startPoint.y + bHeight - 16; // низ верхних планок
-                var carcassFrontZ = startPoint.z + bDepth;
-                var carcassBackZ = startPoint.z;
+            var sysType = slot.drawerSys.ItemIndex; // 0=Базовый, 1=TANDEMBOX, 2=Шариковые
 
-                if (sides.length >= 2) {
-                    nicheX1 = sides[0].maxX;
-                    nicheX2 = sides[sides.length - 1].minX;
-                    carcassFrontZ = Math.max(sides[0].maxZ, sides[sides.length - 1].maxZ);
-                    carcassBackZ = Math.min(sides[0].minZ, sides[sides.length - 1].minZ);
-                }
-
-                if (backs.length > 0) {
-                    carcassBackZ = backs[0].maxZ;
-                }
-
-                var minSidesY = (sides.length > 0) ? sides[0].minY : (startPoint.y + 100);
-                var validHoriz = [];
-                for (var hI = 0; hI < horiz.length; hI++) {
-                    if (horiz[hI].maxY >= minSidesY - 30) validHoriz.push(horiz[hI]);
-                }
-
-                if (validHoriz.length > 0) {
-                    nicheY1 = validHoriz[0].maxY; // ВЕРХНЯЯ ПЛАСТЬ ДНА
-                }
-                if (validHoriz.length > 1) {
-                    var maxHY = validHoriz[validHoriz.length - 1].maxY;
-                    var topP = [];
-                    for (var h2 = 0; h2 < validHoriz.length; h2++) {
-                        if (validHoriz[h2].maxY >= maxHY - 40) topP.push(validHoriz[h2]);
-                    }
-                    if (topP.length > 0) {
-                        var minTopY = topP[0].minY;
-                        for (var tI = 1; tI < topP.length; tI++) {
-                            if (topP[tI].minY < minTopY) minTopY = topP[tI].minY;
-                        }
-                        nicheY2 = minTopY; // НИЗ ВЕРХНИХ ПЛАНОК
-                    }
-                }
-
-                var secW = Math.round(nicheX2 - nicheX1);
-                var secH = Math.round(nicheY2 - nicheY1);
-                var secD = Math.round(carcassFrontZ - carcassBackZ);
-                if (secW <= 0) secW = bWidth - 32;
-                if (secH <= 0) secH = bHeight - 132;
-                if (secD <= 0) secD = bDepth - 20;
-
-                // Зазоры
+            // СЛУЧАЙ А: ТИП 2 - БАЗА С ВЫДВИЖНЫМИ ЯЩИКАМИ (2, 3 или 4 ящика)
+            if (bType === 2) {
                 var gapBet = 3;
                 var gapBot = 2;
                 var gapTop = 2;
 
-                // Количество ящиков
                 var drOpt = slot.drawers.ItemIndex;
                 var numD = (drOpt === 1) ? 2 : ((drOpt === 2) ? 4 : 3);
 
@@ -614,65 +811,33 @@ function BuildKitchenRow() {
                 }
 
                 var curFacadeY = nicheY1 + gapBot;
-
                 for (var d = 0; d < dHeights.length; d++) {
                     var fh = dHeights[d];
-                    var dObj = AddBlock('Ящик ' + (d + 1) + ' (H=' + Math.round(fh) + ')');
-                    var dOk = false;
-                    try {
-                        dOk = dObj.Load(drawerFragmentPath);
-                    } catch(eDLoad) { dOk = false; }
-
-                    if (dOk) {
-                        var dSub = dObj;
-                        if (dObj.Count > 0) {
-                            var fChild = (dObj.Objects && typeof dObj.Objects[0] !== 'undefined') ? dObj.Objects[0] : dObj[0];
-                            if (fChild) dSub = fChild;
-                        }
-
-                        var nativeD = 500;
-                        if (dSub.GSize && dSub.GSize.z > 0) nativeD = dSub.GSize.z;
-                        else if (dObj.GSize && dObj.GSize.z > 0) nativeD = dObj.GSize.z;
-
-                        var maxSafeDrawerD = secD - 15;
-                        var targetDrawerD = (maxSafeDrawerD >= 250 && maxSafeDrawerD < nativeD) ? maxSafeDrawerD : nativeD;
-
-                        // Однократное растяжение ящика по ширине ниши, высоте фасада и глубине
-                        var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
-                        if (rObj) {
-                            try {
-                                rObj.ElasticResize(NewVector(secW, fh, targetDrawerD));
-                            } catch(eDr1) {
-                                try {
-                                    rObj.ElasticResize(NewVector(secW, fh, nativeD));
-                                } catch(eDr2) {
-                                    try {
-                                        rObj.ElasticResize(NewVector(secW, rObj.GSize.y, nativeD));
-                                    } catch(eDr3) {}
-                                }
-                            }
-                            rObj.Build();
-                        }
-                        dObj.Build();
-
-                        // Поиск фасада внутри ящика для безупречного позиционирования
-                        var facadeObj = searchFacade(dObj) || findFrontPanel(dObj);
-                        var bMin = dObj.GabMin || dSub.GabMin;
-                        var bMax = dObj.GabMax || dSub.GabMax;
-
-                        var boxMinY = facadeObj ? (facadeObj.GabMin ? facadeObj.GabMin.y : facadeObj.Position.y) : ((bMin && !isNaN(bMin.y)) ? bMin.y : 0);
-                        var boxMaxZ = (bMax && !isNaN(bMax.z)) ? bMax.z : 0;
-
-                        // Рамка (направляющие) встык к боковинам (X=0 совмещается с nicheX1)
-                        var dShiftX = nicheX1;
-                        var dShiftY = curFacadeY - boxMinY;
-                        var dShiftZ = carcassFrontZ - boxMaxZ;
-
-                        dObj.Translate(NewVector(dShiftX, dShiftY, dShiftZ));
-                        dObj.Build();
-                    }
+                    var isBottom = (d === 0);
+                    buildSingleDrawer(sysType, isBottom, nicheX1, nicheX2, curFacadeY, fh, secD, carcassFrontZ, d + 1);
                     curFacadeY += fh + gapBet;
                 }
+            }
+
+            // СЛУЧАЙ Б: ТИП 3 - БАЗА ПОД ДУХОВКУ / ПЕЧКУ (духовка 600 мм + ящик снизу)
+            else if (bType === 3) {
+                var ovenH = slot.ovenH.Value;
+                if (isNaN(ovenH) || ovenH < 350) ovenH = 600;
+
+                // Полка под духовку (щит ДСП 16 мм, на который опирается духовой шкаф)
+                var shelfThick = 16;
+                var shelfY = nicheY2 - ovenH - shelfThick;
+                if (shelfY < nicheY1 + 60) shelfY = nicheY1 + 60;
+
+                safeHoriz(nicheX1, startPoint.z, nicheX2, carcassFrontZ, shelfY, 'Полка под духовой шкаф (ДСП 16 мм)');
+
+                // Высота оставшегося нижнего отсека под противни
+                var bottomNicheH = shelfY - nicheY1;
+                var drawerFacadeH = bottomNicheH - 5; // 2 мм снизу, 3 мм сверху до духовки
+                if (drawerFacadeH < 60) drawerFacadeH = 60;
+
+                var drawerFY = nicheY1 + 2;
+                buildSingleDrawer(sysType, true, nicheX1, nicheX2, drawerFY, drawerFacadeH, secD, carcassFrontZ, 'под духовку');
             }
 
         } else {
@@ -711,7 +876,6 @@ function BuildKitchenRow() {
         var calcTopD = Math.round(topZ2 - topZ1);
         pTopDepthInfo.Value = calcTopD + ' мм (каркас ' + Math.round(rowMaxZ - startPoint.z) + ' + свес ' + Math.round(overFront) + ' мм)';
 
-        // Применение отдельного материала для столешницы
         try {
             pTopMat.SetActive();
         } catch(eMat) {

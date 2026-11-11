@@ -1,30 +1,27 @@
 /**
- * Умное наполнение базы (полки и ящики из фрагмента 'Ящик Базовый.fr3d')
+ * Умное наполнение базы (полки, ящики Ящик Базовый / TANDEMBOX antaro / Шариковые, база под духовку/печку)
  * Для БАЗИС-Мебельщик (8, 9, 10, 11, 2021-2024)
  * 
  * 1. Выделяешь шкаф/модуль (или кликаешь по корпусу).
  * 2. Скрипт САМ находит внутренние границы ниши:
  *    - Ширина: строго между внутренними плоскостями боковин.
- *    - Высота: от верхней пласти дна (над ножками!) до низа верхней крышки.
- *    - Глубина: от задней стенки (задника) до переднего края боковин.
- * 3. Ящики берутся напрямую из фрагмента 'Ящик Базовый.fr3d' и эластично растягиваются
- *    и в ширину, и в высоту строго ОДИН РАЗ (детали не слетают, геометрия идеальна)!
- * 4. Сопряжение строго по РАМКЕ ящика: металл направляющих прилегает встык к боковинам (зазор 0 мм),
- *    а вычитающие цилиндры крепежа заходят внутрь боковин на 10 мм!
- * 5. Задавать ящики можно РАВНОМЕРНО или КАЖДЫЙ ОТДЕЛЬНО по высотам!
- * 6. Нижний ящик никогда не врезается в дно или ножки корпуса!
+ *    - Высота: от верхней пласти дна (над ножками!) до низа верхней крышки/планок.
+ *    - Глубина: от задника до переднего края боковин.
+ * 3. ВЫБОР ЧТО ПОСТРОИТЬ:
+ *    - Выдвижные ящики (все пространство ниши)
+ *    - Духовка / печка сверху (ниша 600 мм) + ящик снизу под противни
+ *    - Полки (в упор к боковинам или со съемным зазором)
+ * 4. ВЫБОР СИСТЕМЫ ВЫДВИЖЕНИЯ:
+ *    - 1. Ящик Базовый (Tandem скрытого монтажа из Ящик Базовый.fr3d)
+ *    - 2. TANDEMBOX antaro BLUM (оригинальные метабоксы Blum Antaro: царги D, M, N)
+ *    - 3. Шариковые направляющие (Boyard телескопы)
+ *    - 4. Параметрический ящик (короб + фасад)
  */
 
 // -----------------------------------------------------------------------------
-// 1. Поиск пути к фрагменту 'Ящик Базовый.fr3d'
+// 1. Поиск путей к фрагментам ящиков
 // -----------------------------------------------------------------------------
-function getDrawerFragmentPath() {
-    var paths = [
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Ящики\\Ящик Базовый.fr3d',
-        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Мои ящики\\Ящик Базовый.fr3d',
-        'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\08_ЯЩИКИ_И_ВЫДВИЖНЫЕ_СИСТЕМЫ\\Ящик Базовый.fr3d',
-        'z:\\Work\\генерация мебели\\Модели\\Ящики\\Ящик Базовый.fr3d'
-    ];
+function findFirstExistingFile(paths) {
     for (var i = 0; i < paths.length; i++) {
         if (system.fileExists(paths[i])) {
             return paths[i];
@@ -33,8 +30,51 @@ function getDrawerFragmentPath() {
     return paths[0];
 }
 
-var drawerFragmentFile = getDrawerFragmentPath();
+var drawerFragmentFile = findFirstExistingFile([
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Ящики\\Ящик Базовый.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Мои ящики\\Ящик Базовый.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\08_ЯЩИКИ_И_ВЫДВИЖНЫЕ_СИСТЕМЫ\\Ящик Базовый.fr3d',
+    'z:\\Work\\генерация мебели\\Модели\\Ящики\\Ящик Базовый.fr3d'
+]);
 var hasDrawerFragment = system.fileExists(drawerFragmentFile);
+
+function getTandemboxFragment(subType, depth) {
+    var length = 500;
+    if (depth >= 580) length = 550;
+    else if (depth >= 530) length = 500;
+    else if (depth >= 480) length = 450;
+    else if (depth >= 430) length = 400;
+    else if (depth >= 380) length = 350;
+    else if (depth >= 330) length = 300;
+    else length = 270;
+
+    var baseDir = 'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\TANDEMBOX\\TANDEMBOX_antaro_BLUMOTION_белый_( 16 мм.)';
+    var folderName = 'TANDEMBOX_antaro_' + subType + '_белый_( 16 мм.)';
+    var fileName = 'TANDEMBOX_antaro_' + subType + ', L=' + length + ', белый.fr3d';
+    var fullPath = baseDir + '\\' + folderName + '\\' + fileName;
+
+    if (system.fileExists(fullPath)) return fullPath;
+
+    var lens = [500, 450, 400, 350, 300, 550, 270];
+    for (var i = 0; i < lens.length; i++) {
+        var alt = baseDir + '\\' + folderName + '\\TANDEMBOX_antaro_' + subType + ', L=' + lens[i] + ', белый.fr3d';
+        if (system.fileExists(alt)) return alt;
+    }
+    return '';
+}
+
+function getBallBearingSlideFragment(depth) {
+    var length = 500;
+    if (depth >= 530) length = 500;
+    else if (depth >= 480) length = 450;
+    else if (depth >= 430) length = 400;
+    else if (depth >= 380) length = 350;
+    else length = 300;
+
+    var path = 'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\направляющие боярд шариковые\\DB4518Zn\\Шариковые направ. DB4518Zn_' + length + '.fr3d';
+    if (system.fileExists(path)) return path;
+    return '';
+}
 
 // -----------------------------------------------------------------------------
 // 2. Поиск и выбор базы (шкафа / модуля)
@@ -48,24 +88,46 @@ if (Model.Selected) {
 }
 
 if (!baseObj) {
-    Action.Hint = 'Укажите корпус базы (шкаф / модуль / любую деталь корпуса)';
-    baseObj = GetObject('Укажите корпус базы (шкаф или деталь корпуса)');
+    Action.Hint = 'Кликните на корпус базы (шкафа) для наполнения';
+    baseObj = GetObject('Выберите шкаф или секцию для наполнения');
 }
 
 if (!baseObj) {
-    Action.Finish();
+    Action.Cancel();
 }
 
-// Если кликнули на деталь внутри блока, поднимаемся на 1 уровень к блоку модуля
-if (baseObj && baseObj.Owner && baseObj.Owner !== Model) {
-    var ownerObj = baseObj.Owner;
-    if (ownerObj && ownerObj !== Model) {
-        baseObj = ownerObj;
+// -----------------------------------------------------------------------------
+// 3. Автоматический анализ геометрии ниши базы
+// -----------------------------------------------------------------------------
+function collectPanels(obj, arr) {
+    if (!obj) return arr;
+    if (typeof obj.Count === 'number' && obj.Count > 0) {
+        for (var i = 0; i < obj.Count; i++) {
+            var ch = (obj.Objects && typeof obj.Objects[i] !== 'undefined') ? obj.Objects[i] : obj[i];
+            collectPanels(ch, arr);
+        }
     }
+    var bMin = obj.GabMin || obj.GMin;
+    var bMax = obj.GabMax || obj.GMax;
+    if (bMin && bMax && !isNaN(bMin.x) && !isNaN(bMax.x)) {
+        var sx = Math.round(Math.abs(bMax.x - bMin.x));
+        var sy = Math.round(Math.abs(bMax.y - bMin.y));
+        var sz = Math.round(Math.abs(bMax.z - bMin.z));
+        if (sx > 0 && sy > 0 && sz > 0) {
+            arr.push({
+                obj: obj,
+                minX: Math.min(bMin.x, bMax.x),
+                maxX: Math.max(bMin.x, bMax.x),
+                minY: Math.min(bMin.y, bMax.y),
+                maxY: Math.max(bMin.y, bMax.y),
+                minZ: Math.min(bMin.z, bMax.z),
+                maxZ: Math.max(bMin.z, bMax.z),
+                sx: sx, sy: sy, sz: sz
+            });
+        }
+    }
+    return arr;
 }
-
-// Сбор всех панелей базы
-var cabinetPanels = [];
 
 function getPanelBox(o) {
     if (!o) return null;
@@ -95,7 +157,6 @@ function getPanelBox(o) {
             }
         }
     }
-
     checkObj(o);
     if (!found) return null;
     return {
@@ -108,42 +169,7 @@ function getPanelBox(o) {
     };
 }
 
-function collectPanels(obj) {
-    if (!obj) return;
-    
-    var isPan = false;
-    if (obj.Contour && typeof obj.Contour.Count === 'number' && obj.Contour.Count >= 3) {
-        isPan = true;
-    } else if (typeof obj.Thickness === 'number' && obj.Thickness > 0) {
-        isPan = true;
-    }
-    
-    if (isPan) {
-        var box = getPanelBox(obj);
-        if (box && box.sx > 50 && box.sz > 50) {
-            cabinetPanels.push(box);
-        }
-    }
-    
-    var count = (typeof obj.Count === 'number') ? obj.Count : 0;
-    if (count > 0) {
-        for (var i = 0; i < count; i++) {
-            var child = (obj.Objects && typeof obj.Objects[i] !== 'undefined') ? obj.Objects[i] : obj[i];
-            if (child) {
-                collectPanels(child);
-            }
-        }
-    }
-}
-
-collectPanels(baseObj);
-if (cabinetPanels.length === 0 && baseObj !== Model) {
-    collectPanels(Model);
-}
-
-// -----------------------------------------------------------------------------
-// 3. Анализ корпуса: боковины, дно, крышка, задняя стенка
-// -----------------------------------------------------------------------------
+var cabinetPanels = collectPanels(baseObj, []);
 var sides = [];
 var horiz = [];
 var backs = [];
@@ -152,16 +178,11 @@ for (var i = 0; i < cabinetPanels.length; i++) {
     var b = cabinetPanels[i];
     if (!b) continue;
 
-    // Боковины и вертикальные перегородки (толщина по X <= 35 мм, высота и глубина > 100 мм)
     if (b.sx <= 35 && b.sy > 150 && b.sz > 100) {
         sides.push(b);
-    }
-    // Горизонтальные щиты: дно, крышка, полки (толщина по Y <= 35 мм, ширина >= 180 мм, глубина >= 150 мм)
-    else if (b.sy <= 35 && b.sx >= 180 && b.sz >= 150) {
+    } else if (b.sy <= 35 && b.sx >= 180 && b.sz >= 150) {
         horiz.push(b);
-    }
-    // Задняя стенка (толщина по Z <= 25 мм, ширина и высота > 150 мм)
-    else if (b.sz <= 25 && b.sx > 150 && b.sy > 150) {
+    } else if (b.sz <= 25 && b.sx > 150 && b.sy > 150) {
         backs.push(b);
     }
 }
@@ -178,7 +199,6 @@ if (sides.length >= 2) {
     detectedX2 = sides[sides.length - 1].minX;
 }
 
-// Низ боковин корпуса
 var minSidesY = (sides.length > 0) ? sides[0].minY : -Infinity;
 var maxSidesY = (sides.length > 0) ? sides[0].maxY : Infinity;
 for (var sIdx = 1; sIdx < sides.length; sIdx++) {
@@ -186,7 +206,6 @@ for (var sIdx = 1; sIdx < sides.length; sIdx++) {
     if (sides[sIdx].maxY > maxSidesY) maxSidesY = sides[sIdx].maxY;
 }
 
-// Фильтруем горизонтальные щиты, чтобы исключить ножки ниже корпуса
 var validHoriz = [];
 for (var hIdx = 0; hIdx < horiz.length; hIdx++) {
     var hp = horiz[hIdx];
@@ -196,11 +215,7 @@ for (var hIdx = 0; hIdx < horiz.length; hIdx++) {
 }
 
 if (validHoriz.length > 0) {
-    // Верхняя пласть дна базы
-    detectedY1 = validHoriz[0].maxY;
-    if (minSidesY > validHoriz[0].minY && minSidesY <= validHoriz[0].maxY + 5) {
-        detectedY1 = validHoriz[0].maxY;
-    }
+    detectedY1 = validHoriz[0].maxY; // верхняя пласть дна
 } else if (sides.length > 0) {
     detectedY1 = minSidesY + 16;
 }
@@ -213,11 +228,12 @@ if (validHoriz.length > 1) {
             topPanels.push(validHoriz[h]);
         }
     }
-    detectedY2 = topPanels[0].minY;
-    for (var tp = 1; tp < topPanels.length; tp++) {
-        if (topPanels[tp].minY < detectedY2) {
-            detectedY2 = topPanels[tp].minY;
+    if (topPanels.length > 0) {
+        var minTopY = topPanels[0].minY;
+        for (var tp = 1; tp < topPanels.length; tp++) {
+            if (topPanels[tp].minY < minTopY) minTopY = topPanels[tp].minY;
         }
+        detectedY2 = minTopY;
     }
 } else if (sides.length > 0) {
     detectedY2 = maxSidesY;
@@ -244,32 +260,9 @@ if ((isNaN(detectedX1) || isNaN(detectedX2) || (detectedX2 - detectedX1) < 50) &
     if (isNaN(detectedZBack)) detectedZBack = blockBox.minZ + 4;
 }
 
-if (isNaN(detectedX1) || isNaN(detectedX2) || isNaN(detectedY1) || isNaN(detectedY2) || isNaN(detectedZBack) || isNaN(detectedZFront)) {
-    Action.Hint = 'Укажите 2 точки ниши базы по диагонали';
-    var pMan1 = GetPoint('Укажите первую точку угла ниши');
-    var pMan2 = GetPoint('Укажите противоположную точку угла ниши');
-    if (pMan1 && pMan2) {
-        detectedX1 = Math.min(pMan1.x, pMan2.x);
-        detectedX2 = Math.max(pMan1.x, pMan2.x);
-        detectedY1 = Math.min(pMan1.y, pMan2.y);
-        detectedY2 = Math.max(pMan1.y, pMan2.y);
-        detectedZBack = Math.min(pMan1.z, pMan2.z);
-        detectedZFront = Math.max(pMan1.z, pMan2.z);
-    }
-}
-
-// Защита от пустых значений
-if (isNaN(detectedX1)) detectedX1 = 16;
-if (isNaN(detectedX2)) detectedX2 = 584;
-if (isNaN(detectedY1)) detectedY1 = 116;
-if (isNaN(detectedY2)) detectedY2 = 804;
-if (isNaN(detectedZBack)) detectedZBack = 4;
-if (isNaN(detectedZFront)) detectedZFront = 560;
-
 var initW = Math.round(detectedX2 - detectedX1);
 var initH = Math.round(detectedY2 - detectedY1);
 var initD = Math.round(detectedZFront - detectedZBack);
-
 if (initW <= 0) initW = 568;
 if (initH <= 0) initH = 688;
 if (initD <= 0) initD = 556;
@@ -292,14 +285,24 @@ pBackInfo.Enabled = false;
 
 // [Группа 2: Выбор наполнения]
 var grType = Prop.NewGroup('2. Что построить');
-var pType = grType.NewCombo('Тип наполнения', 'Выдвижные ящики (из фрагмента Ящик Базовый.fr3d)\nПолки (в упор к боковинам)');
+var pType = grType.NewCombo('Тип наполнения', 'Выдвижные ящики (все пространство ниши)\nДуховка / печка сверху (ниша 600 мм) + ящик снизу\nПолки (в упор к боковинам)');
 pType.ItemIndex = 0;
+
+// [Группа 2.1: Параметры для духовки / печки]
+var grOven = grType.NewGroup('Параметры ниши под духовку');
+var pOvenH = grOven.NewNumber('Высота ниши под духовку, мм', 600);
+pOvenH.MinValue = 350;
+pOvenH.MaxValue = 700;
+var pOvenShelfThick = grOven.NewNumber('Толщина полки под духовку, мм', 16);
+var pOvenDrawerHInfo = grOven.NewString('Высота нижнего ящика (факт)', '');
+pOvenDrawerHInfo.Enabled = false;
 
 // [Группа 3: Параметры ящиков]
 var grDrawers = Prop.NewGroup('3. Параметры ящиков');
-var pDrawerSource = grDrawers.NewCombo('Источник ящиков', 'Фрагмент "Ящик Базовый.fr3d"\nПараметрический ящик (короб + фасад)');
+var pDrawerSource = grDrawers.NewCombo('Система выдвижения', 'Ящик Базовый (Tandem скрытого монтажа)\nTANDEMBOX antaro BLUM (метабоксы Blum)\nШариковые направляющие (Boyard телескопы)\nПараметрический деревянный ящик');
 pDrawerSource.ItemIndex = 0;
-var pDrawerFileInfo = grDrawers.NewString('Файл фрагмента', hasDrawerFragment ? 'Ящик Базовый.fr3d (Найден)' : 'Не найден (будет параметрический)');
+
+var pDrawerFileInfo = grDrawers.NewString('Статус системы', hasDrawerFragment ? 'Ящик Базовый.fr3d (Найден)' : 'Будет параметрический');
 pDrawerFileInfo.Enabled = false;
 
 var pDrawerMode = grDrawers.NewCombo('Расчет высот ящиков', 'Равномерно (по количеству)\nКаждый отдельно (по полям ниже)');
@@ -324,11 +327,11 @@ var pDrawerManualOffset = grDrawerGaps.NewNumber('Смещение X (коррекция влево/вп
 var pDrawerGapBet = grDrawerGaps.NewNumber('Зазор между фасадами, мм', 3);
 var pDrawerGapBot = grDrawerGaps.NewNumber('Зазор снизу от дна базы, мм', 2);
 var pDrawerGapTop = grDrawerGaps.NewNumber('Зазор сверху до верха/планки, мм', 2);
-var pDrawerFacadeIndent = grDrawerGaps.NewNumber('Утопить фасад внутрь ниши, мм', 0);
+var pDrawerFacadeIndent = grDrawerGaps.NewNumber('Смещение фасада вперед/назад, мм', 0);
 
 // [Группа 4: Параметры полок]
 var grShelves = Prop.NewGroup('4. Параметры полок');
-var pShelfMode = grShelves.NewCombo('Распределение полок', 'Равномерно (по количеству)\nИндивидуально (через запятую)');
+var pShelfMode = grShelves.NewCombo('Распределение полок', 'Равномерно по высоте ниши\nСнизу вверх (по просветам вручную)');
 pShelfMode.ItemIndex = 0;
 var pShelfCount = grShelves.NewNumber('Количество полок (при равном.)', 2);
 var pShelfCustom = grShelves.NewString('Просветы снизу (мм через запятую)', '250, 300, 300');
@@ -351,14 +354,10 @@ function parseNumberList(str, defaultVal) {
         var s = parts[i].replace(/^\s+|\s+$/g, '');
         if (s.length > 0) {
             var val = parseFloat(s);
-            if (!isNaN(val) && val > 0) {
-                res.push(val);
-            }
+            if (!isNaN(val) && val > 0) res.push(val);
         }
     }
-    if (res.length === 0 && defaultVal) {
-        res.push(defaultVal);
-    }
+    if (res.length === 0 && defaultVal) res.push(defaultVal);
     return res;
 }
 
@@ -395,7 +394,7 @@ function safeAddVert(z1, y1, z2, y2, x, name) {
             p = AddPanel(l, h);
             if (p) {
                 p.RotateY(90);
-                p.Position = NewVector(x, Math.min(y1, y1), Math.min(z1, z2));
+                p.Position = NewVector(x, Math.min(y1, y2), Math.min(z1, z2));
             }
         } catch(e2) {}
     }
@@ -421,8 +420,192 @@ function safeAddFront(x1, y1, x2, y2, z, name) {
     return p;
 }
 
+function searchFacade(parentObj) {
+    if (!parentObj) return null;
+    var cnt = (typeof parentObj.Count === 'number') ? parentObj.Count : 0;
+    for (var f = 0; f < cnt; f++) {
+        var ch = (parentObj.Objects && typeof parentObj.Objects[f] !== 'undefined') ? parentObj.Objects[f] : parentObj[f];
+        if (ch) {
+            if (ch.Name && ch.Name.indexOf('Фасад') !== -1 && ch.GSize && ch.GSize.y > 30) {
+                return ch;
+            }
+            var sub = searchFacade(ch);
+            if (sub) return sub;
+        }
+    }
+    return null;
+}
+
 // -----------------------------------------------------------------------------
-// 6. Построение выдвижных ящиков
+// 6. Построение одиночного ящика выбранной системы
+// -----------------------------------------------------------------------------
+function buildSingleDrawerInstance(sysIndex, isBottom, x1, x2, curFY, fh, secD, zFront, drawerLabel) {
+    var secW = x2 - x1;
+    var drawerObj = AddBlock('Ящик ' + drawerLabel + ' (H=' + Math.round(fh) + ')');
+
+    // СИСТЕМА 1: TANDEMBOX antaro BLUM
+    if (sysIndex === 1) {
+        var subType = isBottom ? 'D' : 'M';
+        if (fh < 130) subType = 'N'; // низкий под духовку
+
+        var tbFile = getTandemboxFragment(subType, secD);
+        var tbOk = false;
+        if (tbFile && system.fileExists(tbFile)) {
+            try { tbOk = drawerObj.Load(tbFile); } catch(eTLoad) { tbOk = false; }
+        }
+
+        if (tbOk) {
+            var dSub = drawerObj;
+            if (drawerObj.Count > 0) {
+                var fChild = (drawerObj.Objects && typeof drawerObj.Objects[0] !== 'undefined') ? drawerObj.Objects[0] : drawerObj[0];
+                if (fChild) dSub = fChild;
+            }
+
+            var rObj = dSub.ElasticResize ? dSub : (drawerObj.ElasticResize ? drawerObj : null);
+            if (rObj) {
+                try { rObj.ElasticResize(NewVector(secW, rObj.GSize ? rObj.GSize.y : 200, rObj.GSize ? rObj.GSize.z : 500)); } catch(eTR) {}
+                rObj.Build();
+            }
+            drawerObj.Build();
+
+            var dBox = getPanelBox(drawerObj);
+            var minX = dBox ? dBox.minX : 0;
+            var minY = dBox ? dBox.minY : 0;
+            var maxZ = dBox ? dBox.maxZ : 0;
+
+            var dShiftX = x1 - minX + pDrawerManualOffset.Value;
+            var dShiftY = (curFY + 15) - minY;
+            var dShiftZ = (zFront - pDrawerFacadeIndent.Value) - maxZ;
+
+            drawerObj.Translate(NewVector(dShiftX, dShiftY, dShiftZ));
+            drawerObj.Build();
+        }
+
+        // Накладной фасад Tandembox (зазоры 2 мм по краям, толщина 16 мм)
+        safeAddFront(x1 - 14, curFY, x2 + 14, curFY + fh, zFront + 16 - pDrawerFacadeIndent.Value, 'Фасад Tandembox (H=' + Math.round(fh) + ')');
+        return;
+    }
+
+    // СИСТЕМА 2: Шариковые направляющие (Boyard)
+    if (sysIndex === 2) {
+        var T = 16;
+        var boxGapSide = 13;
+        var boxX1 = x1 + boxGapSide;
+        var boxX2 = x2 - boxGapSide;
+        var boxH = Math.min(Math.round(fh * 0.7), 180);
+        if (boxH < 60) boxH = 60;
+        var boxD = 450;
+        if (secD >= 530) boxD = 500;
+        else if (secD >= 480) boxD = 450;
+        else if (secD >= 430) boxD = 400;
+        else if (secD >= 380) boxD = 350;
+        else boxD = 300;
+
+        var boxZFront = zFront - 2 - pDrawerFacadeIndent.Value;
+        var boxZBack = boxZFront - boxD;
+        var boxBotY = curFY + 15;
+        var boxTopY = boxBotY + boxH;
+
+        safeAddHoriz(boxX1, boxZBack, boxX2, boxZFront, boxBotY, 'Дно ящика');
+        safeAddVert(boxZBack, boxBotY + T, boxZFront, boxTopY, boxX1 + T, 'Боковина ящика Лев');
+        safeAddVert(boxZBack, boxBotY + T, boxZFront, boxTopY, boxX2, 'Боковина ящика Прав');
+        safeAddFront(boxX1 + T, boxBotY + T, boxX2 - T, boxTopY, boxZBack + T, 'Задняя стенка ящика');
+        safeAddFront(boxX1 + T, boxBotY + T, boxX2 - T, boxTopY, boxZFront, 'Передняя стенка ящика');
+
+        var slideFile = getBallBearingSlideFragment(secD);
+        if (slideFile && system.fileExists(slideFile)) {
+            var slideBlock = AddBlock('Направляющие шариковые L=' + boxD);
+            try {
+                if (slideBlock.Load(slideFile)) {
+                    var sBox = getPanelBox(slideBlock);
+                    var sMinX = sBox ? sBox.minX : 0;
+                    var sMinY = sBox ? sBox.minY : 0;
+                    var sMaxZ = sBox ? sBox.maxZ : 0;
+                    slideBlock.Translate(NewVector(x1 - sMinX, (boxBotY + 10) - sMinY, zFront - sMaxZ));
+                    slideBlock.Build();
+                }
+            } catch(eSl) {}
+        }
+
+        safeAddFront(x1 - 14, curFY, x2 + 14, curFY + fh, zFront + 16 - pDrawerFacadeIndent.Value, 'Фасад ящика (H=' + Math.round(fh) + ')');
+        return;
+    }
+
+    // СИСТЕМА 0: Ящик Базовый (Tandem скрытого монтажа)
+    if (sysIndex === 0 && hasDrawerFragment) {
+        var loadSuccess = false;
+        try { loadSuccess = drawerObj.Load(drawerFragmentFile); } catch(e) { loadSuccess = false; }
+
+        if (loadSuccess) {
+            var dBlock = drawerObj;
+            if (drawerObj.Count > 0) {
+                var firstChild = (drawerObj.Objects && typeof drawerObj.Objects[0] !== 'undefined') ? drawerObj.Objects[0] : drawerObj[0];
+                if (firstChild) dBlock = firstChild;
+            }
+
+            var nativeD = 500;
+            if (dBlock.GSize && dBlock.GSize.z > 0) nativeD = dBlock.GSize.z;
+            else if (drawerObj.GSize && drawerObj.GSize.z > 0) nativeD = drawerObj.GSize.z;
+
+            var targetW = secW;
+            var targetH = fh;
+
+            var resizeObj = dBlock.ElasticResize ? dBlock : (drawerObj.ElasticResize ? drawerObj : null);
+            if (resizeObj) {
+                try {
+                    resizeObj.ElasticResize(NewVector(targetW, targetH, nativeD));
+                } catch(e1) {
+                    try {
+                        resizeObj.ElasticResize(NewVector(targetW, resizeObj.GSize.y, nativeD));
+                    } catch(e2) {}
+                }
+                resizeObj.Build();
+            }
+            drawerObj.Build();
+
+            var facadeObj = searchFacade(drawerObj);
+            var bMin = drawerObj.GabMin || dBlock.GabMin;
+            var bMax = drawerObj.GabMax || dBlock.GabMax;
+
+            var shiftX = x1 + pDrawerManualOffset.Value;
+            var boxMinY = facadeObj ? facadeObj.GabMin.y : ((bMin && !isNaN(bMin.y)) ? bMin.y : 0);
+            var boxMaxZ = (bMax && !isNaN(bMax.z)) ? bMax.z : 0;
+
+            var shiftY = curFY - boxMinY;
+            var shiftZ = (zFront - pDrawerFacadeIndent.Value) - boxMaxZ;
+
+            drawerObj.Translate(NewVector(shiftX, shiftY, shiftZ));
+            drawerObj.Build();
+            return;
+        }
+    }
+
+    // РЕЗЕРВ: Параметрический деревянный ящик
+    var T = 16;
+    var boxD = (secD >= 500) ? 450 : 350;
+    var facX1 = x1 + 2;
+    var facX2 = x2 - 2;
+    var facY1 = curFY;
+    var facY2 = curFY + fh;
+    var facZ = zFront - T - pDrawerFacadeIndent.Value;
+
+    safeAddFront(facX1, facY1, facX2, facY2, facZ, 'Фасад ящика');
+    var bX1 = x1 + 13;
+    var bX2 = x2 - 13;
+    var bY1 = curFY + 15;
+    var bY2 = curFY + Math.min(fh - 30, 180);
+    var bZFront = facZ - 2;
+    var bZBack = bZFront - boxD;
+
+    safeAddHoriz(bX1, bZBack, bX2, bZFront, bY1, 'Дно ящика');
+    safeAddVert(bZBack, bY1 + T, bZFront, bY2, bX1 + T, 'Боковина левая');
+    safeAddVert(bZBack, bY1 + T, bZFront, bY2, bX2, 'Боковина правая');
+    safeAddFront(bX1 + T, bY1 + T, bX2 - T, bY2, bZBack + T, 'Задняя стенка');
+    safeAddFront(bX1 + T, bY1 + T, bX2 - T, bY2, bZFront, 'Передняя стенка');
+}
+
+// -----------------------------------------------------------------------------
+// 7. Построение выдвижных ящиков во всю нишу
 // -----------------------------------------------------------------------------
 function buildDrawers(x1, x2, y1, y2, zBack, zFront) {
     var secW = x2 - x1;
@@ -448,13 +631,9 @@ function buildDrawers(x1, x2, y1, y2, zBack, zFront) {
         var customList = [pH1.Value, pH2.Value, pH3.Value, pH4.Value, pH5.Value, pH6.Value];
         var strList = parseNumberList(pDrawerCustomStr.Value, 0);
         if (strList.length >= dCount) {
-            for (var c = 0; c < dCount; c++) {
-                facadeHeights.push(strList[c]);
-            }
+            for (var c = 0; c < dCount; c++) facadeHeights.push(strList[c]);
         } else {
-            for (var c = 0; c < dCount; c++) {
-                facadeHeights.push(customList[c]);
-            }
+            for (var c = 0; c < dCount; c++) facadeHeights.push(customList[c]);
         }
     }
 
@@ -465,208 +644,124 @@ function buildDrawers(x1, x2, y1, y2, zBack, zFront) {
     var remainH = Math.round(secH - totalUsedH);
     pDrawerStatus.Value = 'Использовано ' + Math.round(totalUsedH) + ' мм из ' + Math.round(secH) + ' мм (остаток: ' + remainH + ' мм)';
 
-    var availSafeDepth = secD - 15;
-    if (availSafeDepth < 200) availSafeDepth = secD;
-
     var curFacadeY = y1 + gapBot;
+    var sysIdx = pDrawerSource.ItemIndex;
+
     for (var j = 0; j < facadeHeights.length; j++) {
         var fh = facadeHeights[j];
         if (curFacadeY + fh > y2 + 10) break;
-
-        var drawerObj = AddBlock('Ящик ' + (j + 1) + ' (H=' + Math.round(fh) + ')');
-        var loadSuccess = false;
-
-        // Загрузка фрагмента 'Ящик Базовый.fr3d'
-        if (pDrawerSource.ItemIndex === 0 && hasDrawerFragment) {
-            try {
-                loadSuccess = drawerObj.Load(drawerFragmentFile);
-            } catch(e) {
-                loadSuccess = false;
-            }
-        }
-
-        if (loadSuccess) {
-            var dBlock = drawerObj;
-            if (drawerObj.Count > 0) {
-                var firstChild = (drawerObj.Objects && typeof drawerObj.Objects[0] !== 'undefined') ? drawerObj.Objects[0] : drawerObj[0];
-                if (firstChild) dBlock = firstChild;
-            }
-
-            var nativeD = 500;
-            if (dBlock.GSize && dBlock.GSize.z > 0) {
-                nativeD = dBlock.GSize.z;
-            } else if (drawerObj.GSize && drawerObj.GSize.z > 0) {
-                nativeD = drawerObj.GSize.z;
-            }
-
-            // Растягиваем блок ящика СТРОГО ОДИН РАЗ (без повторных рекурсивных вызовов!)
-            var targetW = secW;
-            var targetH = fh;
-
-            var resizeObj = dBlock.ElasticResize ? dBlock : (drawerObj.ElasticResize ? drawerObj : null);
-            if (resizeObj) {
-                try {
-                    // Растяжение и по ширине targetW, и по высоте targetH (глубина фиксированная)
-                    resizeObj.ElasticResize(NewVector(targetW, targetH, nativeD));
-                } catch(e1) {
-                    try {
-                        // Резервный вариант, если высота не имеет плоскости
-                        resizeObj.ElasticResize(NewVector(targetW, resizeObj.GSize.y, nativeD));
-                    } catch(e2) {}
-                }
-                resizeObj.Build();
-            }
-            drawerObj.Build();
-
-            // Поиск фасада внутри ящика для выравнивания по высоте
-            var facadeObj = null;
-            function searchFacade(parentObj) {
-                if (!parentObj) return null;
-                var cnt = (typeof parentObj.Count === 'number') ? parentObj.Count : 0;
-                for (var f = 0; f < cnt; f++) {
-                    var ch = (parentObj.Objects && typeof parentObj.Objects[f] !== 'undefined') ? parentObj.Objects[f] : parentObj[f];
-                    if (ch) {
-                        if (ch.Name && ch.Name.indexOf('Фасад') !== -1 && ch.GSize && ch.GSize.y > 30) {
-                            return ch;
-                        }
-                        var sub = searchFacade(ch);
-                        if (sub) return sub;
-                    }
-                }
-                return null;
-            }
-            facadeObj = searchFacade(drawerObj);
-
-            // Базовые координаты до смещения
-            var bMin = drawerObj.GabMin || dBlock.GabMin;
-            var bMax = drawerObj.GabMax || dBlock.GabMax;
-
-            // В исходном фрагменте рамка (габаритная секция) ящика начинается строго в X = 0,
-            // а вычитающие цилиндры крепежа выступают влево в отрицательную область X < 0.
-            // Поэтому, чтобы совместить РАМКУ (направляющие) встык с боковинами x1 и x2:
-            // shiftX должен быть равен x1!
-            var shiftX = x1 + pDrawerManualOffset.Value;
-            var boxMinY = facadeObj ? facadeObj.GabMin.y : ((bMin && !isNaN(bMin.y)) ? bMin.y : 0);
-            var boxMaxZ = (bMax && !isNaN(bMax.z)) ? bMax.z : 0;
-
-            var shiftY = curFacadeY - boxMinY;
-            var shiftZ = (zFront - pDrawerFacadeIndent.Value) - boxMaxZ;
-
-            drawerObj.Translate(NewVector(shiftX, shiftY, shiftZ));
-            drawerObj.Build();
-        } else {
-            // Резервное параметрическое построение
-            var T = 16;
-            var boxD = 450;
-            if (availSafeDepth >= 500) boxD = 500;
-            else if (availSafeDepth >= 450) boxD = 450;
-            else if (availSafeDepth >= 400) boxD = 400;
-            else if (availSafeDepth >= 350) boxD = 350;
-            else boxD = 300;
-
-            var facX1 = x1 + 2;
-            var facX2 = x2 - 2;
-            var facY1 = curFacadeY;
-            var facY2 = curFacadeY + fh;
-            var facZ = zFront - T - pDrawerFacadeIndent.Value;
-
-            safeAddFront(facX1, facY1, facX2, facY2, facZ, 'Фасад ящика ' + (j + 1));
-
-            var boxH = Math.max(60, fh - 50);
-            var boxY1 = curFacadeY + 15;
-            var boxY2 = boxY1 + boxH;
-            var boxZFront = facZ;
-            var boxZBack = boxZFront - boxD;
-
-            var leftSideX = x1 + 13;
-            var rightSideX = x2 - 13 - T;
-
-            safeAddVert(boxZBack, boxY1, boxZFront, boxY2, leftSideX, 'Боковина ящика левая');
-            safeAddVert(boxZBack, boxY1, boxZFront, boxY2, rightSideX, 'Боковина ящика правая');
-
-            var innerBoxX1 = leftSideX + T;
-            var innerBoxX2 = rightSideX;
-
-            safeAddFront(innerBoxX1, boxY1, innerBoxX2, boxY2, boxZFront - T, 'Передняя стенка короба');
-            safeAddFront(innerBoxX1, boxY1, innerBoxX2, boxY2, boxZBack, 'Задняя стенка короба');
-            safeAddHoriz(leftSideX, boxZBack, rightSideX + T, boxZFront, boxY1 - 4, 'Дно ящика (ХДФ)');
-        }
-
+        var isBottom = (j === 0);
+        buildSingleDrawerInstance(sysIdx, isBottom, x1, x2, curFacadeY, fh, secD, zFront, j + 1);
         curFacadeY += fh + gapBet;
     }
 }
 
 // -----------------------------------------------------------------------------
-// 7. Построение полок
+// 8. Построение ниши под духовку + ящик снизу под противни
+// -----------------------------------------------------------------------------
+function buildOvenAndDrawer(x1, x2, y1, y2, zBack, zFront) {
+    var secW = x2 - x1;
+    var secH = y2 - y1;
+    var secD = zFront - zBack;
+
+    var ovenH = pOvenH.Value;
+    if (isNaN(ovenH) || ovenH < 350) ovenH = 600;
+
+    var sThick = pOvenShelfThick.Value;
+    if (isNaN(sThick) || sThick <= 0) sThick = 16;
+
+    // Полка-перегородка под духовку
+    var shelfY = y2 - ovenH - sThick;
+    if (shelfY < y1 + 60) shelfY = y1 + 60;
+
+    safeAddHoriz(x1, zBack, x2, zFront, shelfY, 'Полка под духовой шкаф (ДСП ' + Math.round(sThick) + ' мм)');
+
+    // Нижний отсек под ящик
+    var lowerH = shelfY - y1;
+    var gapBot = pDrawerGapBot.Value;
+    var gapTop = 3; // зазор до духовки
+    var drawerFH = lowerH - (gapBot + gapTop);
+    if (drawerFH < 50) drawerFH = 50;
+
+    pOvenDrawerHInfo.Value = Math.round(drawerFH) + ' мм (ниша духовки: ' + Math.round(ovenH) + ' мм)';
+
+    var curFY = y1 + gapBot;
+    var sysIdx = pDrawerSource.ItemIndex;
+
+    buildSingleDrawerInstance(sysIdx, true, x1, x2, curFY, drawerFH, secD, zFront, 'под духовку');
+}
+
+// -----------------------------------------------------------------------------
+// 9. Построение полок
 // -----------------------------------------------------------------------------
 function buildShelves(x1, x2, y1, y2, zBack, zFront) {
-    var T = 16;
-    var sideGap = (pShelfFit.ItemIndex === 1) ? 1 : 0;
-    var shelfX1 = x1 + sideGap;
-    var shelfX2 = x2 - sideGap;
-
-    var shelfZBack = zBack + pShelfIndentBack.Value;
-    var shelfZFront = zFront - pShelfIndentFront.Value;
-
-    if (shelfZFront <= shelfZBack + 100) {
-        shelfZFront = zFront;
-        shelfZBack = zBack;
-    }
-
+    var secW = x2 - x1;
     var secH = y2 - y1;
-    var shelfYList = [];
+    var secD = zFront - zBack;
+
+    var sFit = pShelfFit.ItemIndex;
+    var sideGap = (sFit === 1) ? 1.5 : 0;
+    var shX1 = x1 + sideGap;
+    var shX2 = x2 - sideGap;
+
+    var indentFront = pShelfIndentFront.Value;
+    var indentBack = pShelfIndentBack.Value;
+    var shZFront = zFront - indentFront;
+    var shZBack = zBack + indentBack;
+
+    var sCount = Math.max(1, Math.round(pShelfCount.Value));
+    var yPositions = [];
 
     if (pShelfMode.ItemIndex === 0) {
-        var sCount = Math.max(1, Math.round(pShelfCount.Value));
-        var step = (secH - sCount * T) / (sCount + 1);
-        if (step < 20) step = secH / (sCount + 1);
+        var step = (secH - 16 * sCount) / (sCount + 1);
         var curY = y1 + step;
-        for (var i = 0; i < sCount; i++) {
-            shelfYList.push(curY);
-            curY += step + T;
+        for (var s = 0; s < sCount; s++) {
+            yPositions.push(Math.round(curY));
+            curY += 16 + step;
         }
     } else {
-        var customList = parseNumberList(pShelfCustom.Value, 250);
+        var strList = parseNumberList(pShelfCustom.Value, 250);
         var curY = y1;
-        for (var j = 0; j < customList.length; j++) {
-            curY += customList[j];
-            if (curY + T > y2 - 30) break;
-            shelfYList.push(curY);
-            curY += T;
+        for (var s = 0; s < strList.length; s++) {
+            curY += strList[s];
+            if (curY + 16 > y2 - 20) break;
+            yPositions.push(Math.round(curY));
+            curY += 16;
         }
     }
 
-    for (var k = 0; k < shelfYList.length; k++) {
-        var sy = shelfYList[k];
-        safeAddHoriz(shelfX1, shelfZBack, shelfX2, shelfZFront, sy, 'Полка ' + (k + 1));
+    for (var i = 0; i < yPositions.length; i++) {
+        var sy = yPositions[i];
+        safeAddHoriz(shX1, shZBack, shX2, shZFront, sy, 'Полка ' + (i + 1) + ' (T=16)');
     }
 }
 
 // -----------------------------------------------------------------------------
-// 8. Главная сборка и события формы
+// 10. Главная функция генерации
 // -----------------------------------------------------------------------------
-function BuildAll() {
-    var curW = pW.Value;
-    var curH = pH.Value;
-    var curD = pD.Value;
+function generateContent() {
+    var x1 = detectedX1;
+    var x2 = detectedX2;
+    var y1 = detectedY1;
+    var y2 = detectedY2;
+    var zBack = detectedZBack;
+    var zFront = detectedZFront;
 
-    if (isNaN(curW) || curW <= 50) curW = initW || 568;
-    if (isNaN(curH) || curH <= 50) curH = initH || 688;
-    if (isNaN(curD) || curD <= 50) curD = initD || 556;
+    BeginBlock('Наполнение базы (' + (baseObj.Name || 'Корпус') + ')');
 
-    var curX1 = detectedX1;
-    var curX2 = detectedX1 + curW;
-    var curY1 = detectedY1;
-    var curY2 = detectedY1 + curH;
-    var curZBack = detectedZBack;
-    var curZFront = detectedZBack + curD;
+    var typeIdx = pType.ItemIndex;
 
-    BeginBlock('Наполнение базы (' + (pType.ItemIndex === 1 ? 'Полки' : 'Ящики') + ')');
+    // Включение/отключение групп свойств
+    grOven.Visible = (typeIdx === 1);
+    grDrawers.Visible = (typeIdx === 0 || typeIdx === 1);
+    grShelves.Visible = (typeIdx === 2);
 
-    if (pType.ItemIndex === 0) {
-        buildDrawers(curX1, curX2, curY1, curY2, curZBack, curZFront);
-    } else {
-        buildShelves(curX1, curX2, curY1, curY2, curZBack, curZFront);
+    if (typeIdx === 0) {
+        buildDrawers(x1, x2, y1, y2, zBack, zFront);
+    } else if (typeIdx === 1) {
+        buildOvenAndDrawer(x1, x2, y1, y2, zBack, zFront);
+    } else if (typeIdx === 2) {
+        buildShelves(x1, x2, y1, y2, zBack, zFront);
     }
 
     EndBlock();
@@ -674,13 +769,12 @@ function BuildAll() {
 
 Prop.OnChange = function() {
     DeleteNewObjects();
-    BuildAll();
+    generateContent();
 };
 
 btnBuild.OnClick = function() {
     DeleteNewObjects();
-    BuildAll();
-    Action.Commit();
+    generateContent();
     Action.Finish();
 };
 
@@ -689,6 +783,6 @@ btnCancel.OnClick = function() {
     Action.Cancel();
 };
 
-BuildAll();
-Action.Hint = 'Настройте наполнение в панели слева и нажмите [ПОСТРОИТЬ В МОДЕЛЬ]';
+// Первичное построение при запуске
+generateContent();
 Action.Continue();
