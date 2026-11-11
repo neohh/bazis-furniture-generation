@@ -290,6 +290,7 @@ function buildUpperRow() {
         var pravBok = null;
         var krishka = null;
         var dno = null;
+        var backWall = null;
 
         var modBlock = AddBlock('Верхняя база ' + bNum + ' (' + Math.round(modW) + 'x' + Math.round(modD) + 'x' + Math.round(modH) + ')');
         var loadOk = false;
@@ -332,7 +333,7 @@ function buildUpperRow() {
             modBlock.Position = NewVector(modBlock.Position.x + shiftX, modBlock.Position.y + shiftY, modBlock.Position.z + shiftZ);
             modBlock.Build();
 
-            // Поиск боковин и крышки внутри загруженного модуля
+            // Поиск боковин, крышки, дна и задней стенки внутри загруженного модуля
             function findPanels(container) {
                 if (!container) return;
                 for (var p = 0; p < container.Count; p++) {
@@ -349,6 +350,10 @@ function buildUpperRow() {
                         if (szY <= 35 && szX > (modW * 0.5)) {
                             if (!krishka || obj.GabMax.y > krishka.GabMax.y) krishka = obj;
                             if (!dno || obj.GabMin.y < dno.GabMin.y) dno = obj;
+                        }
+                        // Задняя стенка (ХДФ / ДВП / задняя панель)
+                        if (szZ <= 10 && szX > (modW * 0.5) && szY > (modH * 0.5)) {
+                            if (!backWall || obj.GabMin.z < backWall.GabMin.z) backWall = obj;
                         }
                     }
                     if (obj && obj.Count && obj.Count > 0) findPanels(obj);
@@ -373,28 +378,47 @@ function buildUpperRow() {
             krishka.Name = 'Крышка';
             krishka.Build();
 
-            var backWall = AddFrontPanel(xL + 2, yB + 2, xR - 2, yT - 2, zBack - 4);
+            backWall = AddFrontPanel(xL + 2, yB + 2, xR - 2, yT - 2, zBack - 4);
             backWall.Name = 'Задняя стенка (ХДФ)';
             backWall.Thickness = 4;
             backWall.Build();
         }
 
+        // Реальные геометрические плоскости корпуса по осям X, Y, Z
+        var carcassFrontZ = levBok ? levBok.GabMax.z : (pravBok ? pravBok.GabMax.z : zFront);
+        var carcassInnerBackZ = zBack;
+        if (backWall) {
+            carcassInnerBackZ = backWall.GabMax.z;
+        } else if (dno) {
+            carcassInnerBackZ = dno.GabMin.z;
+        } else if (levBok) {
+            carcassInnerBackZ = levBok.GabMin.z;
+        }
+
+        var carcassLeftX = levBok ? levBok.GabMin.x : xL;
+        var carcassRightX = pravBok ? pravBok.GabMax.x : xR;
+        var carcassBottomY = dno ? dno.GabMin.y : yB;
+        var carcassTopY = krishka ? krishka.GabMax.y : yT;
+
         // Полки вкладные
         if (numShelves > 0) {
             pMatBody.SetActive();
-            var innerX1 = levBok ? (levBok.GabMax.x + 1) : (xL + thick + 1);
-            var innerX2 = pravBok ? (pravBok.GabMin.x - 1) : (xR - thick - 1);
-            var innerY1 = dno ? (dno.GabMax.y + 1) : (yB + thick + 1);
-            var innerY2 = krishka ? (krishka.GabMin.y - 1) : (yT - thick - 1);
+            var innerX1 = levBok ? (levBok.GabMax.x + 1) : (carcassLeftX + thick + 1);
+            var innerX2 = pravBok ? (pravBok.GabMin.x - 1) : (carcassRightX - thick - 1);
+            var innerY1 = dno ? (dno.GabMax.y + 1) : (carcassBottomY + thick + 1);
+            var innerY2 = krishka ? (krishka.GabMin.y - 1) : (carcassTopY - thick - 1);
             var innerH = innerY2 - innerY1;
             var shelfStep = innerH / (numShelves + 1);
-            var shelfZFront = zFront - 15;
+            
+            // ВАЖНО: Полка начинается за задней стенкой (+1 мм внутри) и заканчивается за 15 мм до фасада!
+            var shelfZBack = carcassInnerBackZ + 1;
+            var shelfZFront = carcassFrontZ - 15;
 
             var mountSupp = pInstallShelfSupp.Value && (shelfSupportObj !== null) && (levBok !== null) && (pravBok !== null);
 
             for (var sh = 1; sh <= numShelves; sh++) {
                 var shY = innerY1 + sh * shelfStep - thick / 2;
-                var polka = AddHorizPanel(innerX1, zBack, innerX2, shelfZFront, shY);
+                var polka = AddHorizPanel(innerX1, shelfZBack, innerX2, shelfZFront, shY);
                 polka.Name = 'Полка вкладная ' + sh;
                 polka.Thickness = thick;
                 polka.AddButt(pEdgeBody, 1);
@@ -411,8 +435,6 @@ function buildUpperRow() {
                     try {
                         // ВАЖНО: В БАЗИС первый аргумент - ГОРИЗОНТАЛЬНАЯ полка (polka),
                         // второй аргумент - ВЕРТИКАЛЬНАЯ боковина (levBok / pravBok).
-                        // При таком вызове полкодержатель ориентируется строго горизонтально:
-                        // цилиндрический штифт направлен в боковину, а опорная площадка поддерживает снизу полку!
                         shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ1);
                         shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ1);
                         shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ2);
@@ -426,11 +448,11 @@ function buildUpperRow() {
         if (doorChoice > 0) {
             pMatDoor.SetActive();
 
-            var doorX1 = xL + gap;
-            var doorX2 = xR - gap;
-            var doorY1 = yB - bottomHang;
-            var doorY2 = yT - gap;
-            var doorZ = zFront;
+            var doorX1 = carcassLeftX + gap;
+            var doorX2 = carcassRightX - gap;
+            var doorY1 = carcassBottomY - bottomHang;
+            var doorY2 = carcassTopY - gap;
+            var doorZ = carcassFrontZ; // ВАЖНО: строго по лицевой грани боковин!
 
             var totalW = doorX2 - doorX1;
             var totalH = doorY2 - doorY1;
@@ -509,21 +531,21 @@ function buildUpperRow() {
                 if (installHinges && dInfo.post) {
                     if (dInfo.side === 'up') {
                         // ПЕТЛИ К КРЫШКЕ ШКАФА
-                        var mountY = krishka ? krishka.GabMin.y : (yT - 16);
-                        var hX1 = xL + 16 + 70;
-                        var hX2 = xR - 16 - 70;
+                        var mountY = krishka ? krishka.GabMin.y : (carcassTopY - 16);
+                        var hX1 = (levBok ? levBok.GabMax.x : (carcassLeftX + 16)) + 70;
+                        var hX2 = (pravBok ? pravBok.GabMin.x : (carcassRightX - 16)) - 70;
                         try {
                             hingeObj.Mount(dInfo.post, fPanel, hX1, mountY, doorZ);
                             hingeObj.Mount(dInfo.post, fPanel, hX2, mountY, doorZ);
                             if (modW > 900) {
-                                var hXMid = (xL + xR) / 2;
+                                var hXMid = (carcassLeftX + carcassRightX) / 2;
                                 hingeObj.Mount(dInfo.post, fPanel, hXMid, mountY, doorZ);
                             }
                         } catch (eHngUp) {}
                     } else {
                         // Распашные петли к боковинам
-                        var mountX = (dInfo.side === 'left') ? (xL + 16) : (xR - 16);
-                        var baseBottomY = dno ? dno.GabMax.y : (yB + 16);
+                        var mountX = (dInfo.side === 'left') ? (levBok ? levBok.GabMax.x : (carcassLeftX + 16)) : (pravBok ? pravBok.GabMin.x : (carcassRightX - 16));
+                        var baseBottomY = dno ? dno.GabMax.y : (carcassBottomY + 16);
                         var hYBot = baseBottomY + pHingeBottomOffset.Value;
                         var hYTop = dInfo.y2 - pHingeTopOffset.Value;
                         if (hYTop <= hYBot) hYTop = hYBot + 100;
