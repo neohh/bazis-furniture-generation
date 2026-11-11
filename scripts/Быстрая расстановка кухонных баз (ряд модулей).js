@@ -450,98 +450,6 @@ function getPanelBox(o) {
     };
 }
 
-function isObjElastic(obj) {
-    if (!obj) return false;
-    try {
-        if (typeof obj.IsElastic === 'function') return obj.IsElastic();
-        if (typeof obj.IsElastic === 'boolean') return obj.IsElastic;
-    } catch(eIE) {}
-    return false;
-}
-
-function findElasticBlocks(obj, list) {
-    if (!list) list = [];
-    if (!obj) return list;
-    if (isObjElastic(obj)) {
-        list.push(obj);
-    }
-    var cnt = (typeof obj.Count === 'number') ? obj.Count : 0;
-    for (var i = 0; i < cnt; i++) {
-        var ch = (obj.Objects && typeof obj.Objects[i] !== 'undefined') ? obj.Objects[i] : obj[i];
-        findElasticBlocks(ch, list);
-    }
-    return list;
-}
-
-function findAnyResizable(obj) {
-    if (!obj) return null;
-    var elList = findElasticBlocks(obj, []);
-    if (elList.length > 0) return elList[0];
-
-    function searchResize(item) {
-        if (!item) return null;
-        var cnt = (typeof item.Count === 'number') ? item.Count : 0;
-        if (cnt > 0 && typeof item.ElasticResize === 'function') {
-            return item;
-        }
-        for (var c = 0; c < cnt; c++) {
-            var ch = (item.Objects && typeof item.Objects[c] !== 'undefined') ? item.Objects[c] : item[c];
-            var f = searchResize(ch);
-            if (f) return f;
-        }
-        return null;
-    }
-    return searchResize(obj);
-}
-
-function applyElasticResize(targetBlock, targetW, targetH, targetD) {
-    if (!targetBlock) return false;
-    var rObj = findAnyResizable(targetBlock);
-    if (!rObj) {
-        if (typeof targetBlock.ElasticResize === 'function') rObj = targetBlock;
-    }
-    if (!rObj) return false;
-
-    var curY = targetH;
-    var curZ = targetD;
-    try {
-        if (rObj.GSize) {
-            if (rObj.GSize.y > 0) curY = rObj.GSize.y;
-            if (rObj.GSize.z > 0) curZ = rObj.GSize.z;
-        }
-    } catch(eGS) {}
-
-    var ok = false;
-    // Попытка 1: все 3 оси
-    try {
-        rObj.ElasticResize(NewVector(targetW, targetH, targetD));
-        rObj.Build();
-        ok = true;
-    } catch(e1) {
-        // Попытка 2: ширина и глубина (родная высота)
-        try {
-            rObj.ElasticResize(NewVector(targetW, curY, targetD));
-            rObj.Build();
-            ok = true;
-        } catch(e2) {
-            // Попытка 3: только ширина (родные Y и Z)
-            try {
-                rObj.ElasticResize(NewVector(targetW, curY, curZ));
-                rObj.Build();
-                ok = true;
-            } catch(e3) {
-                // Попытка 4: на самом targetBlock
-                try {
-                    targetBlock.ElasticResize(NewVector(targetW, curY, curZ));
-                    targetBlock.Build();
-                    ok = true;
-                } catch(e4) {}
-            }
-        }
-    }
-    return ok;
-}
-
 // Построение отдельного ящика по выбранной системе выдвижения
 function buildSingleDrawer(sysType, isBottomOrOnly, x1, x2, curFY, fh, secD, carcassFrontZ, drawerIndex) {
     var secW = Math.round(x2 - x1);
@@ -559,7 +467,17 @@ function buildSingleDrawer(sysType, isBottomOrOnly, x1, x2, curFY, fh, secD, car
         }
 
         if (loaded) {
-            applyElasticResize(dObj, secW, fh, secD);
+            var dSub = dObj;
+            if (dObj.Count > 0) {
+                var firstChild = (dObj.Objects && typeof dObj.Objects[0] !== 'undefined') ? dObj.Objects[0] : dObj[0];
+                if (firstChild) dSub = firstChild;
+            }
+
+            var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
+            if (rObj) {
+                try { rObj.ElasticResize(NewVector(secW, rObj.GSize ? rObj.GSize.y : 200, rObj.GSize ? rObj.GSize.z : 500)); } catch(eTR) {}
+                rObj.Build();
+            }
             dObj.Build();
 
             var dBox = getPanelBox(dObj);
@@ -635,43 +553,57 @@ function buildSingleDrawer(sysType, isBottomOrOnly, x1, x2, curFY, fh, secD, car
         try { dOk = dObj.Load(drawerFragmentPath); } catch(eDLoad) { dOk = false; }
 
         if (dOk) {
+            var dSub = dObj;
+            if (dObj.Count > 0) {
+                var firstChild = (dObj.Objects && typeof dObj.Objects[0] !== 'undefined') ? dObj.Objects[0] : dObj[0];
+                if (firstChild) dSub = firstChild;
+            }
+
             var nativeD = 500;
-            if (secD >= 530) nativeD = 500;
-            else if (secD >= 480) nativeD = 450;
-            else if (secD >= 430) nativeD = 400;
-            else if (secD >= 380) nativeD = 350;
-            else if (secD >= 330) nativeD = 300;
-            else nativeD = 270;
+            if (dSub.GSize && dSub.GSize.z > 0) nativeD = dSub.GSize.z;
+            else if (dObj.GSize && dObj.GSize.z > 0) nativeD = dObj.GSize.z;
 
-            applyElasticResize(dObj, secW, fh, nativeD);
-            dObj.Build();
-
-            // Точное определение начальных координат ящика
-            var dBox = getPanelBox(dObj);
-            var curMinX = dBox ? dBox.minX : 0;
-            var curMinY = dBox ? dBox.minY : 0;
-            var curMaxZ = dBox ? dBox.maxZ : 0;
-
-            var facadeObj = searchFacade(dObj) || findFrontPanel(dObj);
-            if (facadeObj) {
-                var fBox = getPanelBox(facadeObj);
-                if (fBox) {
-                    curMinY = fBox.minY;
-                    curMaxZ = fBox.maxZ;
+            var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
+            if (!rObj && dObj.Count > 0) {
+                for (var k = 0; k < dObj.Count; k++) {
+                    var chk = (dObj.Objects && typeof dObj.Objects[k] !== 'undefined') ? dObj.Objects[k] : dObj[k];
+                    if (chk && chk.ElasticResize) {
+                        rObj = chk;
+                        break;
+                    }
                 }
             }
 
-            var dShiftX = x1 - curMinX;
-            var dShiftY = curFY - curMinY;
-            var dShiftZ = carcassFrontZ - curMaxZ;
+            if (rObj) {
+                try {
+                    rObj.ElasticResize(NewVector(secW, fh, nativeD));
+                } catch(eDr1) {
+                    try {
+                        rObj.ElasticResize(NewVector(secW, rObj.GSize ? rObj.GSize.y : 200, nativeD));
+                    } catch(eDr2) {}
+                }
+                rObj.Build();
+            }
+            dObj.Build();
+
+            var dBox = getPanelBox(dObj);
+            var minX = dBox ? dBox.minX : 0;
+            var minY = dBox ? dBox.minY : 0;
+            var maxZ = dBox ? dBox.maxZ : 0;
+
+            var facadeObj = searchFacade(dObj) || findFrontPanel(dObj);
+            var boxMinY = facadeObj ? (facadeObj.GabMin ? facadeObj.GabMin.y : facadeObj.Position.y) : minY;
+            var boxMaxZ = (facadeObj && facadeObj.GabMax && !isNaN(facadeObj.GabMax.z)) ? facadeObj.GabMax.z : maxZ;
+
+            var dShiftX = x1 - minX;
+            var dShiftY = curFY - boxMinY;
+            var dShiftZ = carcassFrontZ - boxMaxZ;
 
             dObj.Translate(NewVector(dShiftX, dShiftY, dShiftZ));
             dObj.Build();
-            return;
         }
     }
 }
-
 
 // -----------------------------------------------------------------------------
 // 5. Главный алгоритм построения ряда баз из предустановленных фрагментов
@@ -756,8 +688,29 @@ function BuildKitchenRow() {
         }
 
         if (loadOk) {
-            // Растяжение каркаса на целевую ширину bWidth, высоту bHeight и глубину bDepth
-            applyElasticResize(baseBlock, bWidth, bHeight, bDepth);
+            // Находим корневой эластичный блок внутри загруженного фрагмента
+            var dBlock = baseBlock;
+            if (baseBlock.Count > 0) {
+                var firstChild = (baseBlock.Objects && typeof baseBlock.Objects[0] !== 'undefined') ? baseBlock.Objects[0] : baseBlock[0];
+                if (firstChild) dBlock = firstChild;
+            }
+
+            // Однократное растяжение фрагмента на целевую ширину bWidth, высоту bHeight и глубину bDepth
+            var resizeObj = dBlock.ElasticResize ? dBlock : (baseBlock.ElasticResize ? baseBlock : null);
+            if (resizeObj) {
+                try {
+                    resizeObj.ElasticResize(NewVector(bWidth, bHeight, bDepth));
+                } catch(eR1) {
+                    try {
+                        resizeObj.ElasticResize(NewVector(bWidth, bHeight, resizeObj.GSize ? resizeObj.GSize.z : bDepth));
+                    } catch(eR2) {
+                        try {
+                            resizeObj.ElasticResize(NewVector(bWidth, resizeObj.GSize.y, resizeObj.GSize.z));
+                        } catch(eR3) {}
+                    }
+                }
+                resizeObj.Build();
+            }
             baseBlock.Build();
 
             // Точное определение габаритов и привязка к позиции ряда
@@ -777,14 +730,6 @@ function BuildKitchenRow() {
                 if (box.maxY + shiftY > rowMaxY) rowMaxY = box.maxY + shiftY;
                 if (box.maxZ + shiftZ > rowMaxZ) rowMaxZ = box.maxZ + shiftZ;
             }
-
-            // ДЕТЕРМИНИРОВАННЫЕ ГЕОМЕТРИЧЕСКИЕ ПАРАМЕТРЫ НИШИ БАЗЫ
-            var nicheX1 = curBaseX + 16;
-            var nicheX2 = curBaseX + bWidth - 16;
-            var nicheY1 = startPoint.y + 100 + 16; // верхняя пласть дна над ножками 100 мм
-            var nicheY2 = startPoint.y + bHeight - 16; // низ верхних планок/царг
-            var carcassFrontZ = startPoint.z + bDepth;
-            var carcassBackZ = startPoint.z;
 
             // СКАНИРОВАНИЕ ВНУТРЕННЕГО ПРОЕМА НИШИ
             var allPanels = collectPanels(baseBlock, []);
@@ -806,11 +751,17 @@ function BuildKitchenRow() {
             sides.sort(function(a, b) { return a.minX - b.minX; });
             horiz.sort(function(a, b) { return a.minY - b.minY; });
 
-            // Проверяем боковины (валидация: стороны должны строго принадлежать этой базе)
+            var nicheX1 = curBaseX + 16;
+            var nicheX2 = curBaseX + bWidth - 16;
+            var nicheY1 = startPoint.y + 100 + 16; // верхняя пласть дна
+            var nicheY2 = startPoint.y + bHeight - 16; // низ верхних планок
+            var carcassFrontZ = startPoint.z + bDepth;
+            var carcassBackZ = startPoint.z;
+
             if (sides.length >= 2) {
                 var sLeft = sides[0];
                 var sRight = sides[sides.length - 1];
-                if (Math.abs(sLeft.minX - curBaseX) <= 50 && Math.abs(sRight.maxX - (curBaseX + bWidth)) <= 50) {
+                if (Math.abs(sLeft.minX - curBaseX) <= 60 && Math.abs(sRight.maxX - (curBaseX + bWidth)) <= 60) {
                     nicheX1 = sLeft.maxX;
                     nicheX2 = sRight.minX;
                     carcassFrontZ = Math.max(sLeft.maxZ, sRight.maxZ);
@@ -842,20 +793,11 @@ function BuildKitchenRow() {
                 }
             }
 
-            // Страховка от аномальных значений
             var secW = Math.round(nicheX2 - nicheX1);
             var secH = Math.round(nicheY2 - nicheY1);
             var secD = Math.round(carcassFrontZ - carcassBackZ);
-            if (secW <= 0 || secW > bWidth) {
-                nicheX1 = curBaseX + 16;
-                nicheX2 = curBaseX + bWidth - 16;
-                secW = bWidth - 32;
-            }
-            if (secH <= 0 || secH > bHeight) {
-                nicheY1 = startPoint.y + 100 + 16;
-                nicheY2 = startPoint.y + bHeight - 16;
-                secH = nicheY2 - nicheY1;
-            }
+            if (secW <= 0 || secW > bWidth) secW = bWidth - 32;
+            if (secH <= 0 || secH > bHeight) secH = bHeight - 132;
             if (secD <= 0) secD = bDepth - 20;
 
             var sysType = slot.drawerSys.ItemIndex; // 0=Базовый, 1=TANDEMBOX, 2=Шариковые
