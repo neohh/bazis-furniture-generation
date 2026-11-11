@@ -11,12 +11,17 @@
  *      верхней планкой/столешницей, направляющие точно по внутренним плоскостям боковин.
  *    - Модуль под полки / ящики (модуль под полки, ящику.fr3d) - открытый корпус с ножками.
  *    - Модуль Базовый (модуль Базовый.fr3d).
- * 3. Настройка ширины каждой базы отдельно (или общим списком через запятую).
+ * 3. Настройка РАЗМЕРОВ:
+ *    - Общая глубина каркаса баз D (по умолчанию 560 мм; можно ставить 500, 450, 400, 300 мм и т.д.).
+ *    - Индивидуальная глубина для каждой базы (для ступенчатых кухонь с перепадом глубин).
+ *    - Общая высота баз H (по умолчанию 820 мм; можно ставить 850, 860, 900 мм под любые ножки).
+ *    - Ширина каждой базы отдельно (или общим списком через запятую).
  * 4. Настройка количества ящиков (2, 3 или 4 ящика) для ящичной базы.
  * 5. Единая столешница:
+ *    - Автоматическая глубина под глубину баз со свесом 40 мм (факт выводится в свойствах).
  *    - Стандартная индустриальная толщина 38 мм (постформинг, влагостойкая) или 28 мм.
  *    - Отдельный выбор материала столешницы (NewMaterial / Make).
- *    - Настройка свесов спереди (40 мм), сзади, слева, справа.
+ *    - Настройка свесов спереди, сзади, слева, справа.
  * 6. Единый цоколь вдоль баз:
  *    - Высота 100 мм (или 120, 150 мм).
  *    - Отступ 70 мм от фасадов (вплотную к опорам/ножкам).
@@ -114,6 +119,16 @@ pBaseCount.MinValue = 1;
 pBaseCount.MaxValue = 8;
 pBaseCount.ValueStep = 1;
 
+var pRowDepth = grMain.NewNumber('Общая глубина каркаса баз D, мм', 560);
+pRowDepth.MinValue = 200;
+pRowDepth.MaxValue = 1200;
+pRowDepth.ValueStep = 10;
+
+var pRowHeight = grMain.NewNumber('Общая высота баз H (с ножками), мм', 820);
+pRowHeight.MinValue = 400;
+pRowHeight.MaxValue = 1200;
+pRowHeight.ValueStep = 5;
+
 var pTotalLengthInfo = grMain.NewString('Общая длина ряда баз', '1800 мм');
 pTotalLengthInfo.Enabled = false;
 
@@ -148,6 +163,10 @@ for (var b = 0; b < MAX_BASES; b++) {
     pSlotW.MinValue = 200;
     pSlotW.MaxValue = 1400;
 
+    var pSlotD = grSlot.NewNumber('Глубина D' + bNum + ' (0 = общая ' + 560 + ' мм)', 0);
+    pSlotD.MinValue = 0;
+    pSlotD.MaxValue = 1200;
+
     var pSlotDrawers = grSlot.NewCombo('Ящики (если база с ящиками)', '3 ящика (1 высокий снизу + 2 равных сверху)\n2 ящика (равные по высоте)\n4 ящика (равные по высоте)');
     pSlotDrawers.ItemIndex = 0;
 
@@ -158,6 +177,7 @@ for (var b = 0; b < MAX_BASES; b++) {
         group: grSlot,
         type: pSlotType,
         width: pSlotW,
+        depth: pSlotD,
         drawers: pSlotDrawers,
         fileInfo: pSlotFile
     });
@@ -168,6 +188,8 @@ var grTop = Prop.NewGroup('2. Единая столешница');
 var pTopEnable = grTop.NewBool('Установить столешницу', true);
 var pTopThick = grTop.NewNumber('Толщина столешницы, мм', 38);
 var pTopMat = grTop.NewMaterial('Материал столешницы');
+var pTopDepthInfo = grTop.NewString('Глубина столешницы (факт)', '600 мм');
+pTopDepthInfo.Enabled = false;
 var pTopOverFront = grTop.NewNumber('Свес спереди (над фасадами), мм', 40);
 var pTopOverBack = grTop.NewNumber('Свес сзади (до стены), мм', 0);
 var pTopOverLeft = grTop.NewNumber('Свес слева, мм', 0);
@@ -379,6 +401,12 @@ function BuildKitchenRow() {
     if (numBases < 1) numBases = 1;
     if (numBases > MAX_BASES) numBases = MAX_BASES;
 
+    var commonD = pRowDepth.Value;
+    if (isNaN(commonD) || commonD < 200) commonD = 560;
+
+    var commonH = pRowHeight.Value;
+    if (isNaN(commonH) || commonH < 400) commonH = 820;
+
     // Включение/отключение групп баз
     for (var b = 0; b < MAX_BASES; b++) {
         var visible = (b < numBases);
@@ -392,6 +420,7 @@ function BuildKitchenRow() {
 
     var customWidthList = parseNumberList(pCustomWidths.Value);
     var widths = [];
+    var depths = [];
     var totalW = 0;
 
     for (var bIdx = 0; bIdx < numBases; bIdx++) {
@@ -402,25 +431,34 @@ function BuildKitchenRow() {
         if (isNaN(w) || w < 150) w = 600;
         widths.push(w);
         totalW += w;
+
+        var dVal = baseSlots[bIdx].depth.Value;
+        if (isNaN(dVal) || dVal <= 150) {
+            dVal = commonD;
+        }
+        depths.push(dVal);
     }
 
     pTotalLengthInfo.Value = Math.round(totalW) + ' мм (' + numBases + ' баз)';
 
     // Корневой блок всего кухонного гарнитура
-    BeginBlock('Кухонный гарнитур (Нижний ряд, L=' + Math.round(totalW) + ')');
+    BeginBlock('Кухонный гарнитур (Нижний ряд, L=' + Math.round(totalW) + ', H=' + Math.round(commonH) + ', D=' + Math.round(commonD) + ')');
 
     var curBaseX = startPoint.x;
-    var rowMaxY = startPoint.y + 820; // стандартная высота верха баз
-    var rowMaxZ = startPoint.z + 560; // стандартная глубина каркаса
+    var rowMaxY = startPoint.y + commonH;
+    var rowMaxZ = startPoint.z + commonD;
 
     for (var i = 0; i < numBases; i++) {
         var bWidth = widths[i];
+        var bDepth = depths[i];
+        var bHeight = commonH;
+
         var slot = baseSlots[i];
         var bType = slot.type.ItemIndex;
         var fragPath = getBaseFragmentPath(bType);
 
         var shortName = baseTypeNames[bType] || 'База';
-        var baseBlock = AddBlock('База ' + (i + 1) + ' (' + shortName + ', Ш=' + Math.round(bWidth) + ')');
+        var baseBlock = AddBlock('База ' + (i + 1) + ' (' + shortName + ', ' + Math.round(bWidth) + 'x' + Math.round(bHeight) + 'x' + Math.round(bDepth) + ')');
         var loadOk = false;
 
         if (fragPath && system.fileExists(fragPath)) {
@@ -439,18 +477,22 @@ function BuildKitchenRow() {
                 if (firstChild) dBlock = firstChild;
             }
 
-            // Однократное растяжение фрагмента на целевую ширину bWidth
+            // Однократное растяжение фрагмента на целевую ширину bWidth, высоту bHeight и глубину bDepth
             var resizeObj = dBlock.ElasticResize ? dBlock : (baseBlock.ElasticResize ? baseBlock : null);
             if (resizeObj) {
-                var curSize = resizeObj.GSize;
-                var natH = (curSize && curSize.y > 0) ? curSize.y : 820;
-                var natD = (curSize && curSize.z > 0) ? curSize.z : 560;
                 try {
-                    resizeObj.ElasticResize(NewVector(bWidth, natH, natD));
+                    // Пробуем полное растяжение по всем 3 осям (Ш, В, Г)
+                    resizeObj.ElasticResize(NewVector(bWidth, bHeight, bDepth));
                 } catch(eR1) {
                     try {
-                        resizeObj.ElasticResize(NewVector(bWidth, resizeObj.GSize.y, resizeObj.GSize.z));
-                    } catch(eR2) {}
+                        // Если нет плоскости по глубине, пробуем Ш и В
+                        resizeObj.ElasticResize(NewVector(bWidth, bHeight, resizeObj.GSize ? resizeObj.GSize.z : bDepth));
+                    } catch(eR2) {
+                        try {
+                            // Если нет плоскости по высоте/глубине, пробуем только ширину
+                            resizeObj.ElasticResize(NewVector(bWidth, resizeObj.GSize.y, resizeObj.GSize.z));
+                        } catch(eR3) {}
+                    }
                 }
                 resizeObj.Build();
             }
@@ -499,13 +541,19 @@ function BuildKitchenRow() {
                 var nicheX1 = curBaseX + 16;
                 var nicheX2 = curBaseX + bWidth - 16;
                 var nicheY1 = startPoint.y + 100 + 16; // верхняя пласть дна
-                var nicheY2 = startPoint.y + 820 - 16; // низ верхних планок
-                var carcassFrontZ = startPoint.z + 560;
+                var nicheY2 = startPoint.y + bHeight - 16; // низ верхних планок
+                var carcassFrontZ = startPoint.z + bDepth;
+                var carcassBackZ = startPoint.z;
 
                 if (sides.length >= 2) {
                     nicheX1 = sides[0].maxX;
                     nicheX2 = sides[sides.length - 1].minX;
                     carcassFrontZ = Math.max(sides[0].maxZ, sides[sides.length - 1].maxZ);
+                    carcassBackZ = Math.min(sides[0].minZ, sides[sides.length - 1].minZ);
+                }
+
+                if (backs.length > 0) {
+                    carcassBackZ = backs[0].maxZ;
                 }
 
                 var minSidesY = (sides.length > 0) ? sides[0].minY : (startPoint.y + 100);
@@ -534,8 +582,10 @@ function BuildKitchenRow() {
 
                 var secW = Math.round(nicheX2 - nicheX1);
                 var secH = Math.round(nicheY2 - nicheY1);
+                var secD = Math.round(carcassFrontZ - carcassBackZ);
                 if (secW <= 0) secW = bWidth - 32;
-                if (secH <= 0) secH = 688;
+                if (secH <= 0) secH = bHeight - 132;
+                if (secD <= 0) secD = bDepth - 20;
 
                 // Зазоры
                 var gapBet = 3;
@@ -584,15 +634,22 @@ function BuildKitchenRow() {
                         if (dSub.GSize && dSub.GSize.z > 0) nativeD = dSub.GSize.z;
                         else if (dObj.GSize && dObj.GSize.z > 0) nativeD = dObj.GSize.z;
 
-                        // Однократное растяжение ящика по ширине ниши и высоте фасада
+                        var maxSafeDrawerD = secD - 15;
+                        var targetDrawerD = (maxSafeDrawerD >= 250 && maxSafeDrawerD < nativeD) ? maxSafeDrawerD : nativeD;
+
+                        // Однократное растяжение ящика по ширине ниши, высоте фасада и глубине
                         var rObj = dSub.ElasticResize ? dSub : (dObj.ElasticResize ? dObj : null);
                         if (rObj) {
                             try {
-                                rObj.ElasticResize(NewVector(secW, fh, nativeD));
+                                rObj.ElasticResize(NewVector(secW, fh, targetDrawerD));
                             } catch(eDr1) {
                                 try {
-                                    rObj.ElasticResize(NewVector(secW, rObj.GSize.y, nativeD));
-                                } catch(eDr2) {}
+                                    rObj.ElasticResize(NewVector(secW, fh, nativeD));
+                                } catch(eDr2) {
+                                    try {
+                                        rObj.ElasticResize(NewVector(secW, rObj.GSize.y, nativeD));
+                                    } catch(eDr3) {}
+                                }
                             }
                             rObj.Build();
                         }
@@ -621,9 +678,10 @@ function BuildKitchenRow() {
         } else {
             // Резервный параметрический модуль
             var T = 16;
-            var botY = startPoint.y + 100;
-            var topY = botY + 720;
-            var dZ = startPoint.z + 560;
+            var legH = 100;
+            var botY = startPoint.y + legH;
+            var topY = startPoint.y + bHeight;
+            var dZ = startPoint.z + bDepth;
             safeHoriz(curBaseX, startPoint.z, curBaseX + bWidth, dZ, botY, 'Дно базы');
             safeVert(startPoint.z, botY + T, dZ, topY, curBaseX + T, 'Боковина левая');
             safeVert(startPoint.z, botY + T, dZ, topY, curBaseX + bWidth, 'Боковина правая');
@@ -650,6 +708,9 @@ function BuildKitchenRow() {
         var topZ2 = rowMaxZ + overFront;
         var topPosY = rowMaxY;
 
+        var calcTopD = Math.round(topZ2 - topZ1);
+        pTopDepthInfo.Value = calcTopD + ' мм (каркас ' + Math.round(rowMaxZ - startPoint.z) + ' + свес ' + Math.round(overFront) + ' мм)';
+
         // Применение отдельного материала для столешницы
         try {
             pTopMat.SetActive();
@@ -659,7 +720,7 @@ function BuildKitchenRow() {
             } catch(eM2) {}
         }
 
-        var topPanel = safeHoriz(topX1, topZ1, topX2, topZ2, topPosY, 'Столешница единая (L=' + Math.round(topX2 - topX1) + ', T=' + Math.round(topThick) + ')');
+        var topPanel = safeHoriz(topX1, topZ1, topX2, topZ2, topPosY, 'Столешница единая (L=' + Math.round(topX2 - topX1) + ', D=' + calcTopD + ', T=' + Math.round(topThick) + ')');
         if (topPanel) {
             try { topPanel.Thickness = topThick; } catch(eT) {}
             if (!pTopMat.Value) {
