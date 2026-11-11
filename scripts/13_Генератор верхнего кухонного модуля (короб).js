@@ -17,6 +17,30 @@
  * =============================================================================
  */
 
+function findFirstExistingFile(paths) {
+    for (var i = 0; i < paths.length; i++) {
+        if (system.fileExists(paths[i])) {
+            return paths[i];
+        }
+    }
+    return paths[0];
+}
+
+var SHELF_SUPPORT_PATHS = [
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\полкодержатель_d5.f3d',
+    'z:\\Work\\генерация мебели\\furn\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\Полкодержатель D5 никель.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Крепеж\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\полкодержатель_d5.f3d'
+];
+
+var shelfSupportPath = findFirstExistingFile(SHELF_SUPPORT_PATHS);
+var shelfSupportObj = null;
+if (system.fileExists(shelfSupportPath)) {
+    try { shelfSupportObj = OpenFurniture(shelfSupportPath); } catch (eS) {}
+}
+
 var Prop = Action.Properties;
 Prop.Clear();
 
@@ -51,6 +75,8 @@ pTopBottomType.ItemIndex = 0;
 var pShelves = grConst.NewCombo('Полки съемные', '2 полки\n1 полка\n3 полки\nБез полок');
 pShelves.ItemIndex = 0;
 try { pShelves.Value = '2 полки'; } catch(e) {}
+
+var pInstallShelfSupp = grConst.NewBool('Полкодержатели d5 под полки', true);
 
 var pShelfRecess = grConst.NewNumber('Заглубление полок от переда, мм', 15);
 pShelfRecess.MinValue = 0;
@@ -161,6 +187,23 @@ function buildCarcass() {
             polka.Thickness = thick;
             polka.AddButt(pEdgeBody, 1);
             polka.Build();
+
+            if (pInstallShelfSupp.Value && shelfSupportObj) {
+                var pY = polka.GabMin.y;
+                var pZ1 = polka.GabMin.z + 64;
+                var pZ2 = polka.GabMax.z - 40;
+                if (pZ2 <= pZ1) {
+                    pZ1 = polka.GabMin.z + 32;
+                    pZ2 = polka.GabMax.z - 32;
+                }
+                try {
+                    // В БАЗИС первый аргумент - горизонтальная полка, второй - вертикальная боковина
+                    shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ1);
+                    shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ1);
+                    shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ2);
+                    shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ2);
+                } catch(eShM3) {}
+            }
         }
     }
 

@@ -30,6 +30,30 @@ SCRIPT3_CODE = r'''/**
  * =============================================================================
  */
 
+function findFirstExistingFile(paths) {
+    for (var i = 0; i < paths.length; i++) {
+        if (system.fileExists(paths[i])) {
+            return paths[i];
+        }
+    }
+    return paths[0];
+}
+
+var SHELF_SUPPORT_PATHS = [
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\полкодержатель_d5.f3d',
+    'z:\\Work\\генерация мебели\\furn\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\Полкодержатель D5 никель.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Крепеж\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\полкодержатель_d5.f3d'
+];
+
+var shelfSupportPath = findFirstExistingFile(SHELF_SUPPORT_PATHS);
+var shelfSupportObj = null;
+if (system.fileExists(shelfSupportPath)) {
+    try { shelfSupportObj = OpenFurniture(shelfSupportPath); } catch (eS) {}
+}
+
 var Prop = Action.Properties;
 Prop.Clear();
 
@@ -64,6 +88,8 @@ pTopBottomType.ItemIndex = 0;
 var pShelves = grConst.NewCombo('Полки съемные', '2 полки\n1 полка\n3 полки\nБез полок');
 pShelves.ItemIndex = 0;
 try { pShelves.Value = '2 полки'; } catch(e) {}
+
+var pInstallShelfSupp = grConst.NewBool('Полкодержатели d5 под полки', true);
 
 var pShelfRecess = grConst.NewNumber('Заглубление полок от переда, мм', 15);
 pShelfRecess.MinValue = 0;
@@ -174,6 +200,23 @@ function buildCarcass() {
             polka.Thickness = thick;
             polka.AddButt(pEdgeBody, 1);
             polka.Build();
+
+            if (pInstallShelfSupp.Value && shelfSupportObj) {
+                var pY = polka.GabMin.y;
+                var pZ1 = polka.GabMin.z + 64;
+                var pZ2 = polka.GabMax.z - 40;
+                if (pZ2 <= pZ1) {
+                    pZ1 = polka.GabMin.z + 32;
+                    pZ2 = polka.GabMax.z - 32;
+                }
+                try {
+                    // В БАЗИС первый аргумент - горизонтальная полка, второй - вертикальная боковина
+                    shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ1);
+                    shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ1);
+                    shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ2);
+                    shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ2);
+                } catch(eShM3) {}
+            }
         }
     }
 
@@ -241,12 +284,27 @@ var HINGE_PATHS = [
     'z:\\Work\\генерация мебели\\furn\\петля_моя.f3d'
 ];
 
+var SHELF_SUPPORT_PATHS = [
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\05_ФУРНИТУРА_И_НОЖКИ_ДЛЯ_КУХНИ\\Петли_и_крепеж\\полкодержатель_d5.f3d',
+    'z:\\Work\\генерация мебели\\furn\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Полкодержатели\\Полкодержатель D5 никель.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Крепеж\\полкодержатель_d5.f3d',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\полкодержатель_d5.f3d'
+];
+
 var upperFragPath = findFirstExistingFile(UPPER_BASE_PATHS);
 var hingePath = findFirstExistingFile(HINGE_PATHS);
+var shelfSupportPath = findFirstExistingFile(SHELF_SUPPORT_PATHS);
 
 var hingeObj = null;
 if (system.fileExists(hingePath)) {
     try { hingeObj = OpenFurniture(hingePath); } catch (eH) {}
+}
+
+var shelfSupportObj = null;
+if (system.fileExists(shelfSupportPath)) {
+    try { shelfSupportObj = OpenFurniture(shelfSupportPath); } catch (eS) {}
 }
 
 function getPanelBox(o) {
@@ -389,6 +447,7 @@ pDoorThick.MinValue = 10;
 pDoorThick.MaxValue = 30;
 
 var pInstallHinges = grDoors.NewBool('Монтировать петли ("петля МОЯ")', true);
+var pInstallShelfSupp = grDoors.NewBool('Полкодержатели d5 под полки', true);
 var pHingeBottomOffset = grDoors.NewNumber('Отступ нижней петли от дна, мм', 70);
 var pHingeTopOffset = grDoors.NewNumber('Отступ верхней петли от верха, мм', 100);
 
@@ -575,13 +634,15 @@ function buildUpperRow() {
         // Полки вкладные
         if (numShelves > 0) {
             pMatBody.SetActive();
-            var innerX1 = xL + thick + 1;
-            var innerX2 = xR - thick - 1;
-            var innerY1 = yB + thick;
-            var innerY2 = yT - thick;
+            var innerX1 = levBok ? (levBok.GabMax.x + 1) : (xL + thick + 1);
+            var innerX2 = pravBok ? (pravBok.GabMin.x - 1) : (xR - thick - 1);
+            var innerY1 = dno ? (dno.GabMax.y + 1) : (yB + thick + 1);
+            var innerY2 = krishka ? (krishka.GabMin.y - 1) : (yT - thick - 1);
             var innerH = innerY2 - innerY1;
             var shelfStep = innerH / (numShelves + 1);
             var shelfZFront = zFront - 15;
+
+            var mountSupp = pInstallShelfSupp.Value && (shelfSupportObj !== null) && (levBok !== null) && (pravBok !== null);
 
             for (var sh = 1; sh <= numShelves; sh++) {
                 var shY = innerY1 + sh * shelfStep - thick / 2;
@@ -590,6 +651,26 @@ function buildUpperRow() {
                 polka.Thickness = thick;
                 polka.AddButt(pEdgeBody, 1);
                 polka.Build();
+
+                if (mountSupp) {
+                    var pY = polka.GabMin.y;
+                    var pZ1 = polka.GabMin.z + 64;
+                    var pZ2 = polka.GabMax.z - 40;
+                    if (pZ2 <= pZ1) {
+                        pZ1 = polka.GabMin.z + 32;
+                        pZ2 = polka.GabMax.z - 32;
+                    }
+                    try {
+                        // ВАЖНО: В БАЗИС первый аргумент - ГОРИЗОНТАЛЬНАЯ полка (polka),
+                        // второй аргумент - ВЕРТИКАЛЬНАЯ боковина (levBok / pravBok).
+                        // При таком вызове полкодержатель ориентируется строго горизонтально:
+                        // цилиндрический штифт направлен в боковину, а опорная площадка поддерживает снизу полку!
+                        shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ1);
+                        shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ1);
+                        shelfSupportObj.Mount(polka, levBok, polka.GabMin.x, pY, pZ2);
+                        shelfSupportObj.Mount(polka, pravBok, polka.GabMax.x, pY, pZ2);
+                    } catch(eShM) {}
+                }
             }
         }
 
