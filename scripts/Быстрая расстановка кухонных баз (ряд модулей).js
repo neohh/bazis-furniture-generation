@@ -159,7 +159,7 @@ pBaseCount.MinValue = 1;
 pBaseCount.MaxValue = 8;
 pBaseCount.ValueStep = 1;
 
-var pRowDepth = grMain.NewNumber('Общая глубина каркаса баз D, мм', 560);
+var pRowDepth = grMain.NewNumber('Общая глубина каркаса баз D, мм', 750);
 pRowDepth.MinValue = 200;
 pRowDepth.MaxValue = 1200;
 pRowDepth.ValueStep = 10;
@@ -200,12 +200,14 @@ for (var b = 0; b < MAX_BASES; b++) {
     var grSlot = grMain.NewGroup('База ' + bNum);
     
     var pSlotType = grSlot.NewCombo('Тип базы', baseTypeOptions);
-    if (b === 0) pSlotType.ItemIndex = 0;
-    else if (b === 1) pSlotType.ItemIndex = 2; // база с ящиками
-    else if (b === 2) pSlotType.ItemIndex = 1; // мойка
+    // Предустановка проекта: База 1 = Духовка (3), База 2 = Ящики (2), База 3 = Полки (0)
+    if (b === 0) pSlotType.ItemIndex = 3; // База под духовку / печку
+    else if (b === 1) pSlotType.ItemIndex = 2; // База с выдвижными ящиками
+    else if (b === 2) pSlotType.ItemIndex = 0; // База для полок
     else pSlotType.ItemIndex = 0;
     
-    var pSlotW = grSlot.NewNumber('Ширина W' + bNum + ', мм', defaultWidths[b]);
+    var defW = (b === 0) ? 850 : ((b === 1) ? 850 : ((b === 2) ? 600 : 600));
+    var pSlotW = grSlot.NewNumber('Ширина W' + bNum + ', мм', defW);
     pSlotW.MinValue = 200;
     pSlotW.MaxValue = 1400;
 
@@ -217,7 +219,7 @@ for (var b = 0; b < MAX_BASES; b++) {
     pSlotDrawerSys.ItemIndex = 0; // по умолчанию Ящик Базовый, можно переключить на TANDEMBOX
 
     var pSlotDrawers = grSlot.NewCombo('Раскладка ящиков', '3 ящика (1 высокий снизу + 2 равных сверху)\n2 ящика (равные по высоте)\n4 ящика (равные по высоте)');
-    pSlotDrawers.ItemIndex = 0;
+    pSlotDrawers.ItemIndex = (b === 1) ? 1 : 0; // Для базы 2: 2 ящика (равные по высоте)
 
     var pSlotOvenH = grSlot.NewNumber('Высота ниши духовки, мм', 600);
     pSlotOvenH.MinValue = 350;
@@ -254,7 +256,7 @@ var pTopOverRight = grTop.NewNumber('Свес справа, мм', 0);
 var grPlinth = Prop.NewGroup('3. Единый цоколь вдоль баз');
 var pPlinthEnable = grPlinth.NewBool('Установить цоколь', true);
 var pPlinthH = grPlinth.NewNumber('Высота цоколя, мм', 100);
-var pPlinthIndent = grPlinth.NewNumber('Отступ цоколя от фасадов, мм', 70);
+var pPlinthIndent = grPlinth.NewNumber('Отступ цоколя от фасадов, мм', 20);
 var pPlinthThick = grPlinth.NewNumber('Толщина цоколя, мм', 16);
 var pPlinthMat = grPlinth.NewMaterial('Материал цоколя');
 
