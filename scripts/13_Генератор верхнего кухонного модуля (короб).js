@@ -11,7 +11,7 @@
  * 1. Запустить скрипт и получить чистый короб верхнего шкафа (700х500х720 мм).
  * 2. Расставить на нем свои евровинты, навесы и крепеж так, как вам нужно.
  * 3. Назначить плоскости эластичности по осям X, Y, Z.
- * 4. Сохранить его как фрагмент (например, "модуль верхний Базовый.fr3d"),
+ * 4. Сохранить его как фрагмент (например, "Верхняя база.fr3d"),
  *    после чего скрипт быстрой расстановки ряда баз будет автоматически
  *    растягивать вашу готовую модель!
  * =============================================================================
@@ -46,10 +46,11 @@ var pTopBottomType = grConst.NewCombo('Дно и крышка',
     'Вкладные между боковинами (стандарт навесных)\n' +
     'Накладные по высоте (боковины между дном и крышкой)'
 );
-pTopBottomType.ItemIndex = 0; // вкладные
+pTopBottomType.ItemIndex = 0;
 
 var pShelves = grConst.NewCombo('Полки съемные', '2 полки\n1 полка\n3 полки\nБез полок');
-pShelves.ItemIndex = 0; // 2 полки
+pShelves.ItemIndex = 0;
+try { pShelves.Value = '2 полки'; } catch(e) {}
 
 var pShelfRecess = grConst.NewNumber('Заглубление полок от переда, мм', 15);
 pShelfRecess.MinValue = 0;
@@ -73,9 +74,6 @@ var grActions = Prop.NewGroup('4. Действия');
 var btnBuild = grActions.NewButton('Сгенерировать короб');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
 
-// -----------------------------------------------------------------------------
-// Основная функция построения чистого короба
-// -----------------------------------------------------------------------------
 function buildCarcass() {
     DeleteNewObjects();
 
@@ -88,21 +86,19 @@ function buildCarcass() {
     var isInset = (pTopBottomType.ItemIndex === 0);
     var recess = pShelfRecess.Value;
 
-    // Главный блок короба
     var boxBlock = BeginBlock('Короб верхнего модуля ' + W + 'x' + D + 'x' + H);
 
     // 1. Боковины
     var sideY1 = isInset ? 0 : thick;
     var sideY2 = isInset ? H : (H - thick);
 
-    // AddVertPanel(z1, y1, z2, y2, x)
     var levBok = AddVertPanel(0, sideY1, D, sideY2, 0);
     levBok.Name = 'Боковина левая';
     levBok.Thickness = thick;
-    levBok.AddButt(pEdgeBody, 0);  // низ
-    levBok.AddButt(pEdgeFront, 1); // передний торец
-    levBok.AddButt(pEdgeBody, 2);  // верх
-    levBok.AddButt(pEdgeBody, 3);  // задний торец
+    levBok.AddButt(pEdgeBody, 0);
+    levBok.AddButt(pEdgeFront, 1);
+    levBok.AddButt(pEdgeBody, 2);
+    levBok.AddButt(pEdgeBody, 3);
     levBok.Build();
 
     var pravBok = AddVertPanel(0, sideY1, D, sideY2, W - thick);
@@ -118,14 +114,13 @@ function buildCarcass() {
     var horizX1 = isInset ? thick : 0;
     var horizX2 = isInset ? (W - thick) : W;
 
-    // AddHorizPanel(x1, z1, x2, z2, y)
     var dno = AddHorizPanel(horizX1, 0, horizX2, D, 0);
     dno.Name = 'Дно';
     dno.Thickness = thick;
-    dno.AddButt(pEdgeBody, 0);  // левый
-    dno.AddButt(pEdgeFront, 1); // передний торец
-    dno.AddButt(pEdgeBody, 2);  // правый
-    dno.AddButt(pEdgeBody, 3);  // задний
+    dno.AddButt(pEdgeBody, 0);
+    dno.AddButt(pEdgeFront, 1);
+    dno.AddButt(pEdgeBody, 2);
+    dno.AddButt(pEdgeBody, 3);
     dno.Build();
 
     var krishka = AddHorizPanel(horizX1, 0, horizX2, D, H - thick);
@@ -137,21 +132,21 @@ function buildCarcass() {
     krishka.AddButt(pEdgeBody, 3);
     krishka.Build();
 
-    // 3. Задняя стенка (ХДФ 4 мм накладная)
+    // 3. Задняя стенка
     if (pBackWall.ItemIndex === 0) {
         pMatBack.SetActive();
-        // AddFrontPanel(x1, y1, x2, y2, z)
         var backWall = AddFrontPanel(2, 2, W - 2, H - 2, -4);
         backWall.Name = 'Задняя стенка (ХДФ)';
         backWall.Thickness = 4;
         backWall.Build();
     }
 
-    // 4. Съемные полки
+    // 4. Полки съемные
     var numShelves = 2;
-    if (pShelves.ItemIndex === 1) numShelves = 1;
-    else if (pShelves.ItemIndex === 2) numShelves = 3;
-    else if (pShelves.ItemIndex === 3) numShelves = 0;
+    var shVal = pShelves.Value || '';
+    if (pShelves.ItemIndex === 1 || shVal.indexOf('1') === 0) numShelves = 1;
+    else if (pShelves.ItemIndex === 2 || shVal.indexOf('3') === 0) numShelves = 3;
+    else if (pShelves.ItemIndex === 3 || shVal.indexOf('Без') === 0) numShelves = 0;
 
     if (numShelves > 0) {
         pMatBody.SetActive();
@@ -164,7 +159,7 @@ function buildCarcass() {
             var polka = AddHorizPanel(thick + 1, 0, W - thick - 1, shelfZ2, shY);
             polka.Name = 'Полка вкладная ' + s;
             polka.Thickness = thick;
-            polka.AddButt(pEdgeBody, 1); // передний торец закромлен 0.4
+            polka.AddButt(pEdgeBody, 1);
             polka.Build();
         }
     }

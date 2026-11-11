@@ -24,7 +24,7 @@ SCRIPT3_CODE = r'''/**
  * 1. Запустить скрипт и получить чистый короб верхнего шкафа (700х500х720 мм).
  * 2. Расставить на нем свои евровинты, навесы и крепеж так, как вам нужно.
  * 3. Назначить плоскости эластичности по осям X, Y, Z.
- * 4. Сохранить его как фрагмент (например, "модуль верхний Базовый.fr3d"),
+ * 4. Сохранить его как фрагмент (например, "Верхняя база.fr3d"),
  *    после чего скрипт быстрой расстановки ряда баз будет автоматически
  *    растягивать вашу готовую модель!
  * =============================================================================
@@ -59,10 +59,11 @@ var pTopBottomType = grConst.NewCombo('Дно и крышка',
     'Вкладные между боковинами (стандарт навесных)\n' +
     'Накладные по высоте (боковины между дном и крышкой)'
 );
-pTopBottomType.ItemIndex = 0; // вкладные
+pTopBottomType.ItemIndex = 0;
 
 var pShelves = grConst.NewCombo('Полки съемные', '2 полки\n1 полка\n3 полки\nБез полок');
-pShelves.ItemIndex = 0; // 2 полки
+pShelves.ItemIndex = 0;
+try { pShelves.Value = '2 полки'; } catch(e) {}
 
 var pShelfRecess = grConst.NewNumber('Заглубление полок от переда, мм', 15);
 pShelfRecess.MinValue = 0;
@@ -86,9 +87,6 @@ var grActions = Prop.NewGroup('4. Действия');
 var btnBuild = grActions.NewButton('Сгенерировать короб');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
 
-// -----------------------------------------------------------------------------
-// Основная функция построения чистого короба
-// -----------------------------------------------------------------------------
 function buildCarcass() {
     DeleteNewObjects();
 
@@ -101,21 +99,19 @@ function buildCarcass() {
     var isInset = (pTopBottomType.ItemIndex === 0);
     var recess = pShelfRecess.Value;
 
-    // Главный блок короба
     var boxBlock = BeginBlock('Короб верхнего модуля ' + W + 'x' + D + 'x' + H);
 
     // 1. Боковины
     var sideY1 = isInset ? 0 : thick;
     var sideY2 = isInset ? H : (H - thick);
 
-    // AddVertPanel(z1, y1, z2, y2, x)
     var levBok = AddVertPanel(0, sideY1, D, sideY2, 0);
     levBok.Name = 'Боковина левая';
     levBok.Thickness = thick;
-    levBok.AddButt(pEdgeBody, 0);  // низ
-    levBok.AddButt(pEdgeFront, 1); // передний торец
-    levBok.AddButt(pEdgeBody, 2);  // верх
-    levBok.AddButt(pEdgeBody, 3);  // задний торец
+    levBok.AddButt(pEdgeBody, 0);
+    levBok.AddButt(pEdgeFront, 1);
+    levBok.AddButt(pEdgeBody, 2);
+    levBok.AddButt(pEdgeBody, 3);
     levBok.Build();
 
     var pravBok = AddVertPanel(0, sideY1, D, sideY2, W - thick);
@@ -131,14 +127,13 @@ function buildCarcass() {
     var horizX1 = isInset ? thick : 0;
     var horizX2 = isInset ? (W - thick) : W;
 
-    // AddHorizPanel(x1, z1, x2, z2, y)
     var dno = AddHorizPanel(horizX1, 0, horizX2, D, 0);
     dno.Name = 'Дно';
     dno.Thickness = thick;
-    dno.AddButt(pEdgeBody, 0);  // левый
-    dno.AddButt(pEdgeFront, 1); // передний торец
-    dno.AddButt(pEdgeBody, 2);  // правый
-    dno.AddButt(pEdgeBody, 3);  // задний
+    dno.AddButt(pEdgeBody, 0);
+    dno.AddButt(pEdgeFront, 1);
+    dno.AddButt(pEdgeBody, 2);
+    dno.AddButt(pEdgeBody, 3);
     dno.Build();
 
     var krishka = AddHorizPanel(horizX1, 0, horizX2, D, H - thick);
@@ -150,21 +145,21 @@ function buildCarcass() {
     krishka.AddButt(pEdgeBody, 3);
     krishka.Build();
 
-    // 3. Задняя стенка (ХДФ 4 мм накладная)
+    // 3. Задняя стенка
     if (pBackWall.ItemIndex === 0) {
         pMatBack.SetActive();
-        // AddFrontPanel(x1, y1, x2, y2, z)
         var backWall = AddFrontPanel(2, 2, W - 2, H - 2, -4);
         backWall.Name = 'Задняя стенка (ХДФ)';
         backWall.Thickness = 4;
         backWall.Build();
     }
 
-    // 4. Съемные полки
+    // 4. Полки съемные
     var numShelves = 2;
-    if (pShelves.ItemIndex === 1) numShelves = 1;
-    else if (pShelves.ItemIndex === 2) numShelves = 3;
-    else if (pShelves.ItemIndex === 3) numShelves = 0;
+    var shVal = pShelves.Value || '';
+    if (pShelves.ItemIndex === 1 || shVal.indexOf('1') === 0) numShelves = 1;
+    else if (pShelves.ItemIndex === 2 || shVal.indexOf('3') === 0) numShelves = 3;
+    else if (pShelves.ItemIndex === 3 || shVal.indexOf('Без') === 0) numShelves = 0;
 
     if (numShelves > 0) {
         pMatBody.SetActive();
@@ -177,7 +172,7 @@ function buildCarcass() {
             var polka = AddHorizPanel(thick + 1, 0, W - thick - 1, shelfZ2, shY);
             polka.Name = 'Полка вкладная ' + s;
             polka.Thickness = thick;
-            polka.AddButt(pEdgeBody, 1); // передний торец закромлен 0.4
+            polka.AddButt(pEdgeBody, 1);
             polka.Build();
         }
     }
@@ -211,7 +206,6 @@ Action.Continue();
 
 # ==============================================================================
 # SCRIPT 1: Быстрая расстановка верхних кухонных баз (ряд модулей).js
-# (использует Верхняя база.fr3d с эластичностью + крепление петель к крышке)
 # ==============================================================================
 SCRIPT1_CODE = r'''/**
  * =============================================================================
@@ -220,21 +214,7 @@ SCRIPT1_CODE = r'''/**
  * 
  * Расстановка ряда навесных шкафов на основе эластичного мастер-фрагмента
  * "Верхняя база.fr3d" (созданного пользователем с евровинтами и эластичностью)
- * или параметрического каркаса с опциями дверей (распашные / подъемные вверх).
- * 
- * Параметры по умолчанию:
- * - Глубина корпусов D: 500 мм (настраивается: 300, 350, 400, 500 мм и т.д.)
- * - Ширина модулей W: 700 мм (индивидуально для каждого модуля в ряду)
- * - Высота корпусов H: 720 мм (настраивается: 600, 720, 800, 920 мм и т.д.)
- * - Высота навески над полом: 1450 мм (настраивается)
- * 
- * Опции дверей:
- * - 0. Без дверей (открытые полки)
- * - 1. Вертикальная 1 дверь (распашная, петли слева)
- * - 2. Вертикальная 1 дверь (распашная, петли справа)
- * - 3. Вертикальные 2 двери (распашные: левая + правая)
- * - 4. Горизонтальная 1 дверь (подъемная вверх, петли к крышке!)
- * - 5. Горизонтальные 2 двери (подъемные вверх, верхняя петли к крышке!)
+ * или параметрического каркаса с опциями полок и дверей.
  * =============================================================================
  */
 
@@ -304,13 +284,24 @@ var Prop = Action.Properties;
 Prop.Clear();
 
 var MAX_BASES = 8;
-var doorOptions = 
-    '0. Без дверей (открытые полки)\n' +
-    '1. Вертикальная 1 дверь (распашная, петли слева)\n' +
-    '2. Вертикальная 1 дверь (распашная, петли справа)\n' +
-    '3. Вертикальные 2 двери (распашные: левая + правая)\n' +
-    '4. Горизонтальная 1 дверь (подъемная вверх)\n' +
-    '5. Горизонтальные 2 двери (подъемные вверх)';
+
+var doorList = [
+    '0. Без дверей (открытые полки)',
+    '1. Вертикальная 1 дверь (распашная, петли слева)',
+    '2. Вертикальная 1 дверь (распашная, петли справа)',
+    '3. Вертикальные 2 двери (распашные: левая + правая)',
+    '4. Горизонтальная 1 дверь (подъемная вверх)',
+    '5. Горизонтальные 2 двери (подъемные вверх)'
+];
+var doorOptions = doorList.join('\n');
+
+var shelfList = [
+    '2 полки',
+    '1 полка',
+    '3 полки',
+    'Без полок'
+];
+var shelfOptions = shelfList.join('\n');
 
 // [Группа 1: Общие параметры верхнего ряда]
 var grMain = Prop.NewGroup('1. Общие параметры верхнего ряда');
@@ -358,16 +349,23 @@ for (var b = 0; b < MAX_BASES; b++) {
     pSlotH.MinValue = 0;
     pSlotH.MaxValue = 1500;
 
+    // Выбор количества полок
+    var pSlotShelves = grSlot.NewCombo('Количество полок', shelfOptions);
+    pSlotShelves.ItemIndex = 0;
+    try { pSlotShelves.Value = shelfList[0]; } catch(e) {}
+
+    // Выбор дверей
+    var defDoorIdx = (b < 2) ? 3 : ((b === 2) ? 4 : 3);
     var pSlotDoor = grSlot.NewCombo('Выбор дверей', doorOptions);
-    if (b < 2) pSlotDoor.ItemIndex = 3;
-    else if (b === 2) pSlotDoor.ItemIndex = 4;
-    else pSlotDoor.ItemIndex = 3;
+    pSlotDoor.ItemIndex = defDoorIdx;
+    try { pSlotDoor.Value = doorList[defDoorIdx]; } catch(e) {}
 
     baseSlots.push({
         group: grSlot,
         width: pSlotW,
         depth: pSlotD,
         height: pSlotH,
+        shelves: pSlotShelves,
         door: pSlotDoor
     });
 }
@@ -394,15 +392,44 @@ var pInstallHinges = grDoors.NewBool('Монтировать петли ("пет
 var pHingeBottomOffset = grDoors.NewNumber('Отступ нижней петли от дна, мм', 70);
 var pHingeTopOffset = grDoors.NewNumber('Отступ верхней петли от верха, мм', 100);
 
-// [Группа 4: Материалы и кромка фасадов]
+// [Группа 4: Материалы и кромка]
 var grMat = Prop.NewGroup('4. Материалы и кромка');
+var pMatBody = grMat.NewMaterial('Материал корпуса и полок (ЛДСП 16 мм)');
 var pMatDoor = grMat.NewMaterial('Материал фасадов (МДФ / Фасадный ЛДСП)');
-var pEdgeFront = grMat.NewButt('Кромка лицевая (0.8 мм)');
+var pEdgeFront = grMat.NewButt('Кромка лицевая фасада (0.8 мм)');
+var pEdgeBody = grMat.NewButt('Кромка полок и корпуса (0.4 мм)');
 
 // [Группа 5: Действия]
 var grActions = Prop.NewGroup('5. Действия');
 var btnBuild = grActions.NewButton('Сгенерировать верхний ряд');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
+
+function getDoorChoice(combo) {
+    if (combo && combo.Value) {
+        var v = combo.Value.trim();
+        for (var i = 0; i < doorList.length; i++) {
+            if (v === doorList[i] || v.indexOf(doorList[i].substring(0, 3)) === 0) {
+                return i;
+            }
+        }
+    }
+    return (combo && typeof combo.ItemIndex !== 'undefined') ? combo.ItemIndex : 3;
+}
+
+function getShelfCount(combo) {
+    if (combo && combo.Value) {
+        var v = combo.Value.trim();
+        if (v.indexOf('1') === 0) return 1;
+        if (v.indexOf('3') === 0) return 3;
+        if (v.indexOf('Без') === 0 || v.indexOf('0') === 0) return 0;
+        return 2;
+    }
+    var idx = (combo && typeof combo.ItemIndex !== 'undefined') ? combo.ItemIndex : 0;
+    if (idx === 1) return 1;
+    if (idx === 2) return 3;
+    if (idx === 3) return 0;
+    return 2;
+}
 
 function buildUpperRow() {
     DeleteNewObjects();
@@ -426,6 +453,10 @@ function buildUpperRow() {
         baseSlots[s].group.Visible = (s < num);
     }
 
+    pMatBody.SetActive();
+    var thick = ActiveMaterial.Thickness || 16;
+    if (!thick || thick <= 0) thick = 16;
+
     var curX = startX;
     var hasFragment = (upperFragPath && system.fileExists(upperFragPath));
 
@@ -438,7 +469,8 @@ function buildUpperRow() {
         var modW = slot.width.Value || defW;
         var modD = (slot.depth.Value > 0) ? slot.depth.Value : defD;
         var modH = (slot.height.Value > 0) ? slot.height.Value : defH;
-        var doorChoice = slot.door.ItemIndex;
+        var doorChoice = getDoorChoice(slot.door);
+        var numShelves = getShelfCount(slot.shelves);
 
         var xL = curX;
         var xR = curX + modW;
@@ -464,7 +496,7 @@ function buildUpperRow() {
         }
 
         if (loadOk) {
-            // Эластичное масштабирование фрагмента пользователя
+            // Эластичное масштабирование фрагмента
             var dBlock = modBlock;
             if (modBlock.Count > 0) {
                 var firstChild = (modBlock.Objects && typeof modBlock.Objects[0] !== 'undefined') ? modBlock.Objects[0] : modBlock[0];
@@ -484,7 +516,7 @@ function buildUpperRow() {
             }
             modBlock.Build();
 
-            // Позиционирование в ряд
+            // Позиционирование в ряду
             var box = getPanelBox(modBlock);
             var shiftX = xL - box.minX;
             var shiftY = yB - box.minY;
@@ -493,7 +525,7 @@ function buildUpperRow() {
             modBlock.Position = NewVector(modBlock.Position.x + shiftX, modBlock.Position.y + shiftY, modBlock.Position.z + shiftZ);
             modBlock.Build();
 
-            // Поиск боковин и крышки внутри загруженного модуля для монтажа петель
+            // Поиск боковин и крышки внутри загруженного модуля
             function findPanels(container) {
                 if (!container) return;
                 for (var p = 0; p < container.Count; p++) {
@@ -517,8 +549,7 @@ function buildUpperRow() {
             }
             findPanels(modBlock);
         } else {
-            // Fallback: чистый параметрический каркас
-            var thick = 16;
+            // Fallback: параметрическая сборка
             levBok = AddVertPanel(zBack, yB, zFront, yT, xL);
             levBok.Name = 'Боковина левая';
             levBok.Build();
@@ -539,6 +570,27 @@ function buildUpperRow() {
             backWall.Name = 'Задняя стенка (ХДФ)';
             backWall.Thickness = 4;
             backWall.Build();
+        }
+
+        // Полки вкладные
+        if (numShelves > 0) {
+            pMatBody.SetActive();
+            var innerX1 = xL + thick + 1;
+            var innerX2 = xR - thick - 1;
+            var innerY1 = yB + thick;
+            var innerY2 = yT - thick;
+            var innerH = innerY2 - innerY1;
+            var shelfStep = innerH / (numShelves + 1);
+            var shelfZFront = zFront - 15;
+
+            for (var sh = 1; sh <= numShelves; sh++) {
+                var shY = innerY1 + sh * shelfStep - thick / 2;
+                var polka = AddHorizPanel(innerX1, zBack, innerX2, shelfZFront, shY);
+                polka.Name = 'Полка вкладная ' + sh;
+                polka.Thickness = thick;
+                polka.AddButt(pEdgeBody, 1);
+                polka.Build();
+            }
         }
 
         // Двери и фасады
@@ -589,7 +641,6 @@ function buildUpperRow() {
                     side: 'right'
                 });
             } else if (doorChoice === 4) {
-                // Горизонтальная 1 дверь - петли к крышке!
                 doorsToCreate.push({
                     name: 'Фасад подъемный (вверх)',
                     x1: doorX1, x2: doorX2,
@@ -606,7 +657,6 @@ function buildUpperRow() {
                     post: null,
                     side: 'lower_lift'
                 });
-                // Верхний фасад крепится к крышке!
                 doorsToCreate.push({
                     name: 'Фасад подъемный верхний',
                     x1: doorX1, x2: doorX2,
@@ -692,7 +742,6 @@ Action.Continue();
 
 # ==============================================================================
 # SCRIPT 2: Установка дверей на кухонные базы (распашные и подъемные).js
-# (с креплением петель к крышке на горизонтальных дверях)
 # ==============================================================================
 SCRIPT2_CODE = r'''/**
  * =============================================================================
@@ -835,7 +884,6 @@ for (var t = 0; t < yTiers.length; t++) {
             var modMaxZ = Math.max(p1.maxZ, p2.maxZ);
             var isUpper = (modMinY >= 900);
 
-            // Поиск дна и крышки
             var foundBottom = null;
             var minBottomY = 999999;
             var foundTop = null;
@@ -844,14 +892,12 @@ for (var t = 0; t < yTiers.length; t++) {
             for (var h = 0; h < allHoriz.length; h++) {
                 var hp = allHoriz[h];
                 if (hp.minX >= p1.minX - 10 && hp.maxX <= p2.maxX + 10) {
-                    // дно
                     if (hp.minY >= modMinY - 30 && hp.minY <= modMinY + 100) {
                         if (hp.minY < minBottomY) {
                             minBottomY = hp.minY;
                             foundBottom = hp;
                         }
                     }
-                    // крышка
                     if (hp.maxY <= modMaxY + 30 && hp.maxY >= modMaxY - 100) {
                         if (hp.maxY > maxTopY) {
                             maxTopY = hp.maxY;
@@ -899,13 +945,15 @@ if (detectedModules.length === 0) {
 var Prop = Action.Properties;
 Prop.Clear();
 
-var doorOptions = 
-    '0. Без дверей (пропустить модуль)\n' +
-    '1. Вертикальная 1 дверь (распашная, петли слева)\n' +
-    '2. Вертикальная 1 дверь (распашная, петли справа)\n' +
-    '3. Вертикальные 2 двери (распашные: левая + правая)\n' +
-    '4. Горизонтальная 1 дверь (подъемная вверх)\n' +
-    '5. Горизонтальные 2 двери (подъемные вверх)';
+var doorList = [
+    '0. Без дверей (пропустить модуль)',
+    '1. Вертикальная 1 дверь (распашная, петли слева)',
+    '2. Вертикальная 1 дверь (распашная, петли справа)',
+    '3. Вертикальные 2 двери (распашные: левая + правая)',
+    '4. Горизонтальная 1 дверь (подъемная вверх)',
+    '5. Горизонтальные 2 двери (подъемные вверх)'
+];
+var doorOptions = doorList.join('\n');
 
 var grCommon = Prop.NewGroup('1. Общие параметры фасадов');
 var pDoorGap = grCommon.NewNumber('Зазор по периметру, мм', 1.5);
@@ -939,13 +987,12 @@ for (var m = 0; m < detectedModules.length; m++) {
     var mod = detectedModules[m];
     var grMod = grMods.NewGroup(mod.label);
 
-    var pDoorChoice = grMod.NewCombo('Выбор дверей', doorOptions);
     var w = mod.maxX - mod.minX;
-    if (w <= 500) {
-        pDoorChoice.ItemIndex = 1;
-    } else {
-        pDoorChoice.ItemIndex = 3;
-    }
+    var defIdx = (w <= 500) ? 1 : 3;
+
+    var pDoorChoice = grMod.NewCombo('Выбор дверей', doorOptions);
+    pDoorChoice.ItemIndex = defIdx;
+    try { pDoorChoice.Value = doorList[defIdx]; } catch(e) {}
 
     var defHang = mod.isUpper ? pDefaultUpperHang.Value : 0;
     var pHang = grMod.NewNumber('Свес снизу для этого модуля, мм', defHang);
@@ -961,6 +1008,18 @@ for (var m = 0; m < detectedModules.length; m++) {
 var grActions = Prop.NewGroup('4. Действия');
 var btnBuild = grActions.NewButton('Установить выбранные двери');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
+
+function getDoorChoice(combo) {
+    if (combo && combo.Value) {
+        var v = combo.Value.trim();
+        for (var i = 0; i < doorList.length; i++) {
+            if (v === doorList[i] || v.indexOf(doorList[i].substring(0, 3)) === 0) {
+                return i;
+            }
+        }
+    }
+    return (combo && typeof combo.ItemIndex !== 'undefined') ? combo.ItemIndex : 3;
+}
 
 function buildDoors() {
     DeleteNewObjects();
@@ -979,7 +1038,7 @@ function buildDoors() {
     for (var m = 0; m < detectedModules.length; m++) {
         var mod = detectedModules[m];
         var ctrl = modControls[m];
-        var choice = ctrl.doorChoice.ItemIndex;
+        var choice = getDoorChoice(ctrl.doorChoice);
 
         if (choice === 0) continue;
 

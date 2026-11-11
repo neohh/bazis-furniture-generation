@@ -139,7 +139,6 @@ for (var t = 0; t < yTiers.length; t++) {
             var modMaxZ = Math.max(p1.maxZ, p2.maxZ);
             var isUpper = (modMinY >= 900);
 
-            // Поиск дна и крышки
             var foundBottom = null;
             var minBottomY = 999999;
             var foundTop = null;
@@ -148,14 +147,12 @@ for (var t = 0; t < yTiers.length; t++) {
             for (var h = 0; h < allHoriz.length; h++) {
                 var hp = allHoriz[h];
                 if (hp.minX >= p1.minX - 10 && hp.maxX <= p2.maxX + 10) {
-                    // дно
                     if (hp.minY >= modMinY - 30 && hp.minY <= modMinY + 100) {
                         if (hp.minY < minBottomY) {
                             minBottomY = hp.minY;
                             foundBottom = hp;
                         }
                     }
-                    // крышка
                     if (hp.maxY <= modMaxY + 30 && hp.maxY >= modMaxY - 100) {
                         if (hp.maxY > maxTopY) {
                             maxTopY = hp.maxY;
@@ -203,13 +200,15 @@ if (detectedModules.length === 0) {
 var Prop = Action.Properties;
 Prop.Clear();
 
-var doorOptions = 
-    '0. Без дверей (пропустить модуль)\n' +
-    '1. Вертикальная 1 дверь (распашная, петли слева)\n' +
-    '2. Вертикальная 1 дверь (распашная, петли справа)\n' +
-    '3. Вертикальные 2 двери (распашные: левая + правая)\n' +
-    '4. Горизонтальная 1 дверь (подъемная вверх)\n' +
-    '5. Горизонтальные 2 двери (подъемные вверх)';
+var doorList = [
+    '0. Без дверей (пропустить модуль)',
+    '1. Вертикальная 1 дверь (распашная, петли слева)',
+    '2. Вертикальная 1 дверь (распашная, петли справа)',
+    '3. Вертикальные 2 двери (распашные: левая + правая)',
+    '4. Горизонтальная 1 дверь (подъемная вверх)',
+    '5. Горизонтальные 2 двери (подъемные вверх)'
+];
+var doorOptions = doorList.join('\n');
 
 var grCommon = Prop.NewGroup('1. Общие параметры фасадов');
 var pDoorGap = grCommon.NewNumber('Зазор по периметру, мм', 1.5);
@@ -243,13 +242,12 @@ for (var m = 0; m < detectedModules.length; m++) {
     var mod = detectedModules[m];
     var grMod = grMods.NewGroup(mod.label);
 
-    var pDoorChoice = grMod.NewCombo('Выбор дверей', doorOptions);
     var w = mod.maxX - mod.minX;
-    if (w <= 500) {
-        pDoorChoice.ItemIndex = 1;
-    } else {
-        pDoorChoice.ItemIndex = 3;
-    }
+    var defIdx = (w <= 500) ? 1 : 3;
+
+    var pDoorChoice = grMod.NewCombo('Выбор дверей', doorOptions);
+    pDoorChoice.ItemIndex = defIdx;
+    try { pDoorChoice.Value = doorList[defIdx]; } catch(e) {}
 
     var defHang = mod.isUpper ? pDefaultUpperHang.Value : 0;
     var pHang = grMod.NewNumber('Свес снизу для этого модуля, мм', defHang);
@@ -265,6 +263,18 @@ for (var m = 0; m < detectedModules.length; m++) {
 var grActions = Prop.NewGroup('4. Действия');
 var btnBuild = grActions.NewButton('Установить выбранные двери');
 var btnFinish = grActions.NewButton('Готово (сохранить)');
+
+function getDoorChoice(combo) {
+    if (combo && combo.Value) {
+        var v = combo.Value.trim();
+        for (var i = 0; i < doorList.length; i++) {
+            if (v === doorList[i] || v.indexOf(doorList[i].substring(0, 3)) === 0) {
+                return i;
+            }
+        }
+    }
+    return (combo && typeof combo.ItemIndex !== 'undefined') ? combo.ItemIndex : 3;
+}
 
 function buildDoors() {
     DeleteNewObjects();
@@ -283,7 +293,7 @@ function buildDoors() {
     for (var m = 0; m < detectedModules.length; m++) {
         var mod = detectedModules[m];
         var ctrl = modControls[m];
-        var choice = ctrl.doorChoice.ItemIndex;
+        var choice = getDoorChoice(ctrl.doorChoice);
 
         if (choice === 0) continue;
 
