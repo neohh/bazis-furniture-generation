@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import shutil
 
 script_content = r'''// ==============================================================================
 // 17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js
@@ -12,6 +13,10 @@ script_content = r'''// ========================================================
 //     полки глубиной 534 мм примыкают к стенке БЕЗ прохода насквозь!
 // С интерактивным выбором точки привязки (GetPoint) и live-настройками в 3D.
 // ==============================================================================
+
+// Глобальные переменные фурнитуры
+var rafixFurn = null;
+var euroFurn = null;
 
 // 1. Поиск фурнитуры в базе
 function getFurn(paths) {
@@ -27,20 +32,32 @@ function getFurn(paths) {
     return null;
 }
 
-var rafixFurn = getFurn([
-    'z:\\Work\\генерация мебели\\Фурнитура\\Стяжки эксцентриковые\\Rafix.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Крепеж\\Rafix.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Крепеж\\Стяжка эксцентриковая.f3d'
-]);
+try {
+    rafixFurn = getFurn([
+        'z:\\Work\\генерация мебели\\Фурнитура\\Стяжки эксцентриковые\\Rafix.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Крепеж\\Rafix.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Крепеж\\Стяжка эксцентриковая.f3d'
+    ]);
+} catch(eRfLoad) {
+    rafixFurn = null;
+}
 
-var euroFurn = getFurn([
-    'z:\\Work\\генерация мебели\\Фурнитура\\Евровинты\\Евровинт 7х50.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Крепеж\\Евровинт.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Крепеж\\Евровинт.f3d'
-]);
+try {
+    euroFurn = getFurn([
+        'z:\\Work\\генерация мебели\\Фурнитура\\Евровинты\\Евровинт 7х50.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Крепеж\\Евровинт.f3d',
+        'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Крепеж\\Евровинт.f3d'
+    ]);
+} catch(eEuLoad) {
+    euroFurn = null;
+}
 
 // 2. Интерактивный выбор точки привязки
-var basePt = GetPoint('Укажите точку привязки левого нижнего угла комплекса (X, Y, Z):');
+var basePt = null;
+try {
+    basePt = GetPoint('Укажите точку привязки левого нижнего угла комплекса (X, Y, Z):');
+} catch(ePt) {}
+
 if (!basePt) {
     basePt = NewVector(0, 0, 0);
 }
@@ -162,7 +179,7 @@ function buildComposition() {
         rodLine.Color = 0xc2185b;
 
         // Монтаж стяжек Rafix на дно и крышку
-        if (rafixFurn) {
+        if (typeof rafixFurn !== 'undefined' && rafixFurn) {
             try {
                 var midZ = (c1_zMin + c1_zMax) / 2;
                 rafixFurn.Mount(s1_bottom, s1_left, c1_xMin + t26, yDno1, midZ);
@@ -316,7 +333,7 @@ function buildComposition() {
                 shPan.Name = sh.name;
 
                 // Монтаж крепежа
-                if (sh.isFixed && rafixFurn) {
+                if (sh.isFixed && typeof rafixFurn !== 'undefined' && rafixFurn) {
                     try {
                         var midZ2 = (shelf_zMin + shelf_zMax) / 2;
                         rafixFurn.Mount(shPan, s2_left, c2_xMin + t16, shY, midZ2);
@@ -327,7 +344,7 @@ function buildComposition() {
         }
 
         // Монтаж крепежа на дно и крышку
-        if (rafixFurn) {
+        if (typeof rafixFurn !== 'undefined' && rafixFurn) {
             try {
                 var midZ2 = (shelf_zMin + shelf_zMax) / 2;
                 rafixFurn.Mount(s2_bottom, s2_left, c2_xMin + t16, yDno2, midZ2);
@@ -338,7 +355,7 @@ function buildComposition() {
         }
 
         // Монтаж евровинтов на цоколь
-        if (euroFurn) {
+        if (typeof euroFurn !== 'undefined' && euroFurn) {
             try {
                 euroFurn.Mount(socle, s2_left, c2_xMin + t16, y0 + 30, zSocle);
                 euroFurn.Mount(socle, s2_right, c2_xMax - t16, y0 + 30, zSocle);
@@ -384,8 +401,16 @@ buildComposition();
 Action.Continue();
 '''
 
-target_path = r"z:\Work\генерация мебели\scripts\17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js"
-with open(target_path, 'w', encoding='cp1251', errors='replace') as f:
-    f.write(script_content)
+target_paths = [
+    r"z:\Work\генерация мебели\scripts\17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js",
+    r"C:\Users\maxim\OneDrive\Документы\Bazis\Scripts\Генерация мебели\17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js",
+    r"C:\Users\maxim\OneDrive\Документы\Bazis\Scripts\17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js",
+    r"C:\Users\maxim\Desktop\17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js"
+]
 
-print(f"Script 17 updated with 16mm back wall: {target_path} ({len(script_content)} bytes)")
+for p in target_paths:
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, 'w', encoding='cp1251', errors='replace') as f:
+        f.write(script_content)
+    print(f"Saved: {p} ({len(script_content)} bytes)")
+
