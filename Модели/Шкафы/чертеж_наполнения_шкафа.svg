@@ -1,87 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-240 -160 2100 2950" width="100%" height="100%" style="background-color: #ffffff; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-260 -180 2150 3000" width="100%" height="100%" font-family="Segoe UI, -apple-system, sans-serif">
   <defs>
-    <!-- Каркас ЛДСП 16 мм (темно-серый) -->
-    <pattern id="hatch-carcass" width="16" height="16" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <rect width="16" height="16" fill="#f8f9fa" />
-      <line x1="0" y1="0" x2="0" y2="16" stroke="#7f8c8d" stroke-width="2.5" />
-    </pattern>
-    <!-- Стойка вертикальная (зеленый) -->
-    <pattern id="hatch-post" width="16" height="16" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <rect width="16" height="16" fill="#e8f5e9" />
-      <line x1="0" y1="0" x2="0" y2="16" stroke="#2e7d32" stroke-width="2.5" />
-    </pattern>
-    <!-- Полки жесткие и антресоль (фиолетовый) -->
-    <pattern id="hatch-fixed" width="16" height="16" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <rect width="16" height="16" fill="#f3e5f5" />
-      <line x1="0" y1="0" x2="0" y2="16" stroke="#7b1fa2" stroke-width="2.5" />
-    </pattern>
-    <!-- Полки съемные (оранжевый) -->
-    <pattern id="hatch-removable" width="16" height="16" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <rect width="16" height="16" fill="#fff3e0" />
-      <line x1="0" y1="0" x2="0" y2="16" stroke="#ef6c00" stroke-width="2.5" />
-    </pattern>
+    <!-- Маркеры стрелок -->
+    <marker id="arrow-start" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <path d="M10,1 L2,5 L10,9 L7,5 Z" fill="#d32f2f" />
+    </marker>
+    <marker id="arrow-end" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 L3,5 Z" fill="#d32f2f" />
+    </marker>
 
-    <!-- Стрелки точных размеров (красные) -->
-    <marker id="arr-red-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
-      <path d="M8,1 L1,4 L8,7 z" fill="#d32f2f" />
-    </marker>
-    <marker id="arr-red-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,1 L7,4 L0,7 z" fill="#d32f2f" />
-    </marker>
-    <!-- Стрелки расчетных размеров (оранжевые) -->
-    <marker id="arr-warn-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
-      <path d="M8,1 L1,4 L8,7 z" fill="#f57c00" />
-    </marker>
-    <marker id="arr-warn-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,1 L7,4 L0,7 z" fill="#f57c00" />
-    </marker>
+    <!-- Штриховки для элементов -->
+    <pattern id="hatch-carcass" width="20" height="20" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#b0bec5" stroke-width="2" />
+    </pattern>
+    <pattern id="hatch-fixed" width="15" height="15" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="15" stroke="#ba68c8" stroke-width="1.5" />
+    </pattern>
+    <pattern id="hatch-removable" width="12" height="12" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#38bdf8" stroke-width="1.5" />
+    </pattern>
+    <pattern id="hatch-post" width="15" height="15" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="15" stroke="#81c784" stroke-width="1.5" />
+    </pattern>
+    <pattern id="hatch-visor" width="15" height="15" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="15" stroke="#ffb74d" stroke-width="2" />
+    </pattern>
   </defs>
 
-  <!-- Сетка / фон чертежа -->
   <g id="background">
-    <rect x="-240" y="-160" width="2100" height="2950" fill="#ffffff" />
+    <rect x="-260" y="-180" width="2150" height="3000" fill="#ffffff" />
   </g>
 
-  <!-- Группа чертежа шкафа -->
+  <!-- ============================================================== -->
+  <!-- ЧЕРТЕЖ ШКАФА (МАСШТАБ 1:1, Y_svg = 2660 - Y_cad)               -->
+  <!-- ============================================================== -->
   <g id="cabinet" stroke-linecap="square">
 
-    <!-- ============================================================== -->
-    <!-- СЛОЙ 1: БАЗОВЫЙ КОРПУС ШКАФА (Темно-серый #2c3e50)             -->
-    <!-- ============================================================== -->
+    <!-- СЛОЙ 1: БАЗОВЫЙ КОРПУС ШКАФА -->
     <!-- Левая боковина: X=0..16, Y=0..2660 -->
     <rect x="0" y="0" width="16" height="2660" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
     <!-- Правая боковина: X=984..1000, Y=0..2660 -->
     <rect x="984" y="0" width="16" height="2660" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
-    <!-- Крышка: X=16..984, Y_cad=2644..2660 -> Y_svg=0..16 -->
-    <rect x="16" y="0" width="968" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
+
+    <!-- КОЗЫРЕК (65 мм вверху): X=16..984, Y_cad=2595..2660 -> Y_svg=0..65 -->
+    <rect x="16" y="0" width="968" height="65" fill="url(#hatch-visor)" stroke="#e65100" stroke-width="2.5" />
+    <rect x="16" y="0" width="968" height="65" fill="#fff3e0" opacity="0.6" />
+    <text x="500" y="40" font-size="22" fill="#e65100" font-weight="bold" text-anchor="middle">Козырек (фальшпанель) 65 мм</text>
+
+    <!-- Крышка (под козырьком): X=16..984, Y_cad=2579..2595 -> Y_svg=65..81 -->
+    <rect x="16" y="65" width="968" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
+
     <!-- Дно: X=16..984, Y_cad=60..76 -> Y_svg=2584..2600 -->
     <rect x="16" y="2584" width="968" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
-    <!-- Цоколь: X=16..984, Y_cad=0..60 -> Y_svg=2600..2660 -->
+
+    <!-- Цоколь (60 мм): X=16..984, Y_cad=0..60 -> Y_svg=2600..2660 -->
     <rect x="16" y="2600" width="968" height="60" fill="#eceff1" stroke="#2c3e50" stroke-width="2" />
-    <text x="500" y="2636" font-size="20" fill="#546e7a" font-weight="bold" text-anchor="middle">Цоколь 60 мм</text>
+    <text x="500" y="2636" font-size="20" fill="#546e7a" font-weight="bold" text-anchor="middle">Цоколь 60 мм (стянут евровинтами 7х50)</text>
 
-    <!-- ============================================================== -->
-    <!-- СЛОЙ 2: ВНУТРЕННЕЕ НАПОЛНЕНИЕ (Цветное)                        -->
-    <!-- ============================================================== -->
-    <!-- Антресольная полка (жесткая, фиолетовая): X=16..984, Y_cad=2178..2194 -> Y_svg=466..482 -->
-    <rect x="16" y="466" width="968" height="16" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
-    <text x="500" y="240" font-size="24" fill="#37474f" font-style="italic" text-anchor="middle">Общая полка (Антресоль)</text>
-    <text x="500" y="280" font-size="20" fill="#7b1fa2" font-weight="bold" text-anchor="middle">Проем в свету: 450 мм × 968 мм (глубина 430)</text>
+    <!-- СЛОЙ 2: ВНУТРЕННЕЕ НАПОЛНЕНИЕ -->
+    <!-- Антресольная полка: Y_cad=2113..2129 -> Y_svg=531..547 -->
+    <rect x="16" y="531" width="968" height="16" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
+    <text x="500" y="270" font-size="24" fill="#37474f" font-style="italic" text-anchor="middle">Общая полка (Антресоль)</text>
+    <text x="500" y="310" font-size="22" fill="#7b1fa2" font-weight="bold" text-anchor="middle">Проем в свету: 450 мм × 968 мм (глубина 430)</text>
 
-    <!-- Вертикальная стойка (зеленая): X=368..384, Y_cad=76..2178 -> Y_svg=482..2584 -->
-    <rect x="368" y="482" width="16" height="2102" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
+    <!-- Средняя вертикальная стойка: X=368..384, Y_cad=76..2113 -> Y_svg=547..2584 (H=2037) -->
+    <rect x="368" y="547" width="16" height="2037" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
 
     <!-- ПРАВАЯ СЕКЦИЯ (Ширина 600 мм: X=384..984) -->
-    <!-- Полка правая (жесткая, фиолетовая): Y_cad=1616..1632 -> Y_svg=1028..1044 -->
+    <!-- Полка правая над штангой: Y_cad=1616..1632 -> Y_svg=1028..1044 -->
     <rect x="384" y="1028" width="600" height="16" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
     <!-- Верхняя ниша справа -->
-    <text x="684" y="760" font-size="22" fill="#4a148c" font-weight="bold" text-anchor="middle">Верхняя ниша</text>
-    <text x="684" y="795" font-size="18" fill="#7b1fa2" text-anchor="middle">546 мм (в свету)</text>
+    <text x="684" y="770" font-size="22" fill="#4a148c" font-weight="bold" text-anchor="middle">Верхняя ниша</text>
+    <text x="684" y="805" font-size="18" fill="#7b1fa2" text-anchor="middle">481 мм (в свету)</text>
 
-    <!-- Нижняя ниша справа (под штангу 1540 мм) -->
+    <!-- Нижняя ниша справа (под штангу/микролифт 1540 мм) -->
     <circle cx="684" cy="1120" r="16" fill="none" stroke="#c2185b" stroke-width="4" />
     <line x1="664" y1="1120" x2="704" y2="1120" stroke="#c2185b" stroke-width="2" />
-    <text x="684" y="1160" font-size="18" fill="#c2185b" font-weight="bold" text-anchor="middle">Штанга (микролифт)</text>
+    <text x="684" y="1160" font-size="18" fill="#c2185b" font-weight="bold" text-anchor="middle">Штанга (микролифт при D=450)</text>
     <text x="684" y="1800" font-size="22" fill="#2e7d32" font-weight="bold" text-anchor="middle">Платяное отделение</text>
     <text x="684" y="1835" font-size="18" fill="#388e3c" text-anchor="middle">1540 мм (в свету)</text>
 
@@ -91,159 +85,175 @@
     <text x="192" y="2150" font-size="20" fill="#006064" font-weight="bold" text-anchor="middle">Ниша под ящики/белье</text>
     <text x="192" y="2185" font-size="18" fill="#00838f" text-anchor="middle">850 мм (в свету)</text>
 
-    <!-- Съемная полка 2 (оранжевая): Y_cad=1343..1359 -> Y_svg=1301..1317 -->
-    <rect x="16" y="1301" width="352" height="16" fill="url(#hatch-removable)" stroke="#e65100" stroke-width="2" />
-    <text x="192" y="1520" font-size="18" fill="#e65100" text-anchor="middle">Полка (съемная)</text>
-    <text x="192" y="1548" font-size="16" fill="#f57c00" text-anchor="middle">~401 мм</text>
+    <!-- Съемная полка 2 (голубая): Y_cad=1321..1337 -> Y_svg=1323..1339 -->
+    <rect x="16" y="1323" width="352" height="16" fill="url(#hatch-removable)" stroke="#0284c7" stroke-width="2" />
+    <text x="192" y="1520" font-size="18" fill="#0284c7" text-anchor="middle">Полка съемная (D=420)</text>
+    <text x="192" y="1548" font-size="16" fill="#0369a1" text-anchor="middle">~380 мм (в свету)</text>
 
-    <!-- Съемная полка 3 (оранжевая): Y_cad=1761..1777 -> Y_svg=883..899 -->
-    <rect x="16" y="883" width="352" height="16" fill="url(#hatch-removable)" stroke="#e65100" stroke-width="2" />
-    <text x="192" y="1100" font-size="18" fill="#e65100" text-anchor="middle">Полка (съемная)</text>
-    <text x="192" y="1128" font-size="16" fill="#f57c00" text-anchor="middle">~401 мм</text>
+    <!-- Съемная полка 3 (голубая): Y_cad=1717..1733 -> Y_svg=927..943 -->
+    <rect x="16" y="927" width="352" height="16" fill="url(#hatch-removable)" stroke="#0284c7" stroke-width="2" />
+    <text x="192" y="1120" font-size="18" fill="#0284c7" text-anchor="middle">Полка съемная (D=420)</text>
+    <text x="192" y="1148" font-size="16" fill="#0369a1" text-anchor="middle">~380 мм (в свету)</text>
 
-    <text x="192" y="680" font-size="18" fill="#e65100" text-anchor="middle">Полка верхняя</text>
-    <text x="192" y="708" font-size="16" fill="#f57c00" text-anchor="middle">~401 мм</text>
+    <text x="192" y="720" font-size="18" fill="#0284c7" text-anchor="middle">Верхний отсек</text>
+    <text x="192" y="748" font-size="16" fill="#0369a1" text-anchor="middle">~380 мм (в свету)</text>
 
+    <!-- СЛОЙ 3: ОБОЗНАЧЕНИЕ ФУРНИТУРЫ (КРЕПЕЖА) БАЗЫ -->
+    <!-- Стяжки Hafele Rafix (VB) на дне -->
+    <circle cx="40" cy="2592" r="7" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" />
+    <circle cx="960" cy="2592" r="7" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" />
+    <!-- Стяжки Hafele Rafix (VB) на крышке -->
+    <circle cx="40" cy="73" r="7" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" />
+    <circle cx="960" cy="73" r="7" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" />
+    <!-- Евровинты на цоколе -->
+    <rect x="2" y="2626" width="12" height="8" fill="#475569" />
+    <rect x="986" y="2626" width="12" height="8" fill="#475569" />
   </g>
 
   <!-- ============================================================== -->
-  <!-- СЛОЙ 3: РАЗМЕРНЫЕ ЦЕПИ                                         -->
+  <!-- РАЗМЕРНЫЕ ЛИНИИ (КРАСНЫЕ)                                      -->
   <!-- ============================================================== -->
-  <g id="dimensions" font-size="22" font-weight="bold">
+  <g id="dimensions" stroke="#d32f2f" stroke-width="2" font-size="24" font-weight="bold" fill="#d32f2f">
 
-    <!-- ОБЩАЯ ВЫСОТА: 2660 мм (слева X=-90) -->
-    <line x1="-90" y1="0" x2="-90" y2="2660" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <line x1="-110" y1="0" x2="0" y2="0" stroke="#d32f2f" stroke-width="1.5" />
-    <line x1="-110" y1="2660" x2="0" y2="2660" stroke="#d32f2f" stroke-width="1.5" />
-    <text x="-105" y="1330" fill="#d32f2f" text-anchor="middle" transform="rotate(-90 -105 1330)">2660 (Общий габарит)</text>
+    <!-- ОБЩАЯ ВЫСОТА ШКАФА: 2660 мм (слева X=-80) -->
+    <line x1="-80" y1="0" x2="-80" y2="2660" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="-95" y1="0" x2="0" y2="0" stroke="#e57373" stroke-width="1.5" />
+    <line x1="-95" y1="2660" x2="0" y2="2660" stroke="#e57373" stroke-width="1.5" />
+    <g transform="translate(-105, 1330) rotate(-90)">
+      <text x="0" y="0" text-anchor="middle">2660 (Общая высота)</text>
+    </g>
 
-    <!-- ОБЩАЯ ШИРИНА: 1000 мм (снизу Y=2740) -->
-    <line x1="0" y1="2740" x2="1000" y2="2740" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <line x1="0" y1="2660" x2="0" y2="2760" stroke="#d32f2f" stroke-width="1.5" />
-    <line x1="1000" y1="2660" x2="1000" y2="2760" stroke="#d32f2f" stroke-width="1.5" />
-    <text x="500" y="2780" fill="#d32f2f" text-anchor="middle">1000 (Общая ширина) | Глубина D = 450 мм</text>
+    <!-- КОЗЫРЕК: 65 мм (справа X=1040) -->
+    <line x1="1040" y1="0" x2="1040" y2="65" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="984" y1="0" x2="1060" y2="0" stroke="#e57373" stroke-width="1.5" />
+    <line x1="984" y1="65" x2="1060" y2="65" stroke="#e57373" stroke-width="1.5" />
+    <text x="1080" y="42" fill="#e65100" text-anchor="start">65 (Козырек)</text>
 
-    <!-- ВЫСОТА ЦОКОЛЯ: 60 мм (справа X=1040) -->
-    <line x1="1040" y1="2600" x2="1040" y2="2660" stroke="#d32f2f" stroke-width="2.5" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <line x1="984" y1="2600" x2="1060" y2="2600" stroke="#d32f2f" stroke-width="1" />
-    <line x1="984" y1="2660" x2="1060" y2="2660" stroke="#d32f2f" stroke-width="1" />
-    <text x="1080" y="2637" fill="#d32f2f" text-anchor="start">60</text>
+    <!-- АНТРЕСОЛЬ: 450 мм в свету (справа X=1040) -->
+    <line x1="1040" y1="81" x2="1040" y2="531" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="984" y1="81" x2="1060" y2="81" stroke="#e57373" stroke-width="1.5" />
+    <line x1="984" y1="531" x2="1060" y2="531" stroke="#e57373" stroke-width="1.5" />
+    <text x="1080" y="315" fill="#d32f2f" text-anchor="start">450 (в свету)</text>
 
-    <!-- АНТРЕСОЛЬ: 450 мм (справа X=1040) -->
-    <line x1="1040" y1="16" x2="1040" y2="466" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <line x1="984" y1="16" x2="1060" y2="16" stroke="#d32f2f" stroke-width="1" />
-    <line x1="984" y1="466" x2="1060" y2="466" stroke="#d32f2f" stroke-width="1" />
-    <text x="1080" y="250" fill="#d32f2f" text-anchor="start">450 (в свету)</text>
+    <!-- ПРАВАЯ НИША ПОД ШТАНГУ: 1540 мм (внутри секции X=780) -->
+    <line x1="780" y1="1044" x2="780" y2="2584" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="384" y1="1044" x2="800" y2="1044" stroke="#e57373" stroke-width="1" stroke-dasharray="4,4" />
+    <line x1="16" y1="2584" x2="800" y2="2584" stroke="#e57373" stroke-width="1" stroke-dasharray="4,4" />
+    <g transform="translate(815, 1814) rotate(90)">
+      <text x="0" y="0" text-anchor="middle">1540 (в свету)</text>
+    </g>
 
-    <!-- ВЫСОТА СПРАВА: 1540 мм (внутри секции X=920) -->
-    <line x1="920" y1="1044" x2="920" y2="2584" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <text x="905" y="1814" fill="#d32f2f" text-anchor="middle" transform="rotate(-90 905 1814)">1540 (в свету)</text>
+    <!-- ЛЕВАЯ НИША ПОД ЯЩИКИ: 850 мм (внутри секции X=280) -->
+    <line x1="280" y1="1734" x2="280" y2="2584" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="16" y1="1734" x2="300" y2="1734" stroke="#e57373" stroke-width="1" stroke-dasharray="4,4" />
+    <g transform="translate(315, 2159) rotate(90)">
+      <text x="0" y="0" text-anchor="middle">850 (в свету)</text>
+    </g>
 
-    <!-- ВЫСОТА СПРАВА ВЕРХ: 546 мм (расчетная, X=920) -->
-    <line x1="920" y1="482" x2="920" y2="1028" stroke="#f57c00" stroke-width="2.5" stroke-dasharray="8,6" marker-start="url(#arr-warn-start)" marker-end="url(#arr-warn-end)" />
-    <text x="905" y="755" fill="#f57c00" text-anchor="middle" transform="rotate(-90 905 755)">546 (расчет)</text>
+    <!-- ЦОКОЛЬ: 60 мм (справа X=1040) -->
+    <line x1="1040" y1="2600" x2="1040" y2="2660" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="984" y1="2600" x2="1060" y2="2600" stroke="#e57373" stroke-width="1.5" />
+    <line x1="984" y1="2660" x2="1060" y2="2660" stroke="#e57373" stroke-width="1.5" />
+    <text x="1080" y="2638" text-anchor="start">60</text>
 
-    <!-- ШИРИНА СПРАВА: 600 мм (внизу X=384..984, Y=2520) -->
-    <line x1="384" y1="2520" x2="984" y2="2520" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <text x="684" y="2505" fill="#d32f2f" text-anchor="middle">600 (в свету)</text>
+    <!-- ПРАВАЯ СЕКЦИЯ: 600 мм (внизу X=384..984) -->
+    <line x1="384" y1="2700" x2="984" y2="2700" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="384" y1="2584" x2="384" y2="2720" stroke="#e57373" stroke-width="1.5" />
+    <line x1="984" y1="2584" x2="984" y2="2720" stroke="#e57373" stroke-width="1.5" />
+    <text x="684" y="2735" text-anchor="middle">600 (в свету)</text>
 
-    <!-- ШИРИНА СЛЕВА: 352 мм (расчетная, X=16..368, Y=2520) -->
-    <line x1="16" y1="2520" x2="368" y2="2520" stroke="#f57c00" stroke-width="2.5" stroke-dasharray="8,6" marker-start="url(#arr-warn-start)" marker-end="url(#arr-warn-end)" />
-    <text x="192" y="2505" fill="#f57c00" text-anchor="middle">352 (расчет)</text>
+    <!-- ЛЕВАЯ СЕКЦИЯ: 352 мм (внизу X=16..368) -->
+    <line x1="16" y1="2700" x2="368" y2="2700" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="16" y1="2584" x2="16" y2="2720" stroke="#e57373" stroke-width="1.5" />
+    <line x1="368" y1="2584" x2="368" y2="2720" stroke="#e57373" stroke-width="1.5" />
+    <text x="192" y="2735" text-anchor="middle">352 (в свету)</text>
 
-    <!-- ВЫСОТА СЛЕВА НИЗ: 850 мм (внутри X=270, Y=1734..2584) -->
-    <line x1="270" y1="1734" x2="270" y2="2584" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
-    <text x="255" y="2159" fill="#d32f2f" text-anchor="middle" transform="rotate(-90 255 2159)">850 (в свету)</text>
-
-    <!-- ШАГ 3 ПОЛОК СЛЕВА: по 401 мм (X=270) -->
-    <line x1="270" y1="482" x2="270" y2="883" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4" marker-start="url(#arr-warn-start)" marker-end="url(#arr-warn-end)" />
-    <text x="255" y="682" fill="#f57c00" text-anchor="middle" transform="rotate(-90 255 682)">401</text>
-
-    <line x1="270" y1="899" x2="270" y2="1301" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4" marker-start="url(#arr-warn-start)" marker-end="url(#arr-warn-end)" />
-    <text x="255" y="1100" fill="#f57c00" text-anchor="middle" transform="rotate(-90 255 1100)">401</text>
-
-    <line x1="270" y1="1317" x2="270" y2="1718" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4" marker-start="url(#arr-warn-start)" marker-end="url(#arr-warn-end)" />
-    <text x="255" y="1517" fill="#f57c00" text-anchor="middle" transform="rotate(-90 255 1517)">401</text>
+    <!-- ОБЩАЯ ШИРИНА И ГЛУБИНА ШКАФА: 1000 мм (внизу Y=2800) -->
+    <line x1="0" y1="2800" x2="1000" y2="2800" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+    <line x1="0" y1="2660" x2="0" y2="2820" stroke="#e57373" stroke-width="1.5" />
+    <line x1="1000" y1="2660" x2="1000" y2="2820" stroke="#e57373" stroke-width="1.5" />
+    <text x="500" y="2835" fill="#d32f2f" text-anchor="middle">1000 (Общая ширина) | Глубина D = 450 мм</text>
   </g>
 
   <!-- ============================================================== -->
-  <!-- СЛОЙ 4: БОКОВАЯ ИНФОРМАЦИОННАЯ ПАНЕЛЬ СПЕЦИФИКАЦИИ             -->
+  <!-- ИНФОРМАЦИОННАЯ ПАНЕЛЬ И ЛЕГЕНДА                                -->
   <!-- ============================================================== -->
-  <g id="info-panel" transform="translate(1220, 20)">
-    <!-- Подложка панели -->
-    <rect x="0" y="0" width="620" height="2640" rx="14" fill="#ffffff" stroke="#b0bec5" stroke-width="2" />
-    <rect x="0" y="0" width="620" height="80" rx="14" fill="#1e293b" />
-    <text x="310" y="50" font-size="26" fill="#ffffff" font-weight="bold" text-anchor="middle">ТЕХНОЛОГИЧЕСКИЙ РАСЧЕТ</text>
+  <g id="info-panel" transform="translate(1260, 40)">
+    <rect x="-20" y="-20" width="620" height="2700" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" />
 
-    <!-- Сводка габаритов -->
-    <g transform="translate(30, 120)" font-size="18" fill="#1e293b">
-      <text x="0" y="0" font-size="20" font-weight="bold" fill="#0f172a">1. Базовый короб (Каркас шкафа):</text>
-      <text x="20" y="35">• Габариты: 1000 (W) × 2660 (H) × 450 (D) мм</text>
-      <text x="20" y="65">• Толщина ЛДСП: 16 мм (все панели)</text>
-      <text x="20" y="95">• Основание: цоколь 60 мм под дном</text>
-      <text x="20" y="125">• Чистый внутренний проем: 968 × 2524 мм</text>
-      <text x="20" y="155">• Глубина полок: 430 мм (отступ 20 мм под двери)</text>
+    <text x="0" y="35" font-size="28" font-weight="bold" fill="#0f172a">Спецификация шкафа</text>
+    <text x="0" y="70" font-size="18" fill="#64748b">По эскизу + База с козырьком и крепежом</text>
 
-      <line x1="0" y1="180" x2="560" y2="180" stroke="#e2e8f0" stroke-width="2" />
+    <!-- Блок 1: Габариты изделия -->
+    <g transform="translate(0, 110)">
+      <rect x="0" y="0" width="580" height="190" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <text x="20" y="35" font-size="20" font-weight="bold" fill="#1e293b">1. Общие габариты шкафа</text>
+      <text x="20" y="75" font-size="16" fill="#334155">• Высота полная: 2660 мм</text>
+      <text x="20" y="105" font-size="16" fill="#334155">• Ширина полная: 1000 мм</text>
+      <text x="20" y="135" font-size="16" fill="#334155">• Глубина корпуса: 450 мм</text>
+      <text x="20" y="165" font-size="16" fill="#0284c7" font-weight="bold">• Глубина полок: 430 мм (отступ 20 мм спереди)</text>
+    </g>
 
-      <text x="0" y="215" font-size="20" font-weight="bold" fill="#1b5e20">2. Внутреннее наполнение (Секции):</text>
-      
-      <text x="20" y="250" font-weight="bold" fill="#1b5e20">Вертикальное деление (по оси X):</text>
-      <text x="30" y="280">• Правая секция (платяная): 600 мм (в свету)</text>
-      <text x="30" y="310">• Стойка-перегородка: 16 мм (X = 368..384)</text>
-      <text x="30" y="340">• Левая секция (бельевая): 352 мм (в свету)</text>
-      <text x="30" y="365" font-size="15" fill="#64748b">  (Баланс: 1000 - 16×3 - 600 = 352 мм)</text>
+    <!-- Блок 2: Особенности базы и козырька -->
+    <g transform="translate(0, 320)">
+      <rect x="0" y="0" width="580" height="240" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <text x="20" y="35" font-size="20" font-weight="bold" fill="#e65100">2. Конструктив базы с козырьком</text>
+      <text x="20" y="75" font-size="16" fill="#334155">• Козырек (верхняя фальшпанель): высота 65 мм</text>
+      <text x="20" y="105" font-size="16" fill="#334155">• Крышка: опущена на 65 мм (под козырек)</text>
+      <text x="20" y="135" font-size="16" fill="#334155">• Цоколь: высота 60 мм, стянут евровинтами 7х50</text>
+      <text x="20" y="165" font-size="16" fill="#334155">• Дно и крышка: стянуты стяжками Rafix/VB</text>
+      <text x="20" y="195" font-size="16" fill="#b45309" font-weight="bold">• Крепеж полностью соответствует вашей базе 1</text>
+    </g>
 
-      <line x1="0" y1="395" x2="560" y2="395" stroke="#e2e8f0" stroke-width="2" />
+    <!-- Блок 3: Спецификация проемов в свету -->
+    <g transform="translate(0, 580)">
+      <rect x="0" y="0" width="580" height="340" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <text x="20" y="35" font-size="20" font-weight="bold" fill="#1e293b">3. Чистые проемы в свету</text>
+      <text x="20" y="75" font-size="16" fill="#7b1fa2" font-weight="bold">• Антресоль: проем 450 мм (ширина 968 мм)</text>
+      <text x="20" y="115" font-size="16" fill="#1b5e20" font-weight="bold">• Правая секция (W = 600 мм):</text>
+      <text x="40" y="145" font-size="15" fill="#334155">- Нижняя ниша под штангу: 1540 мм</text>
+      <text x="40" y="175" font-size="15" fill="#334155">- Верхняя полка: 481 мм</text>
+      <text x="20" y="215" font-size="16" fill="#0284c7" font-weight="bold">• Левая секция (W = 352 мм):</text>
+      <text x="40" y="245" font-size="15" fill="#334155">- Нижняя ниша: 850 мм</text>
+      <text x="40" y="275" font-size="15" fill="#334155">- 2 съемные полки: 3 ниши по ~380 мм каждая</text>
+      <text x="20" y="315" font-size="15" fill="#64748b">Баланс ширины: 16+352+16+600+16 = 1000 мм</text>
+    </g>
 
-      <text x="20" y="430" font-weight="bold" fill="#4a148c">Горизонтальное деление (по оси Y):</text>
-      <text x="30" y="460">• Антресоль: проем 450 мм (на всю ширину 968)</text>
-      <text x="30" y="490">• Высота стойки: 2102 мм (между дном и антресолью)</text>
+    <!-- Блок 4: Цветовая легенда (по скиллу) -->
+    <g transform="translate(0, 940)">
+      <rect x="0" y="0" width="580" height="320" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <text x="20" y="35" font-size="20" font-weight="bold" fill="#1e293b">4. Цветовое кодирование элементов</text>
 
-      <text x="20" y="535" font-weight="bold" fill="#006064">Правая секция (W = 600 мм):</text>
-      <text x="30" y="565">• Нижняя ниша под одежду: 1540 мм (в свету)</text>
-      <text x="30" y="595">• Верхняя ниша над штангой: 546 мм (в свету)</text>
-      <text x="30" y="620" font-size="15" fill="#64748b">  (Баланс: 2102 - 1540 - 16 = 546 мм)</text>
+      <rect x="20" y="60" width="30" height="18" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="1.5" />
+      <text x="60" y="75" font-size="16" fill="#334155">Базовый короб (боковины, дно, крышка)</text>
 
-      <text x="20" y="665" font-weight="bold" fill="#e65100">Левая секция (W = 352 мм):</text>
-      <text x="30" y="695">• Нижняя ниша (под ящики/корзины): 850 мм</text>
-      <text x="30" y="725">• Зона полок: остаток 1236 мм</text>
-      <text x="30" y="755">• Полки: 2 съемные полки ЛДСП 16 мм</text>
-      <text x="30" y="785">• 3 равных проема: по 401.3 мм в свету</text>
-      <text x="30" y="810" font-size="15" fill="#64748b">  (Расчет: (1236 - 32)/3 = 401.3 мм)</text>
+      <rect x="20" y="95" width="30" height="18" fill="url(#hatch-visor)" stroke="#e65100" stroke-width="1.5" />
+      <text x="60" y="110" font-size="16" fill="#e65100" font-weight="bold">Козырек (фальшпанель 65 мм)</text>
 
-      <line x1="0" y1="845" x2="560" y2="845" stroke="#e2e8f0" stroke-width="2" />
+      <rect x="20" y="130" width="30" height="18" fill="#eceff1" stroke="#2c3e50" stroke-width="1.5" />
+      <text x="60" y="145" font-size="16" fill="#334155">Цоколь 60 мм (евровинты 7х50)</text>
 
-      <text x="0" y="885" font-size="20" font-weight="bold" fill="#0f172a">3. Цветовые слои (Легенда):</text>
-      
-      <rect x="20" y="915" width="28" height="18" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
-      <text x="60" y="930">Базовый короб шкафа (Каркас D=450)</text>
+      <rect x="20" y="165" width="30" height="18" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="1.5" />
+      <text x="60" y="180" font-size="16" fill="#1b5e20" font-weight="bold">Вертикальная стойка (D=430)</text>
 
-      <rect x="20" y="950" width="28" height="18" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
-      <text x="60" y="965">Стойка вертикальная (глубина 430)</text>
+      <rect x="20" y="200" width="30" height="18" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="1.5" />
+      <text x="60" y="215" font-size="16" fill="#4a148c" font-weight="bold">Жесткие полки / Антресоль (D=430)</text>
 
-      <rect x="20" y="985" width="28" height="18" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
-      <text x="60" y="1000">Жесткие полки / Антресоль (глубина 430)</text>
+      <rect x="20" y="235" width="30" height="18" fill="url(#hatch-removable)" stroke="#0284c7" stroke-width="1.5" />
+      <text x="60" y="250" font-size="16" fill="#0284c7" font-weight="bold">Съемные полки (D=420, шаг ~380 мм)</text>
 
-      <rect x="20" y="1020" width="28" height="18" fill="url(#hatch-removable)" stroke="#e65100" stroke-width="2" />
-      <text x="60" y="1035">Съемные полки (глубина 420)</text>
+      <circle cx="35" cy="280" r="8" fill="#f59e0b" stroke="#b45309" stroke-width="1.5" />
+      <text x="60" y="285" font-size="16" fill="#b45309" font-weight="bold">Стяжки Rafix (VB) / Крепеж базы</text>
+    </g>
 
-      <circle cx="34" cy="1065" r="9" fill="none" stroke="#c2185b" stroke-width="3" />
-      <text x="60" y="1070">Штанга / микролифт выдвижной</text>
-
-      <line x1="20" y1="1105" x2="48" y2="1105" stroke="#d32f2f" stroke-width="3" />
-      <text x="60" y="1110">Точные размеры с эскиза</text>
-
-      <line x1="20" y1="1140" x2="48" y2="1140" stroke="#f57c00" stroke-width="2.5" stroke-dasharray="6,4" />
-      <text x="60" y="1145">Авто-расчетные размеры в свету</text>
-
-      <line x1="0" y1="1175" x2="560" y2="1175" stroke="#e2e8f0" stroke-width="2" />
-
-      <text x="0" y="1215" font-size="20" font-weight="bold" fill="#0284c7">4. Особенности для глубины 450 мм:</text>
-      <text x="20" y="1250">• Глубина боковин шкафа: 450 мм</text>
-      <text x="20" y="1280">• Глубина жестких полок и стойки: 430 мм</text>
-      <text x="20" y="1310">• Глубина съемных полок: 420 мм</text>
-      <text x="20" y="1340">• Под вешалки: рекомендуется выдвижной микролифт</text>
+    <!-- Блок 5: Особенности глубины 450 мм -->
+    <g transform="translate(0, 1280)">
+      <rect x="0" y="0" width="580" height="180" rx="8" fill="#f0fdf4" stroke="#bbf7d0" />
+      <text x="20" y="35" font-size="20" font-weight="bold" fill="#166534">5. Важное при глубине 450 мм</text>
+      <text x="20" y="70" font-size="15" fill="#15803d">• Боковины шкафа: глубина 450 мм</text>
+      <text x="20" y="95" font-size="15" fill="#15803d">• Полки и перегородка: 430 мм (-20 мм под двери)</text>
+      <text x="20" y="120" font-size="15" fill="#15803d">• Съемные полки: 420 мм (-30 мм от переда)</text>
+      <text x="20" y="145" font-size="15" fill="#b91c1c" font-weight="bold">• В нишу 1540 мм ставится выдвижной тромбон!</text>
     </g>
   </g>
 </svg>
