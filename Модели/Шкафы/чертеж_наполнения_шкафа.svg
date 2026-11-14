@@ -66,7 +66,7 @@
     <!-- Антресольная полка (жесткая, фиолетовая): X=16..984, Y_cad=2178..2194 -> Y_svg=466..482 -->
     <rect x="16" y="466" width="968" height="16" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
     <text x="500" y="240" font-size="24" fill="#37474f" font-style="italic" text-anchor="middle">Общая полка (Антресоль)</text>
-    <text x="500" y="280" font-size="20" fill="#7b1fa2" font-weight="bold" text-anchor="middle">Проем в свету: 450 мм × 968 мм</text>
+    <text x="500" y="280" font-size="20" fill="#7b1fa2" font-weight="bold" text-anchor="middle">Проем в свету: 450 мм × 968 мм (глубина 430)</text>
 
     <!-- Вертикальная стойка (зеленая): X=368..384, Y_cad=76..2178 -> Y_svg=482..2584 -->
     <rect x="368" y="482" width="16" height="2102" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
@@ -81,7 +81,7 @@
     <!-- Нижняя ниша справа (под штангу 1540 мм) -->
     <circle cx="684" cy="1120" r="16" fill="none" stroke="#c2185b" stroke-width="4" />
     <line x1="664" y1="1120" x2="704" y2="1120" stroke="#c2185b" stroke-width="2" />
-    <text x="684" y="1160" font-size="18" fill="#c2185b" font-weight="bold" text-anchor="middle">Штанга d=25</text>
+    <text x="684" y="1160" font-size="18" fill="#c2185b" font-weight="bold" text-anchor="middle">Штанга (микролифт)</text>
     <text x="684" y="1800" font-size="22" fill="#2e7d32" font-weight="bold" text-anchor="middle">Платяное отделение</text>
     <text x="684" y="1835" font-size="18" fill="#388e3c" text-anchor="middle">1540 мм (в свету)</text>
 
@@ -121,7 +121,7 @@
     <line x1="0" y1="2740" x2="1000" y2="2740" stroke="#d32f2f" stroke-width="3" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
     <line x1="0" y1="2660" x2="0" y2="2760" stroke="#d32f2f" stroke-width="1.5" />
     <line x1="1000" y1="2660" x2="1000" y2="2760" stroke="#d32f2f" stroke-width="1.5" />
-    <text x="500" y="2780" fill="#d32f2f" text-anchor="middle">1000 (Общая ширина)</text>
+    <text x="500" y="2780" fill="#d32f2f" text-anchor="middle">1000 (Общая ширина) | Глубина D = 450 мм</text>
 
     <!-- ВЫСОТА ЦОКОЛЯ: 60 мм (справа X=1040) -->
     <line x1="1040" y1="2600" x2="1040" y2="2660" stroke="#d32f2f" stroke-width="2.5" marker-start="url(#arr-red-start)" marker-end="url(#arr-red-end)" />
@@ -178,72 +178,72 @@
     <!-- Сводка габаритов -->
     <g transform="translate(30, 120)" font-size="18" fill="#1e293b">
       <text x="0" y="0" font-size="20" font-weight="bold" fill="#0f172a">1. Базовый короб (Каркас шкафа):</text>
-      <text x="20" y="35">• Габариты: 1000 (W) × 2660 (H) мм</text>
+      <text x="20" y="35">• Габариты: 1000 (W) × 2660 (H) × 450 (D) мм</text>
       <text x="20" y="65">• Толщина ЛДСП: 16 мм (все панели)</text>
       <text x="20" y="95">• Основание: цоколь 60 мм под дном</text>
       <text x="20" y="125">• Чистый внутренний проем: 968 × 2524 мм</text>
+      <text x="20" y="155">• Глубина полок: 430 мм (отступ 20 мм под двери)</text>
 
-      <line x1="0" y1="160" x2="560" y2="160" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="0" y1="180" x2="560" y2="180" stroke="#e2e8f0" stroke-width="2" />
 
-      <text x="0" y="200" font-size="20" font-weight="bold" fill="#1b5e20">2. Внутреннее наполнение (Секции):</text>
+      <text x="0" y="215" font-size="20" font-weight="bold" fill="#1b5e20">2. Внутреннее наполнение (Секции):</text>
       
-      <text x="20" y="235" font-weight="bold" fill="#1b5e20">Вертикальное деление (по оси X):</text>
-      <text x="30" y="265">• Правая секция (платяная): 600 мм (в свету)</text>
-      <text x="30" y="295">• Стойка-перегородка: 16 мм (X = 368..384)</text>
-      <text x="30" y="325">• Левая секция (бельевая): 352 мм (в свету)</text>
-      <text x="30" y="350" font-size="15" fill="#64748b">  (Баланс: 1000 - 16×3 - 600 = 352 мм)</text>
+      <text x="20" y="250" font-weight="bold" fill="#1b5e20">Вертикальное деление (по оси X):</text>
+      <text x="30" y="280">• Правая секция (платяная): 600 мм (в свету)</text>
+      <text x="30" y="310">• Стойка-перегородка: 16 мм (X = 368..384)</text>
+      <text x="30" y="340">• Левая секция (бельевая): 352 мм (в свету)</text>
+      <text x="30" y="365" font-size="15" fill="#64748b">  (Баланс: 1000 - 16×3 - 600 = 352 мм)</text>
 
-      <line x1="0" y1="380" x2="560" y2="380" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="0" y1="395" x2="560" y2="395" stroke="#e2e8f0" stroke-width="2" />
 
-      <text x="20" y="415" font-weight="bold" fill="#4a148c">Горизонтальное деление (по оси Y):</text>
-      <text x="30" y="445">• Антресоль: проем 450 мм (на всю ширину 968)</text>
-      <text x="30" y="475">• Высота стойки: 2102 мм (между дном и антресолью)</text>
+      <text x="20" y="430" font-weight="bold" fill="#4a148c">Горизонтальное деление (по оси Y):</text>
+      <text x="30" y="460">• Антресоль: проем 450 мм (на всю ширину 968)</text>
+      <text x="30" y="490">• Высота стойки: 2102 мм (между дном и антресолью)</text>
 
-      <text x="20" y="520" font-weight="bold" fill="#006064">Правая секция (W = 600 мм):</text>
-      <text x="30" y="550">• Нижняя ниша со штангой: 1540 мм (в свету)</text>
-      <text x="30" y="580">• Верхняя ниша над штангой: 546 мм (в свету)</text>
-      <text x="30" y="605" font-size="15" fill="#64748b">  (Баланс: 2102 - 1540 - 16 = 546 мм)</text>
+      <text x="20" y="535" font-weight="bold" fill="#006064">Правая секция (W = 600 мм):</text>
+      <text x="30" y="565">• Нижняя ниша под одежду: 1540 мм (в свету)</text>
+      <text x="30" y="595">• Верхняя ниша над штангой: 546 мм (в свету)</text>
+      <text x="30" y="620" font-size="15" fill="#64748b">  (Баланс: 2102 - 1540 - 16 = 546 мм)</text>
 
-      <text x="20" y="650" font-weight="bold" fill="#e65100">Левая секция (W = 352 мм):</text>
-      <text x="30" y="680">• Нижняя ниша (под ящики/корзины): 850 мм</text>
-      <text x="30" y="710">• Зона полок: остаток 1236 мм</text>
-      <text x="30" y="740">• Полки: 2 съемные полки ЛДСП 16 мм</text>
-      <text x="30" y="770">• 3 равных проема: по 401.3 мм в свету</text>
-      <text x="30" y="795" font-size="15" fill="#64748b">  (Расчет: (1236 - 32)/3 = 401.3 мм)</text>
+      <text x="20" y="665" font-weight="bold" fill="#e65100">Левая секция (W = 352 мм):</text>
+      <text x="30" y="695">• Нижняя ниша (под ящики/корзины): 850 мм</text>
+      <text x="30" y="725">• Зона полок: остаток 1236 мм</text>
+      <text x="30" y="755">• Полки: 2 съемные полки ЛДСП 16 мм</text>
+      <text x="30" y="785">• 3 равных проема: по 401.3 мм в свету</text>
+      <text x="30" y="810" font-size="15" fill="#64748b">  (Расчет: (1236 - 32)/3 = 401.3 мм)</text>
 
-      <line x1="0" y1="830" x2="560" y2="830" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="0" y1="845" x2="560" y2="845" stroke="#e2e8f0" stroke-width="2" />
 
-      <text x="0" y="870" font-size="20" font-weight="bold" fill="#0f172a">3. Цветовые слои (Легенда):</text>
+      <text x="0" y="885" font-size="20" font-weight="bold" fill="#0f172a">3. Цветовые слои (Легенда):</text>
       
-      <rect x="20" y="900" width="28" height="18" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
-      <text x="60" y="915">Базовый короб шкафа (Каркас)</text>
+      <rect x="20" y="915" width="28" height="18" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />
+      <text x="60" y="930">Базовый короб шкафа (Каркас D=450)</text>
 
-      <rect x="20" y="935" width="28" height="18" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
-      <text x="60" y="950">Стойка вертикальная (ЛДСП 16)</text>
+      <rect x="20" y="950" width="28" height="18" fill="url(#hatch-post)" stroke="#1b5e20" stroke-width="2" />
+      <text x="60" y="965">Стойка вертикальная (глубина 430)</text>
 
-      <rect x="20" y="970" width="28" height="18" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
-      <text x="60" y="985">Жесткие полки / Антресоль (VB)</text>
+      <rect x="20" y="985" width="28" height="18" fill="url(#hatch-fixed)" stroke="#4a148c" stroke-width="2" />
+      <text x="60" y="1000">Жесткие полки / Антресоль (глубина 430)</text>
 
-      <rect x="20" y="1005" width="28" height="18" fill="url(#hatch-removable)" stroke="#e65100" stroke-width="2" />
-      <text x="60" y="1020">Съемные полки (полкодержатели)</text>
+      <rect x="20" y="1020" width="28" height="18" fill="url(#hatch-removable)" stroke="#e65100" stroke-width="2" />
+      <text x="60" y="1035">Съемные полки (глубина 420)</text>
 
-      <circle cx="34" cy="1050" r="9" fill="none" stroke="#c2185b" stroke-width="3" />
-      <text x="60" y="1055">Штанга под плечики (d=25 мм)</text>
+      <circle cx="34" cy="1065" r="9" fill="none" stroke="#c2185b" stroke-width="3" />
+      <text x="60" y="1070">Штанга / микролифт выдвижной</text>
 
-      <line x1="20" y1="1090" x2="48" y2="1090" stroke="#d32f2f" stroke-width="3" />
-      <text x="60" y="1095">Точные размеры с эскиза</text>
+      <line x1="20" y1="1105" x2="48" y2="1105" stroke="#d32f2f" stroke-width="3" />
+      <text x="60" y="1110">Точные размеры с эскиза</text>
 
-      <line x1="20" y1="1125" x2="48" y2="1125" stroke="#f57c00" stroke-width="2.5" stroke-dasharray="6,4" />
-      <text x="60" y="1130">Авто-расчетные размеры в свету</text>
+      <line x1="20" y1="1140" x2="48" y2="1140" stroke="#f57c00" stroke-width="2.5" stroke-dasharray="6,4" />
+      <text x="60" y="1145">Авто-расчетные размеры в свету</text>
 
-      <line x1="0" y1="1160" x2="560" y2="1160" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="0" y1="1175" x2="560" y2="1175" stroke="#e2e8f0" stroke-width="2" />
 
-      <text x="0" y="1200" font-size="20" font-weight="bold" fill="#0284c7">4. Схема крепежа для Базиса:</text>
-      <text x="20" y="1235">• Антресоль к боковинам: стяжки VB / еврики</text>
-      <text x="20" y="1265">• Стойка средняя: стяжки VB (к дну и антресоли)</text>
-      <text x="20" y="1295">• Полка 1540 (правая): стяжки VB (силовая)</text>
-      <text x="20" y="1325">• Полка 850 (левая): стяжки VB (над ящиками)</text>
-      <text x="20" y="1355">• Полки 401 мм (2 шт): полкодержатели D5</text>
+      <text x="0" y="1215" font-size="20" font-weight="bold" fill="#0284c7">4. Особенности для глубины 450 мм:</text>
+      <text x="20" y="1250">• Глубина боковин шкафа: 450 мм</text>
+      <text x="20" y="1280">• Глубина жестких полок и стойки: 430 мм</text>
+      <text x="20" y="1310">• Глубина съемных полок: 420 мм</text>
+      <text x="20" y="1340">• Под вешалки: рекомендуется выдвижной микролифт</text>
     </g>
   </g>
 </svg>

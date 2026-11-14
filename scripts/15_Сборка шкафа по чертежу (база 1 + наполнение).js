@@ -1,19 +1,20 @@
 // ==============================================================================
-// 15_РЎР±РѕСЂРєР° С€РєР°С„Р° РїРѕ С‡РµСЂС‚РµР¶Сѓ (РЁРєР°С„ Р±Р°Р·Р° 1 + РІРЅСѓС‚СЂРµРЅРЅРµРµ РЅР°РїРѕР»РЅРµРЅРёРµ)
+// 15_Сборка шкафа по чертежу (Шкаф база 1 + внутреннее наполнение)
+// Габариты: W=1000, H=2660, D=450
 // ==============================================================================
 
 var thick = 16;
 
-// 1. Р¦РµР»РµРІС‹Рµ РіР°Р±Р°СЂРёС‚С‹ С€РєР°С„Р° РїРѕ С‡РµСЂС‚РµР¶Сѓ
+// 1. Целевые габариты шкафа по чертежу (глубина 450 мм)
 var targetW = 1000;
 var targetH = 2660;
-var targetD = 560;
+var targetD = 450;
 
-// 2. РџРѕРёСЃРє С„СЂР°РіРјРµРЅС‚Р° "С€РєР°С„ Р±Р°Р·Р° 1.fr3d"
+// 2. Поиск фрагмента "шкаф база 1.fr3d"
 var FRAG_PATHS = [
-    'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СЂР°РіРјРµРЅС‚С‹\\РЁРєР°С„С‹\\С€РєР°С„ Р±Р°Р·Р° 1.fr3d',
-    'Z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\Р¤СЂР°РіРјРµРЅС‚С‹\\РЁРєР°С„С‹\\С€РєР°С„ Р±Р°Р·Р° 1.fr3d',
-    'C:\\Users\\maxim\\OneDrive\\Desktop\\РџР РћР•РљРў_РЁРљРђР¤_Р_Р‘РђР—РРЎ\\01_РђРљРўРЈРђР›Р¬РќР«Р™_РЁРљРђР¤_3D\\С€РєР°С„ Р±Р°Р·Р° 1.fr3d'
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Шкафы\\шкаф база 1.fr3d',
+    'Z:\\Work\\генерация мебели\\Фрагменты\\Шкафы\\шкаф база 1.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\ПРОЕКТ_ШКАФ_И_БАЗИС\\01_АКТУАЛЬНЫЙ_ШКАФ_3D\\шкаф база 1.fr3d'
 ];
 
 var fragPath = '';
@@ -24,8 +25,8 @@ for (var i = 0; i < FRAG_PATHS.length; i++) {
     }
 }
 
-// 3. Р—Р°РіСЂСѓР·РєР° Рё СЌР»Р°СЃС‚РёС‡РЅРѕРµ РјР°СЃС€С‚Р°Р±РёСЂРѕРІР°РЅРёРµ Р±Р°Р·С‹
-var cabinetBlock = AddBlock('РЁРєР°С„ РїРѕ С‡РµСЂС‚РµР¶Сѓ (2660x1000)');
+// 3. Загрузка и эластичное масштабирование вашей базы до 1000 x 2660 x 450
+var cabinetBlock = AddBlock('Шкаф по чертежу (2660x1000x450)');
 var baseLoaded = false;
 
 if (fragPath !== '') {
@@ -37,7 +38,7 @@ if (fragPath !== '') {
 }
 
 if (baseLoaded) {
-    // Р Р°СЃС‚СЏРіРёРІР°РµРј СЌР»Р°СЃС‚РёС‡РЅС‹Р№ Р±Р»РѕРє Р±Р°Р·С‹ РґРѕ С†РµР»РµРІС‹С… РіР°Р±Р°СЂРёС‚РѕРІ W=1000, H=2660, D=560
+    // Растягиваем эластичный блок базы до W=1000, H=2660, D=450
     var resizeObj = cabinetBlock;
     if (cabinetBlock.Count > 0 && cabinetBlock[0]) {
         resizeObj = cabinetBlock[0];
@@ -45,33 +46,33 @@ if (baseLoaded) {
     resizeObj.ElasticResize(NewVector(targetW, targetH, targetD));
     cabinetBlock.Build();
 } else {
-    // Р•СЃР»Рё С„СЂР°РіРјРµРЅС‚ РЅРµ РЅР°Р№РґРµРЅ, СЃС‚СЂРѕРёРј Р±Р°Р·РѕРІС‹Р№ РєРѕСЂРѕР± С€РєР°С„Р° РЅР°РїСЂСЏРјСѓСЋ
+    // Резервный вариант, если путь к фрагменту не найден
     var leftSide = AddVertPanel(0, 0, targetD, targetH, 0);
-    leftSide.Name = 'Р‘РѕРєРѕРІРёРЅР° Р»РµРІР°СЏ';
+    leftSide.Name = 'Боковина левая';
     var rightSide = AddVertPanel(0, 0, targetD, targetH, targetW - thick);
-    rightSide.Name = 'Р‘РѕРєРѕРІРёРЅР° РїСЂР°РІР°СЏ';
+    rightSide.Name = 'Боковина правая';
     var frontSocle = AddFrontPanel(thick, 0, targetW - thick, 60, targetD - thick);
-    frontSocle.Name = 'Р¦РѕРєРѕР»СЊ РїРµСЂРµРґРЅРёР№';
+    frontSocle.Name = 'Цоколь передний';
     var rearSocle = AddFrontPanel(thick, 0, targetW - thick, 60, 80);
-    rearSocle.Name = 'Р¦РѕРєРѕР»СЊ Р·Р°РґРЅРёР№';
+    rearSocle.Name = 'Цоколь задний';
     var bottom = AddHorizPanel(thick, 0, targetW - thick, targetD, 60);
-    bottom.Name = 'Р”РЅРѕ';
+    bottom.Name = 'Дно';
     var roofY = targetH - 65 - thick;
     var roof = AddHorizPanel(thick, 0, targetW - thick, targetD, roofY);
-    roof.Name = 'РљСЂС‹С€РєР°';
+    roof.Name = 'Крышка';
     var visor = AddFrontPanel(thick, targetH - 65, targetW - thick, targetH, targetD - thick);
-    visor.Name = 'РљРѕР·С‹СЂРµРє';
+    visor.Name = 'Козырек';
 }
 
-// 4. РћРїСЂРµРґРµР»РµРЅРёРµ С‡РёСЃС‚С‹С… РІРЅСѓС‚СЂРµРЅРЅРёС… РіСЂР°РЅРёС† РєР°СЂРєР°СЃР°
+// 4. Определение чистых внутренних границ каркаса
 var innerX1 = thick;
 var innerX2 = targetW - thick;
-var dnoTopY = 76;                       // С†РѕРєРѕР»СЊ 60 + Р›Р”РЎРџ 16
-var roofBottomY = targetH - 65 - thick; // РїРѕРґ РєРѕР·С‹СЂСЊРєРѕРј
-var shelfD = targetD - 20;              // 20 РјРј РѕС‚СЃС‚СѓРї РїРѕРґ С„Р°СЃР°РґС‹/РєСѓРїРµ
+var dnoTopY = 76;                       // цоколь 60 + ЛДСП 16
+var roofBottomY = targetH - 65 - thick; // под козырьком
+var shelfD = targetD - 20;              // 430 мм (отступ 20 мм спереди под фасады/двери)
 var shelfZ = 0;
 
-// РЎРєР°РЅРёСЂСѓРµРј Р·Р°РіСЂСѓР¶РµРЅРЅСѓСЋ Р±Р°Р·Сѓ РґР»СЏ С‚РѕС‡РЅРѕР№ РїСЂРёРІСЏР·РєРё Рє СЂРµР°Р»СЊРЅС‹Рј РїР»РѕСЃРєРѕСЃС‚СЏРј
+// Точная привязка к реальным плоскостям загруженной базы
 function scanPanels(obj) {
     if (!obj) return;
     if (obj.AsPanel) {
@@ -97,51 +98,51 @@ function scanPanels(obj) {
 }
 scanPanels(cabinetBlock);
 
-// 5. РџРѕСЃС‚СЂРѕРµРЅРёРµ РІРЅСѓС‚СЂРµРЅРЅРµРіРѕ РЅР°РїРѕР»РЅРµРЅРёСЏ РїРѕ С‡РµСЂС‚РµР¶Сѓ
-var mezzH = 450;        // РџСЂРѕРµРј Р°РЅС‚СЂРµСЃРѕР»Рё РІ СЃРІРµС‚Сѓ
-var rightNicheW = 600;  // Р§РёСЃС‚Р°СЏ С€РёСЂРёРЅР° РїСЂР°РІРѕР№ СЃРµРєС†РёРё
-var rightBotH = 1540;   // Р§РёСЃС‚Р°СЏ РІС‹СЃРѕС‚Р° РїСЂР°РІРѕР№ РЅРёС€Рё РїРѕРґ С€С‚Р°РЅРіСѓ
-var leftBotH = 850;     // Р§РёСЃС‚Р°СЏ РІС‹СЃРѕС‚Р° Р»РµРІРѕР№ РЅРёС€Рё РїРѕРґ СЏС‰РёРєРё
+// 5. Построение внутреннего наполнения по чертежу
+var mezzH = 450;        // Проем антресоли в свету
+var rightNicheW = 600;  // Чистая ширина правой секции
+var rightBotH = 1540;   // Чистая высота правой ниши под штангу
+var leftBotH = 850;     // Чистая высота левой ниши под ящики
 
 var mezzShelfY = roofBottomY - mezzH - thick;
 var midPostX = innerX2 - rightNicheW - thick;
 
-BeginBlock('Р’РЅСѓС‚СЂРµРЅРЅРµРµ РЅР°РїРѕР»РЅРµРЅРёРµ');
+BeginBlock('Внутреннее наполнение');
 
-// РђРЅС‚СЂРµСЃРѕР»СЊРЅР°СЏ РїРѕР»РєР° (РЅР° РІСЃСЋ С€РёСЂРёРЅСѓ С€РєР°С„Р°)
+// Антресольная полка (на всю ширину шкафа, глубина 430 мм)
 var mezzShelf = AddHorizPanel(innerX1, shelfZ, innerX2, shelfZ + shelfD, mezzShelfY);
-mezzShelf.Name = 'РџРѕР»РєР° Р°РЅС‚СЂРµСЃРѕР»СЊРЅР°СЏ';
+mezzShelf.Name = 'Полка антресольная';
 mezzShelf.Thickness = thick;
 
-// РЎС‚РѕР№РєР° СЃСЂРµРґРЅСЏСЏ (РѕС‚ РґРЅР° РґРѕ Р°РЅС‚СЂРµСЃРѕР»Рё)
+// Стойка средняя (от дна до антресоли, глубина 430 мм)
 var midPost = AddVertPanel(shelfZ, dnoTopY, shelfZ + shelfD, mezzShelfY, midPostX);
-midPost.Name = 'РЎС‚РѕР№РєР° СЃСЂРµРґРЅСЏСЏ';
+midPost.Name = 'Стойка средняя';
 midPost.Thickness = thick;
 
-// РџСЂР°РІР°СЏ СЃРµРєС†РёСЏ: РїРѕР»РєР° РЅР°Рґ РЅРёС€РµР№ 1540 РјРј
+// Правая секция: полка над нишей 1540 мм
 var rightShelfY = dnoTopY + rightBotH;
 var rightShelf = AddHorizPanel(midPostX + thick, shelfZ, innerX2, shelfZ + shelfD, rightShelfY);
-rightShelf.Name = 'РџРѕР»РєР° РїСЂР°РІР°СЏ РЅР°Рґ С€С‚Р°РЅРіРѕР№';
+rightShelf.Name = 'Полка правая над штангой';
 rightShelf.Thickness = thick;
 
-// Р›РµРІР°СЏ СЃРµРєС†РёСЏ: РїРѕР»РєР° РЅР°Рґ РЅРёС€РµР№ 850 РјРј
+// Левая секция: полка над нишей 850 мм
 var leftShelf1Y = dnoTopY + leftBotH;
 var leftShelf1 = AddHorizPanel(innerX1, shelfZ, midPostX, shelfZ + shelfD, leftShelf1Y);
-leftShelf1.Name = 'РџРѕР»РєР° Р»РµРІР°СЏ РЅР°Рґ РЅРёС€РµР№';
+leftShelf1.Name = 'Полка левая над нишей';
 leftShelf1.Thickness = thick;
 
-// Р›РµРІР°СЏ СЃРµРєС†РёСЏ: 2 СЃСЉРµРјРЅС‹Рµ РїРѕР»РєРё СЃ СЂР°РІРЅС‹Рј С€Р°РіРѕРј ~401 РјРј
+// Левая секция: 2 съемные полки с равным шагом ~401 мм (глубина 420 мм с отступом 10 мм)
 var leftRemSpace = mezzShelfY - (leftShelf1Y + thick);
 var shelfStep = (leftRemSpace - 2 * thick) / 3;
 
 var leftShelf2Y = (leftShelf1Y + thick) + shelfStep;
 var leftShelf2 = AddHorizPanel(innerX1, shelfZ, midPostX, shelfZ + shelfD - 10, leftShelf2Y);
-leftShelf2.Name = 'РџРѕР»РєР° Р»РµРІР°СЏ СЃСЉРµРјРЅР°СЏ 1';
+leftShelf2.Name = 'Полка левая съемная 1';
 leftShelf2.Thickness = thick;
 
 var leftShelf3Y = (leftShelf2Y + thick) + shelfStep;
 var leftShelf3 = AddHorizPanel(innerX1, shelfZ, midPostX, shelfZ + shelfD - 10, leftShelf3Y);
-leftShelf3.Name = 'РџРѕР»РєР° Р»РµРІР°СЏ СЃСЉРµРјРЅР°СЏ 2';
+leftShelf3.Name = 'Полка левая съемная 2';
 leftShelf3.Thickness = thick;
 
 EndBlock();
