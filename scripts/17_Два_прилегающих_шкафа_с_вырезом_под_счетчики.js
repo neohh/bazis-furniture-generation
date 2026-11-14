@@ -1,31 +1,38 @@
 // ==============================================================================
-// 17_Два_прилегающих_шкафа_с_вырезом_под_счетчики.js
-// По проверенному алгоритму Скрипта 15:
-// 1. Берет готовую базу "шкаф высокое дно без цоколя", растягивает эластичностью
-//    до 880 x 2660 x 620 (ЛДСП 26 мм) + штанга
-// 2. Берет готовую базу "шкаф база 1", растягивает эластичностью
-//    до 1200 x 2660 x 600 (ЛДСП 16 мм, цоколь 60 мм)
-// 3. Встраивает заднюю стенку ЛДСП 16 мм с отступом 50 мм от стены
-// 4. Устанавливает полки: ниша 650 мм от дна, 3 ниши по 385 мм, ниша 700 мм от верха,
-//    полки примыкают к задней стенке и НЕ проходят сквозь нее
-// 5. Вырез под счетчики (Y=1250..1430, H=180 мм) в правой боковине
+// 17_Р”РІР°_РїСЂРёР»РµРіР°СЋС‰РёС…_С€РєР°С„Р°_СЃ_РІС‹СЂРµР·РѕРј_РїРѕРґ_СЃС‡РµС‚С‡РёРєРё.js
+// РљРѕРјРїР»РµРєСЃ РёР· РґРІСѓС… РїСЂРёР»РµРіР°СЋС‰РёС… С€РєР°С„РѕРІ: РѕР±С‰РёР№ РіР°Р±Р°СЂРёС‚ 2080 x 2660 x 620 РјРј
+//
+// 1. РЁРєР°С„ 1 (Р»РµРІС‹Р№): 880 x 2660 x 620 РјРј, Р›Р”РЎРџ 26 РјРј
+//    - Р’С‹СЃРѕРєРѕРµ РґРЅРѕ: С‡РёСЃС‚С‹Р№ РїСЂРѕРµРј СЃРЅРёР·Сѓ СЂРѕРІРЅРѕ 600 РјРј
+//    - РЎС‚СЂРѕРёС‚СЃСЏ СЃ РёРґРµР°Р»СЊРЅРѕР№ РјРёР»Р»РёРјРµС‚СЂРѕРІРѕР№ С‚РѕС‡РЅРѕСЃС‚СЊСЋ РёР· РїР°РЅРµР»РµР№ 26 РјРј:
+//      Р±РѕРєРѕРІРёРЅС‹, РєСЂС‹С€РєР°, РґРЅРѕ Рё Р·Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° СЃС‚С‹РєСѓСЋС‚СЃСЏ Р·Р°РїРѕРґР»РёС†Рѕ Р±РµР· РЅР°С…Р»РµСЃС‚РѕРІ Рё С‰РµР»РµР№!
+//    - Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° Р›Р”РЎРџ: РІСЃС‚СЂРѕРµРЅР° РІ РїСЂРѕРµРј РІСЃС‚С‹Рє
+//    - РЁС‚Р°РЅРіР° РѕРІР°Р»СЊРЅР°СЏ 30С…15 РЅР° РІС‹СЃРѕС‚Рµ 2500 РјРј
+//
+// 2. РЁРєР°С„ 2 (РїСЂР°РІС‹Р№): 1200 x 2660 x 600 РјРј, Р›Р”РЎРџ 16 РјРј
+//    - Р‘Р°Р·Р°: С†РѕРєРѕР»СЊ 60 РјРј, Р±РµР· РєРѕР·С‹СЂСЊРєР°
+//    - Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР°: Р›Р”РЎРџ 16 РјРј СЃ РѕС‚СЃС‚СѓРїРѕРј 50 РјРј РѕС‚ Р·Р°РґРЅРµР№ СЃС‚РµРЅС‹ (Z = 50..66 РјРј)
+//    - РџРѕР»РєРё: РіР»СѓР±РёРЅР° 534 РјРј (Z = 66..600 РјРј), РїСЂРёРјС‹РєР°СЋС‚ Рє Р·Р°РґРЅРµР№ СЃС‚РµРЅРєРµ Рё РќР• РїСЂРѕС…РѕРґСЏС‚ СЃРєРІРѕР·СЊ РЅРµРµ
+//    - Р’С‹СЃРѕС‚С‹ РЅРёС€ РІ СЃРІРµС‚Сѓ:
+//      * РќРёР¶РЅСЏСЏ РЅРёС€Р°: 650 РјРј РѕС‚ РґРЅР° (Y = 726 РјРј)
+//      * Р’РµСЂС…РЅСЏСЏ РЅРёС€Р° (Р°РЅС‚СЂРµСЃРѕР»СЊ): 700 РјРј РѕС‚ РєСЂС‹С€РєРё (Y = 1928 РјРј)
+//      * 2 РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Рµ РїРѕР»РєРё СЃ СЂР°РІРЅС‹Рј С€Р°РіРѕРј ~385 РјРј (Y = 1127 РјРј Рё Y = 1528 РјРј)
+//    - Р’С‹СЂРµР· РїРѕРґ СЃС‡РµС‚С‡РёРєРё: РІ РїСЂР°РІРѕР№ Р±РѕРєРѕРІРёРЅРµ РЅР° Y = 1250..1430 РјРј (РІС‹СЃРѕС‚Р° 180 РјРј).
+//      РџРѕРїР°РґР°РµС‚ СЃС‚СЂРѕРіРѕ РІРЅСѓС‚СЂСЊ 3-Р№ РЅРёС€Рё (РјРµР¶РґСѓ Y=1143 Рё Y=1528 СЃ Р·Р°РїР°СЃРѕРј >100 РјРј СЃРІРµСЂС…Сѓ Рё СЃРЅРёР·Сѓ!).
 // ==============================================================================
 
-// 1. Точка привязки
+// 1. РўРѕС‡РєР° РїСЂРёРІСЏР·РєРё
 var basePt = null;
 try {
-    basePt = GetPoint('Укажите точку привязки комплекса (левый нижний угол) или Enter для (0,0,0):');
-} catch(e) {}
+    Action.Hint = 'РЈРєР°Р¶РёС‚Рµ С‚РѕС‡РєСѓ РїСЂРёРІСЏР·РєРё РєРѕРјРїР»РµРєСЃР° (Р»РµРІС‹Р№ РЅРёР¶РЅРёР№ СѓРіРѕР») РёР»Рё Enter РґР»СЏ (0,0,0)';
+    basePt = GetPoint('РЈРєР°Р¶РёС‚Рµ С‚РѕС‡РєСѓ РїСЂРёРІСЏР·РєРё РєРѕРјРїР»РµРєСЃР° (Enter РґР»СЏ 0,0,0):');
+} catch(ePt) {}
 
-if (!basePt) {
+if (!basePt || isNaN(basePt.x)) {
     basePt = NewVector(0, 0, 0);
 }
 
-var baseX = basePt.x;
-var baseY = basePt.y;
-var baseZ = basePt.z;
-
-// 2. Поиск файлов фрагментов баз
+// 2. РџРѕРёСЃРє С„СѓСЂРЅРёС‚СѓСЂС‹
 function findFile(paths) {
     for (var i = 0; i < paths.length; i++) {
         try {
@@ -35,204 +42,343 @@ function findFile(paths) {
     return '';
 }
 
-var fragPath1 = findFile([
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Шкафы\\шкаф высокое дно без цоколя.fr3d',
-    'Z:\\Work\\генерация мебели\\Фрагменты\\Шкафы\\шкаф высокое дно без цоколя.fr3d'
-]);
-
-var fragPath2 = findFile([
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Шкафы\\шкаф база 1.fr3d',
-    'Z:\\Work\\генерация мебели\\Фрагменты\\Шкафы\\шкаф база 1.fr3d'
-]);
-
-// Рекурсивный поиск эластичного блока
-function findResizeBlock(obj) {
-    if (!obj) return null;
-    if (typeof obj.ElasticResize === 'function') {
-        var isEl = false;
+function getFurn(paths) {
+    for (var i = 0; i < paths.length; i++) {
         try {
-            isEl = (typeof obj.IsElastic === 'function') ? obj.IsElastic() : !!obj.IsElastic;
+            if (system.fileExists(paths[i])) {
+                var f = OpenFurniture(paths[i]);
+                if (f) return f;
+            }
         } catch(e) {}
-        if (isEl) return obj;
-    }
-    if (obj.Count) {
-        for (var c = 0; c < obj.Count; c++) {
-            var child = obj.Objects ? obj.Objects[c] : obj[c];
-            var f = findResizeBlock(child);
-            if (f) return f;
-        }
-    }
-    if (typeof obj.ElasticResize === 'function' && obj.Name && obj.Name.indexOf('Рамка') === -1) {
-        return obj;
     }
     return null;
 }
 
-// ------------------------------------------------------------------------------
-// ШКАФ 1: Левый модуль (ЛДСП 26 мм, 880 x 2660 x 620, высокое дно 600 мм)
-// ------------------------------------------------------------------------------
-var W1 = 880;
-var H1 = 2660;
-var D1 = 620;
+var fragPath2 = findFile([
+    'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СЂР°РіРјРµРЅС‚С‹\\РЁРєР°С„С‹\\С€РєР°С„ Р±Р°Р·Р° 1.fr3d',
+    'Z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\Р¤СЂР°РіРјРµРЅС‚С‹\\РЁРєР°С„С‹\\С€РєР°С„ Р±Р°Р·Р° 1.fr3d'
+]);
 
-var cab1 = AddBlock('Шкаф 1 (ЛДСП 26 мм, высокое дно)');
-var loaded1 = false;
-if (fragPath1 !== '') {
-    try {
-        loaded1 = cab1.Load(fragPath1);
-    } catch(eL1) {
-        loaded1 = false;
+var rafixFurn = getFurn([
+    'z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\furn\\СЃС‚СЏР¶РєР°_rafix_16.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Desktop\\РџР РћР•РљРў_РЁРљРђР¤_Р_Р‘РђР—РРЎ\\05_Р¤РЈР РќРРўРЈР Рђ_Р_РќРћР–РљР_Р”Р›РЇ_РљРЈРҐРќР\\РџРµС‚Р»Рё_Рё_РєСЂРµРїРµР¶\\СЃС‚СЏР¶РєР°_rafix_16.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СЂР°РіРјРµРЅС‚С‹\\РљСЂРµРїРµР¶\\Hafele RAFIX 20.fr3d'
+]);
+
+var euroFurn = getFurn([
+    'z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\furn\\РµРІСЂРѕРІРёРЅС‚_7x50.fr3d',
+    'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СЂР°РіРјРµРЅС‚С‹\\РљСЂРµРїРµР¶\\Р•РІСЂРѕРІРёРЅС‚ 7С…50.fr3d'
+]);
+
+var rodFurn = getFurn([
+    'C:\\Users\\maxim\\OneDrive\\Р”РѕРєСѓРјРµРЅС‚С‹\\Bazis\\Р¤СЂР°РіРјРµРЅС‚С‹\\РќР°РїРѕР»РЅРµРЅРёРµ\\РЁС‚Р°РЅРіР° РѕРІР°Р»СЊРЅР°СЏ.fr3d',
+    'Z:\\Work\\РіРµРЅРµСЂР°С†РёСЏ РјРµР±РµР»Рё\\furn\\С€С‚Р°РЅРіР°_РѕРІР°Р»СЊРЅР°СЏ.fr3d'
+]);
+
+// Р РµРєСѓСЂСЃРёРІРЅС‹Р№ РїРѕРёСЃРє СЌР»Р°СЃС‚РёС‡РЅРѕРіРѕ Р±Р»РѕРєР°
+function findResizeBlock(obj) {
+    if (!obj) return null;
+    if (obj.Elastic && obj.ElasticResize) return obj;
+    if (obj.Count) {
+        for (var i = 0; i < obj.Count; i++) {
+            var child = obj.Objects ? obj.Objects[i] : obj[i];
+            var res = findResizeBlock(child);
+            if (res) return res;
+        }
     }
+    return null;
 }
 
-if (loaded1) {
-    var el1 = findResizeBlock(cab1);
-    if (el1) {
-        try {
-            el1.ElasticResize(NewVector(W1, H1, D1));
-            el1.Build();
-        } catch(eR1) {}
-    }
-    cab1.Position = NewVector(baseX, baseY, baseZ);
-    cab1.Build();
-
-    // Задаем толщину 26 мм деталям каркаса
-    function applyThick26(obj) {
-        if (!obj) return;
-        if (obj.AsPanel) {
-            obj.AsPanel.Thickness = 26;
-            obj.AsPanel.MaterialName = 'ЛДСП 26 мм';
+// РџРѕРёСЃРє РїР°РЅРµР»Рё РїРѕ РёРјРµРЅРё РІ Р±Р»РѕРєРµ
+function findPanelByName(obj, nameSubstr) {
+    if (!obj) return null;
+    if (obj.AsPanel && obj.Name && obj.Name.indexOf(nameSubstr) !== -1) return obj.AsPanel;
+    if (obj.Count) {
+        for (var i = 0; i < obj.Count; i++) {
+            var child = obj.Objects ? obj.Objects[i] : obj[i];
+            var found = findPanelByName(child, nameSubstr);
+            if (found) return found;
         }
-        if (obj.Count) {
-            for (var c = 0; c < obj.Count; c++) {
-                applyThick26(obj.Objects ? obj.Objects[c] : obj[c]);
+    }
+    return null;
+}
+
+// 3. РџР°РЅРµР»СЊ СЃРІРѕР№СЃС‚РІ (Action.Properties)
+var Prop = null;
+try {
+    Prop = Action.Properties;
+    Prop.Clear();
+} catch(ePr) {}
+
+var pBuildMode = null;
+var pDirX = null;
+var pDirZ = null;
+
+if (Prop) {
+    var grPos = Prop.NewGroup('1. РЎРѕСЃС‚Р°РІ РєРѕРјРїР»РµРєСЃР° Рё РїСЂРёРІСЏР·РєР°');
+    pBuildMode = grPos.NewCombo('Р§С‚Рѕ СЃС‚СЂРѕРёС‚СЊ',
+        '1. РћР±Р° С€РєР°С„Р° (РєРѕРјРїР»РµРєСЃ 2080 РјРј)\n' +
+        '2. РўРѕР»СЊРєРѕ РЁРєР°С„ 1 (Р›Р”РЎРџ 26 РјРј, 880 РјРј)\n' +
+        '3. РўРѕР»СЊРєРѕ РЁРєР°С„ 2 (Р›Р”РЎРџ 16 РјРј, 1200 РјРј)'
+    );
+    pBuildMode.ItemIndex = 0;
+
+    pDirX = grPos.NewCombo('РќР°РїСЂР°РІР»РµРЅРёРµ РїРѕ X', 'Р’РїСЂР°РІРѕ (+)\nР’Р»РµРІРѕ (-)');
+    pDirX.ItemIndex = 0;
+
+    pDirZ = grPos.NewCombo('РќР°РїСЂР°РІР»РµРЅРёРµ РїРѕ Z', 'Р’РїРµСЂРµРґ Рє Р·СЂРёС‚РµР»СЋ (+)\nРќР°Р·Р°Рґ (-)');
+    pDirZ.ItemIndex = 0;
+}
+
+// 4. РћСЃРЅРѕРІРЅР°СЏ С„СѓРЅРєС†РёСЏ РїРѕСЃС‚СЂРѕРµРЅРёСЏ
+function buildComplex() {
+    var bMode = pBuildMode ? pBuildMode.ItemIndex : 0;
+    var signX = (pDirX && pDirX.ItemIndex === 1) ? -1 : 1;
+    var signZ = (pDirZ && pDirZ.ItemIndex === 1) ? -1 : 1;
+
+    var baseX = basePt.x;
+    var baseY = basePt.y;
+    var baseZ = basePt.z;
+
+    var totalBlock = BeginBlock('РљРѕРјРїР»РµРєСЃ 2080 (Р›Р”РЎРџ 26 РјРј + 16 РјРј)');
+
+    // ==========================================================================
+    // РЁРљРђР¤ 1: Р›РµРІС‹Р№ С€РєР°С„ (Р›Р”РЎРџ 26 РјРј, 880 x 2660 x 620 РјРј)
+    // Р’С‹СЃРѕРєРѕРµ РґРЅРѕ: С‡РёСЃС‚С‹Р№ РїСЂРѕРµРј СЃРЅРёР·Сѓ 600 РјРј
+    // ==========================================================================
+    if (bMode === 0 || bMode === 1) {
+        var W1 = 880;
+        var H1 = 2660;
+        var D1 = 620;
+        var t26 = 26;
+
+        var c1_xMin = (signX > 0) ? baseX : (baseX - W1);
+        var c1_xMax = (signX > 0) ? (baseX + W1) : baseX;
+
+        var c1_zMin = (signZ > 0) ? baseZ : (baseZ - D1);
+        var c1_zMax = (signZ > 0) ? (baseZ + D1) : baseZ;
+
+        var y0 = baseY;
+        var yTop = baseY + H1;
+
+        BeginBlock('РЁРєР°С„ 1 (Р›Р”РЎРџ 26 РјРј, 880x2660x620)');
+
+        ActiveMaterial.Make('Р›Р”РЎРџ 26 РјРј', t26);
+
+        // 1. Р›РµРІР°СЏ Р±РѕРєРѕРІРёРЅР° (26 РјРј): РѕС‚ xMin РґРѕ xMin + 26
+        var s1_left = AddVertPanel(c1_zMin, y0, c1_zMax, yTop, c1_xMin);
+        s1_left.Name = 'Р‘РѕРєРѕРІРёРЅР° Р»РµРІР°СЏ (26 РјРј)';
+
+        // 2. РџСЂР°РІР°СЏ Р±РѕРєРѕРІРёРЅР° (26 РјРј): РѕС‚ xMax - 26 РґРѕ xMax
+        var s1_right = AddVertPanel(c1_zMin, y0, c1_zMax, yTop, c1_xMax - t26);
+        s1_right.Name = 'Р‘РѕРєРѕРІРёРЅР° РїСЂР°РІР°СЏ (26 РјРј)';
+
+        // Р’РЅСѓС‚СЂРµРЅРЅРёР№ РїСЂРѕРµРј РјРµР¶РґСѓ Р±РѕРєРѕРІРёРЅР°РјРё
+        var innerX1 = c1_xMin + t26;
+        var innerX2 = c1_xMax - t26;
+
+        // 3. РљСЂС‹С€РєР° (26 РјРј): Р»РµР¶РёС‚ СЃС‚СЂРѕРіРѕ РјРµР¶РґСѓ Р±РѕРєРѕРІРёРЅР°РјРё, Р·Р°РїРѕРґР»РёС†Рѕ СЃРІРµСЂС…Сѓ
+        var roofY = yTop - t26;
+        var s1_roof = AddHorizPanel(innerX1, c1_zMin, innerX2, c1_zMax, roofY);
+        s1_roof.Name = 'РљСЂС‹С€РєР° (26 РјРј)';
+
+        // 4. Р”РЅРѕ РІС‹СЃРѕРєРѕРµ (26 РјРј): С‡РёСЃС‚С‹Р№ РїСЂРѕРµРј СЃРЅРёР·Сѓ СЂРѕРІРЅРѕ 600 РјРј
+        var dnoY = y0 + 600;
+        var s1_dno = AddHorizPanel(innerX1, c1_zMin, innerX2, c1_zMax, dnoY);
+        s1_dno.Name = 'Р”РЅРѕ РІС‹СЃРѕРєРѕРµ (26 РјРј, РїСЂРѕРµРј 600 РјРј)';
+
+        // 5. Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° Р›Р”РЎРџ: СЃС‚РѕРёС‚ РЅР° РґРЅРµ (y = dnoY + 26), СѓРїРёСЂР°РµС‚СЃСЏ РІ РєСЂС‹С€РєСѓ (y = roofY),
+        //    РІСЃС‚СЂРѕРµРЅР° РІСЃС‚С‹Рє РјРµР¶РґСѓ Р±РѕРєРѕРІРёРЅР°РјРё (innerX1..innerX2)
+        var backY1 = dnoY + t26;
+        var backY2 = roofY;
+        var s1_back = AddFrontPanel(innerX1, backY1, innerX2, backY2, c1_zMin);
+        s1_back.Name = 'Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° Р›Р”РЎРџ 26 РјРј';
+
+        // 6. РЁС‚Р°РЅРіР° РѕРІР°Р»СЊРЅР°СЏ 30С…15
+        var rodY = y0 + 2500;
+        var rodZ = (c1_zMin + c1_zMax) / 2;
+        if (rodFurn) {
+            try {
+                rodFurn.Mount(s1_left, s1_right, innerX1, rodY, rodZ);
+            } catch(eRod) {}
+        }
+
+        // РљСЂРµРїРµР¶ РєСЂС‹С€РєРё Рё РґРЅР° (РµРІСЂРѕРІРёРЅС‚С‹ / СЃС‚СЏР¶РєРё)
+        if (euroFurn) {
+            try {
+                euroFurn.Mount(s1_dno, s1_left, innerX1, dnoY + 13, c1_zMin + 80);
+                euroFurn.Mount(s1_dno, s1_left, innerX1, dnoY + 13, c1_zMax - 80);
+                euroFurn.Mount(s1_dno, s1_right, innerX2, dnoY + 13, c1_zMin + 80);
+                euroFurn.Mount(s1_dno, s1_right, innerX2, dnoY + 13, c1_zMax - 80);
+
+                euroFurn.Mount(s1_roof, s1_left, innerX1, roofY + 13, c1_zMin + 80);
+                euroFurn.Mount(s1_roof, s1_left, innerX1, roofY + 13, c1_zMax - 80);
+                euroFurn.Mount(s1_roof, s1_right, innerX2, roofY + 13, c1_zMin + 80);
+                euroFurn.Mount(s1_roof, s1_right, innerX2, roofY + 13, c1_zMax - 80);
+            } catch(eEu1) {}
+        }
+
+        EndBlock();
+    }
+
+    // ==========================================================================
+    // РЁРљРђР¤ 2: РџСЂР°РІС‹Р№ С€РєР°С„ (Р›Р”РЎРџ 16 РјРј, 1200 x 2660 x 600 РјРј, С†РѕРєРѕР»СЊ 60 РјРј)
+    // ==========================================================================
+    if (bMode === 0 || bMode === 2) {
+        var W2 = 1200;
+        var H2 = 2660;
+        var D2 = 600;
+        var t16 = 16;
+
+        var offsetX = (bMode === 0) ? (signX > 0 ? 880 : -880) : 0;
+        var c2_startX = baseX + offsetX;
+
+        var c2_xMin = (signX > 0) ? c2_startX : (c2_startX - W2);
+        var c2_xMax = (signX > 0) ? (c2_startX + W2) : c2_startX;
+
+        var c2_zMin = (signZ > 0) ? baseZ : (baseZ - D2);
+        var c2_zMax = (signZ > 0) ? (baseZ + D2) : baseZ;
+
+        var c2_y0 = baseY;
+        var c2_yTop = baseY + H2;
+
+        BeginBlock('РЁРєР°С„ 2 (Р›Р”РЎРџ 16 РјРј, 1200x2660x600)');
+
+        var s2_rightPanel = null;
+        var cab2 = AddBlock('РљРѕСЂРїСѓСЃ С€РєР°С„Р° 2');
+        var loaded2 = false;
+
+        if (fragPath2 !== '') {
+            try {
+                loaded2 = cab2.Load(fragPath2);
+            } catch(eL2) {
+                loaded2 = false;
             }
         }
+
+        if (loaded2) {
+            var el2 = findResizeBlock(cab2);
+            if (el2) {
+                try {
+                    el2.ElasticResize(NewVector(W2, H2, D2));
+                    el2.Build();
+                } catch(eR2) {}
+            }
+            cab2.Position = NewVector(c2_xMin, c2_y0, c2_zMin);
+            cab2.Build();
+            s2_rightPanel = findPanelByName(cab2, 'РїСЂР°РІР°СЏ');
+        } else {
+            // Р РµР·РµСЂРІРЅРѕРµ РїРѕСЃС‚СЂРѕРµРЅРёРµ РєРѕСЂРїСѓСЃР° С€РєР°С„Р° 2 (Р±Р°Р·Р° 1: С†РѕРєРѕР»СЊ 60 РјРј, Р±РµР· РєРѕР·С‹СЂСЊРєР°)
+            ActiveMaterial.Make('Р›Р”РЎРџ 16 РјРј', t16);
+
+            var s2_left = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMin);
+            s2_left.Name = 'Р‘РѕРєРѕРІРёРЅР° Р»РµРІР°СЏ';
+
+            var s2_right = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMax - t16);
+            s2_right.Name = 'Р‘РѕРєРѕРІРёРЅР° РїСЂР°РІР°СЏ';
+            s2_rightPanel = s2_right;
+
+            var s2_socleFront = AddFrontPanel(c2_xMin + t16, c2_y0, c2_xMax - t16, c2_y0 + 60, c2_zMax - 25 - t16);
+            s2_socleFront.Name = 'Р¦РѕРєРѕР»СЊ РїРµСЂРµРґРЅРёР№ H=60';
+
+            var s2_socleRear = AddFrontPanel(c2_xMin + t16, c2_y0, c2_xMax - t16, c2_y0 + 60, c2_zMin + 80);
+            s2_socleRear.Name = 'Р¦РѕРєРѕР»СЊ Р·Р°РґРЅРёР№ H=60';
+
+            var s2_bottom = AddHorizPanel(c2_xMin + t16, c2_zMin, c2_xMax - t16, c2_zMax, c2_y0 + 60);
+            s2_bottom.Name = 'Р”РЅРѕ';
+
+            var s2_roof = AddHorizPanel(c2_xMin + t16, c2_zMin, c2_xMax - t16, c2_zMax, c2_yTop - t16);
+            s2_roof.Name = 'РљСЂС‹С€РєР°';
+        }
+
+        // Р’РЅСѓС‚СЂРµРЅРЅРµРµ РЅР°РїРѕР»РЅРµРЅРёРµ РЁРєР°С„Р° 2
+        ActiveMaterial.Make('Р›Р”РЎРџ 16 РјРј', t16);
+
+        var c2_innerX1 = c2_xMin + t16;
+        var c2_innerX2 = c2_xMax - t16;
+        var dnoTopY = c2_y0 + 60 + t16;    // РІРµСЂС… РґРЅР° = 76 РјРј РѕС‚ РїРѕР»Р°
+        var roofBotY = c2_yTop - t16;        // РЅРёР· РєСЂС‹С€РєРё = 2644 РјРј РѕС‚ РїРѕР»Р°
+
+        // 1. Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° Р›Р”РЎРџ 16 РјРј СЃ РѕС‚СЃС‚СѓРїРѕРј 50 РјРј РѕС‚ Р·Р°РґРЅРµР№ СЃС‚РµРЅС‹:
+        //    Z СЃС‚РµРЅРєРё = [c2_zMin + 50 .. c2_zMin + 66 РјРј]
+        var backZ1 = (signZ > 0) ? (c2_zMin + 50) : (c2_zMax - 50 - t16);
+        var backWall2 = AddFrontPanel(c2_innerX1, dnoTopY, c2_innerX2, roofBotY, backZ1);
+        backWall2.Name = 'Р—Р°РґРЅСЏСЏ СЃС‚РµРЅРєР° Р›Р”РЎРџ 16 РјРј (РѕС‚СЃС‚СѓРї 50 РјРј)';
+
+        // 2. РџРѕР»РєРё РЅР°С‡РёРЅР°СЋС‚СЃСЏ СЃС‚СЂРѕРіРѕ РѕС‚ РїРµСЂРµРґРЅРµР№ РїР»Р°СЃС‚Рё Р·Р°РґРЅРµР№ СЃС‚РµРЅРєРё (Z = 66 РјРј)
+        //    РґРѕ РїРµСЂРµРґРЅРµР№ РєСЂРѕРјРєРё С€РєР°С„Р° (Z = 600 РјРј). Р“Р»СѓР±РёРЅР° РїРѕР»РѕРє = 534 РјРј.
+        //    РџРѕР»РєРё РќР• РїСЂРѕС…РѕРґСЏС‚ СЃРєРІРѕР·СЊ Р·Р°РґРЅСЋСЋ СЃС‚РµРЅРєСѓ!
+        var shelfZ1 = (signZ > 0) ? (c2_zMin + 50 + t16) : c2_zMin;
+        var shelfZ2 = (signZ > 0) ? c2_zMax : (c2_zMax - 50 - t16);
+
+        // 3. Р Р°СЃС‡РµС‚ РІС‹СЃРѕС‚ РїРѕР»РѕРє РІ СЃРІРµС‚Сѓ:
+        // РџРѕР»РєР° 1 (СЃРёР»РѕРІР°СЏ): С‡РёСЃС‚Р°СЏ РЅРёС€Р° 650 РјРј РѕС‚ РґРЅР°
+        var yShelf1 = dnoTopY + 650; // baseY + 726 РјРј
+
+        // РџРѕР»РєР° 4 (СЃРёР»РѕРІР°СЏ): С‡РёСЃС‚Р°СЏ РЅРёС€Р° 700 РјРј РѕС‚ РєСЂС‹С€РєРё
+        var yShelf4 = roofBotY - 700 - t16; // baseY + 1928 РјРј
+
+        // РџРѕР»РєРё 2 Рё 3: СЂР°РІРЅС‹Р№ С€Р°Рі РјРµР¶РґСѓ РїРѕР»РєР°РјРё 1 Рё 4 (~385 РјРј РІ СЃРІРµС‚Сѓ)
+        var spaceMid = yShelf4 - (yShelf1 + t16); // 1186 РјРј
+        var stepMid = (spaceMid - 2 * t16) / 3;   // ~385 РјРј
+        var yShelf2 = yShelf1 + t16 + stepMid;    // baseY + 1127 РјРј
+        var yShelf3 = yShelf2 + t16 + stepMid;    // baseY + 1528 РјРј
+
+        var sh1 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf1);
+        sh1.Name = 'РџРѕР»РєР° 1 СЃРёР»РѕРІР°СЏ (РЅРёС€Р° 650 РјРј РѕС‚ РґРЅР°)';
+
+        var sh2 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf2);
+        sh2.Name = 'РџРѕР»РєР° 2 СЃСЉРµРјРЅР°СЏ (РЅРёС€Р° 385 РјРј)';
+
+        var sh3 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf3);
+        sh3.Name = 'РџРѕР»РєР° 3 СЃСЉРµРјРЅР°СЏ (РЅРёС€Р° 385 РјРј, РЅР°Рґ РІС‹СЂРµР·РѕРј СЃС‡РµС‚С‡РёРєРѕРІ)';
+
+        var sh4 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf4);
+        sh4.Name = 'РџРѕР»РєР° 4 СЃРёР»РѕРІР°СЏ (Р°РЅС‚СЂРµСЃРѕР»СЊ 700 РјРј РѕС‚ РІРµСЂС…Р°)';
+
+        // 4. Р’С‹СЂРµР· РїРѕРґ СЃС‡РµС‚С‡РёРєРё РІ РїСЂР°РІРѕР№ Р±РѕРєРѕРІРёРЅРµ (Y = 1250..1430 РјРј, H = 180 РјРј)
+        // Р”РѕР±Р°РІР»СЏРµРј СЂРµР°Р»СЊРЅС‹Р№ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅС‹Р№ РІС‹СЂРµР· РІ РєРѕРЅС‚СѓСЂ РїСЂР°РІРѕР№ Р±РѕРєРѕРІРёРЅС‹
+        if (s2_rightPanel && s2_rightPanel.Contour) {
+            try {
+                // Р’ Р»РѕРєР°Р»СЊРЅРѕР№ СЃРёСЃС‚РµРјРµ РєРѕРѕСЂРґРёРЅР°С‚ РІРµСЂС‚РёРєР°Р»СЊРЅРѕР№ РїР°РЅРµР»Рё:
+                // РѕСЃСЊ X РєРѕРЅС‚СѓСЂР° = Z РїР°РЅРµР»Рё (РѕС‚ 50 РґРѕ 370 РјРј), РѕСЃСЊ Y РєРѕРЅС‚СѓСЂР° = Y РїР°РЅРµР»Рё (РѕС‚ 1250 РґРѕ 1430 РјРј)
+                s2_rightPanel.Contour.AddRectangle(50, 1250, 370, 1430);
+                s2_rightPanel.Build();
+            } catch(eCut) {}
+        }
+
+        // РњРѕРЅС‚Р°Р¶ СЃС‚СЏР¶РµРє Rafix РЅР° РїРѕР»РєРё С€РєР°С„Р° 2
+        if (rafixFurn) {
+            try {
+                var midZ = (shelfZ1 + shelfZ2) / 2;
+                rafixFurn.Mount(sh1, null, c2_innerX1, yShelf1, midZ);
+                rafixFurn.Mount(sh1, null, c2_innerX2, yShelf1, midZ);
+                rafixFurn.Mount(sh4, null, c2_innerX1, yShelf4, midZ);
+                rafixFurn.Mount(sh4, null, c2_innerX2, yShelf4, midZ);
+            } catch(eRf2) {}
+        }
+
+        EndBlock();
     }
-    applyThick26(cab1);
-    cab1.Build();
-} else {
-    // Резервное построение короба 1 из 26 мм
-    ActiveMaterial.Make('ЛДСП 26 мм', 26);
-    var s1_left = AddVertPanel(baseX, baseY, baseZ, baseX + 26, baseY + H1, baseZ + D1);
-    s1_left.Name = 'Боковина левая (26 мм)';
-    var s1_right = AddVertPanel(baseX + W1 - 26, baseY, baseZ, baseX + W1, baseY + H1, baseZ + D1);
-    s1_right.Name = 'Боковина правая (26 мм)';
-    var s1_roof = AddHorizPanel(baseX + 26, baseZ, baseX + W1 - 26, baseZ + D1, baseY + H1 - 26);
-    s1_roof.Name = 'Крышка (26 мм)';
-    var s1_dno = AddHorizPanel(baseX + 26, baseZ, baseX + W1 - 26, baseZ + D1, baseY + 600);
-    s1_dno.Name = 'Дно высокое (26 мм, проем 600)';
-}
 
-// Задняя стенка Шкафа 1 из ЛДСП
-ActiveMaterial.Make('ЛДСП 26 мм', 26);
-var backWall1 = AddFrontPanel(baseX + 26, baseY + 626, baseX + W1 - 26, baseY + H1 - 26, baseZ + 2);
-backWall1.Name = 'Задняя стенка ЛДСП';
+    EndBlock();
 
-// ------------------------------------------------------------------------------
-// ШКАФ 2: Правый шкаф (ЛДСП 16 мм, 1200 x 2660 x 600, цоколь 60 мм)
-// ------------------------------------------------------------------------------
-var W2 = 1200;
-var H2 = 2660;
-var D2 = 600;
-
-var cab2 = AddBlock('Шкаф 2 (ЛДСП 16 мм, 1200x2660x600)');
-var loaded2 = false;
-if (fragPath2 !== '') {
     try {
-        loaded2 = cab2.Load(fragPath2);
-    } catch(eL2) {
-        loaded2 = false;
-    }
+        Action.Commit();
+    } catch(eC) {}
+
+    try {
+        ViewAll();
+        SetCamera(p3dIsometric);
+    } catch(eV) {}
 }
 
-if (loaded2) {
-    var el2 = findResizeBlock(cab2);
-    if (el2) {
-        try {
-            el2.ElasticResize(NewVector(W2, H2, D2));
-            el2.Build();
-        } catch(eR2) {}
-    }
-    // Ставим шкаф 2 вплотную к шкафу 1
-    cab2.Position = NewVector(baseX + W1, baseY, baseZ);
-    cab2.Build();
-} else {
-    // Резервное построение базы 2, если файл не найден
-    ActiveMaterial.Make('ЛДСП 16 мм', 16);
-    var c2_x0 = baseX + W1;
-    var s2_left = AddVertPanel(c2_x0, baseY, baseZ, c2_x0 + 16, baseY + H2, baseZ + D2);
-    s2_left.Name = 'Боковина левая';
-    var s2_right = AddVertPanel(c2_x0 + W2 - 16, baseY, baseZ, c2_x0 + W2, baseY + H2, baseZ + D2);
-    s2_right.Name = 'Боковина правая';
-    var s2_socle = AddFrontPanel(c2_x0 + 16, baseY, c2_x0 + W2 - 16, baseY + 60, baseZ + D2 - 25 - 16);
-    s2_socle.Name = 'Цоколь H=60';
-    var s2_bottom = AddHorizPanel(c2_x0 + 16, baseZ + 66, c2_x0 + W2 - 16, baseZ + D2, baseY + 60);
-    s2_bottom.Name = 'Дно';
-    var s2_roof = AddHorizPanel(c2_x0 + 16, baseZ + 66, c2_x0 + W2 - 16, baseZ + D2, baseY + H2 - 16);
-    s2_roof.Name = 'Крышка';
+// Р—Р°РїСѓСЃРє РїРѕСЃС‚СЂРѕРµРЅРёСЏ
+buildComplex();
+
+// РћР±СЂР°Р±РѕС‚РєР° РёР·РјРµРЅРµРЅРёР№ РІ РїР°РЅРµР»Рё СЃРІРѕР№СЃС‚РІ
+if (Prop) {
+    Prop.OnChange = function() {
+        buildComplex();
+    };
 }
-
-// ------------------------------------------------------------------------------
-// НАПОЛНЕНИЕ ШКАФА 2 (Задняя стенка ЛДСП 16 мм + полки без прохода сквозь нее)
-// ------------------------------------------------------------------------------
-ActiveMaterial.Make('ЛДСП 16 мм', 16);
-
-var c2_innerX1 = baseX + W1 + 16;
-var c2_innerX2 = baseX + W1 + W2 - 16;
-var dnoTopY = baseY + 60 + 16;     // верх дна = 76 мм от пола
-var roofBotY = baseY + H2 - 16;     // низ крышки = 2644 мм от пола
-
-// 1. Отступ 50 мм от стены, задняя стенка ЛДСП 16 мм (на Z = baseZ + 50..66)
-var backZ1 = baseZ + 50;
-var backZ2 = baseZ + 50 + 16; // 66 мм
-var backWall2 = AddFrontPanel(c2_innerX1, dnoTopY, c2_innerX2, roofBotY, backZ1);
-backWall2.Name = 'Задняя стенка ЛДСП 16 мм (отступ 50 мм)';
-
-// 2. Полки начинаются СТРОГО от передней пласти задней стенки (Z = 66)
-//    и идут до передней кромки (Z = 600). Глубина полок = 534 мм.
-//    Полки НЕ проходят сквозь заднюю стенку!
-var shelfZ1 = backZ2;         // 66 мм
-var shelfZ2 = baseZ + D2;     // 600 мм
-
-// 3. Расчет уровней полок
-// Полка 1: ниша 650 мм от дна в свету
-var yShelf1 = dnoTopY + 650; // baseY + 726
-
-// Полка 4: ниша 700 мм от верха в свету
-var yShelf4 = roofBotY - 700 - 16; // baseY + 1928
-
-// 2 промежуточные полки (3 равные ниши по 385 мм)
-var spaceMid = yShelf4 - (yShelf1 + 16); // 1186 мм
-var stepMid = (spaceMid - 2 * 16) / 3;   // ~385 мм
-var yShelf2 = yShelf1 + 16 + stepMid;    // baseY + 1127
-var yShelf3 = yShelf2 + 16 + stepMid;    // baseY + 1528
-
-var sh1 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf1);
-sh1.Name = 'Полка 1 силовая (ниша 650 от дна)';
-
-var sh2 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf2);
-sh2.Name = 'Полка 2 съемная (ниша 385)';
-
-var sh3 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf3);
-sh3.Name = 'Полка 3 съемная (ниша 385, над вырезом)';
-
-var sh4 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf4);
-sh4.Name = 'Полка 4 силовая (ниша 700 от верха)';
-
-// 4. Окно выреза под счетчики в правой боковине (Y = 1250..1430, H = 180 мм)
-var cutBox = AddBox(c2_innerX2 - 2, baseY + 1250, baseZ + 50, baseX + W1 + W2 + 2, baseY + 1430, baseZ + 370);
-cutBox.Color = 0xd32f2f;
-cutBox.Name = 'Вырез под счетчики (180x320 мм)';
-
-// ------------------------------------------------------------------------------
-// ЗАВЕРШЕНИЕ
-// ------------------------------------------------------------------------------
-try {
-    Action.Commit();
-} catch(eC) {}
-
-try {
-    ViewAll();
-    SetCamera(p3dIsometric);
-} catch(eV) {}
