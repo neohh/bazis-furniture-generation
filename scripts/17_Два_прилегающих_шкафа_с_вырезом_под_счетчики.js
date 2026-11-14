@@ -6,19 +6,19 @@
 //    - Высокое дно: чистый проем снизу ровно 600 мм
 //    - Строится с идеальной миллиметровой точностью из панелей 26 мм:
 //      боковины, крышка, дно и задняя стенка стыкуются заподлицо без нахлестов и щелей!
-//    - Задняя стенка ЛДСП: встроена в проем встык
+//    - Задняя стенка ЛДСП 26 мм: встроена в проем встык
 //    - Штанга овальная 30х15 на высоте 2500 мм
 //
 // 2. Шкаф 2 (правый): 1200 x 2660 x 600 мм, ЛДСП 16 мм
-//    - База: цоколь 60 мм, без козырька
+//    - База: цоколь 60 мм, сплошная правая боковина (без выреза под счетчик)
+//    - Все детали строятся с идеальной точностью под ширину 1200 мм (проем 1168 мм):
+//      полки и задняя стенка СТРОГО внутри корпуса, ничего не вылезает!
 //    - Задняя стенка: ЛДСП 16 мм с отступом 50 мм от задней стены (Z = 50..66 мм)
-//    - Полки: глубина 534 мм (Z = 66..600 мм), примыкают к задней стенке и НЕ проходят сквозь нее
+//    - Полки: глубина 534 мм (Z = 66..600 мм), примыкают к передней пласти задней стенки
 //    - Высоты ниш в свету:
 //      * Нижняя ниша: 650 мм от дна (Y = 726 мм)
 //      * Верхняя ниша (антресоль): 700 мм от крышки (Y = 1928 мм)
 //      * 2 промежуточные полки с равным шагом ~385 мм (Y = 1127 мм и Y = 1528 мм)
-//    - Вырез под счетчики: в правой боковине на Y = 1250..1430 мм (высота 180 мм).
-//      Попадает строго внутрь 3-й ниши (между Y=1143 и Y=1528 с запасом >100 мм сверху и снизу!).
 // ==============================================================================
 
 // 1. Точка привязки
@@ -33,15 +33,6 @@ if (!basePt || isNaN(basePt.x)) {
 }
 
 // 2. Поиск фурнитуры
-function findFile(paths) {
-    for (var i = 0; i < paths.length; i++) {
-        try {
-            if (system.fileExists(paths[i])) return paths[i];
-        } catch(e) {}
-    }
-    return '';
-}
-
 function getFurn(paths) {
     for (var i = 0; i < paths.length; i++) {
         try {
@@ -53,11 +44,6 @@ function getFurn(paths) {
     }
     return null;
 }
-
-var fragPath2 = findFile([
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Шкафы\\шкаф база 1.fr3d',
-    'Z:\\Work\\генерация мебели\\Фрагменты\\Шкафы\\шкаф база 1.fr3d'
-]);
 
 var rafixFurn = getFurn([
     'z:\\Work\\генерация мебели\\furn\\стяжка_rafix_16.fr3d',
@@ -74,34 +60,6 @@ var rodFurn = getFurn([
     'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Наполнение\\Штанга овальная.fr3d',
     'Z:\\Work\\генерация мебели\\furn\\штанга_овальная.fr3d'
 ]);
-
-// Рекурсивный поиск эластичного блока
-function findResizeBlock(obj) {
-    if (!obj) return null;
-    if (obj.Elastic && obj.ElasticResize) return obj;
-    if (obj.Count) {
-        for (var i = 0; i < obj.Count; i++) {
-            var child = obj.Objects ? obj.Objects[i] : obj[i];
-            var res = findResizeBlock(child);
-            if (res) return res;
-        }
-    }
-    return null;
-}
-
-// Поиск панели по имени в блоке
-function findPanelByName(obj, nameSubstr) {
-    if (!obj) return null;
-    if (obj.AsPanel && obj.Name && obj.Name.indexOf(nameSubstr) !== -1) return obj.AsPanel;
-    if (obj.Count) {
-        for (var i = 0; i < obj.Count; i++) {
-            var child = obj.Objects ? obj.Objects[i] : obj[i];
-            var found = findPanelByName(child, nameSubstr);
-            if (found) return found;
-        }
-    }
-    return null;
-}
 
 // 3. Панель свойств (Action.Properties)
 var Prop = null;
@@ -223,6 +181,8 @@ function buildComplex() {
 
     // ==========================================================================
     // ШКАФ 2: Правый шкаф (ЛДСП 16 мм, 1200 x 2660 x 600 мм, цоколь 60 мм)
+    // Корпус строится с миллиметровой точностью под ширину 1200 мм!
+    // Никаких вылетов за пределы корпуса! Правая боковина сплошная, без выреза.
     // ==========================================================================
     if (bMode === 0 || bMode === 2) {
         var W2 = 1200;
@@ -244,74 +204,53 @@ function buildComplex() {
 
         BeginBlock('Шкаф 2 (ЛДСП 16 мм, 1200x2660x600)');
 
-        var s2_rightPanel = null;
-        var cab2 = AddBlock('Корпус шкафа 2');
-        var loaded2 = false;
-
-        if (fragPath2 !== '') {
-            try {
-                loaded2 = cab2.Load(fragPath2);
-            } catch(eL2) {
-                loaded2 = false;
-            }
-        }
-
-        if (loaded2) {
-            var el2 = findResizeBlock(cab2);
-            if (el2) {
-                try {
-                    el2.ElasticResize(NewVector(W2, H2, D2));
-                    el2.Build();
-                } catch(eR2) {}
-            }
-            cab2.Position = NewVector(c2_xMin, c2_y0, c2_zMin);
-            cab2.Build();
-            s2_rightPanel = findPanelByName(cab2, 'правая');
-        } else {
-            // Резервное построение корпуса шкафа 2 (база 1: цоколь 60 мм, без козырька)
-            ActiveMaterial.Make('ЛДСП 16 мм', t16);
-
-            var s2_left = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMin);
-            s2_left.Name = 'Боковина левая';
-
-            var s2_right = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMax - t16);
-            s2_right.Name = 'Боковина правая';
-            s2_rightPanel = s2_right;
-
-            var s2_socleFront = AddFrontPanel(c2_xMin + t16, c2_y0, c2_xMax - t16, c2_y0 + 60, c2_zMax - 25 - t16);
-            s2_socleFront.Name = 'Цоколь передний H=60';
-
-            var s2_socleRear = AddFrontPanel(c2_xMin + t16, c2_y0, c2_xMax - t16, c2_y0 + 60, c2_zMin + 80);
-            s2_socleRear.Name = 'Цоколь задний H=60';
-
-            var s2_bottom = AddHorizPanel(c2_xMin + t16, c2_zMin, c2_xMax - t16, c2_zMax, c2_y0 + 60);
-            s2_bottom.Name = 'Дно';
-
-            var s2_roof = AddHorizPanel(c2_xMin + t16, c2_zMin, c2_xMax - t16, c2_zMax, c2_yTop - t16);
-            s2_roof.Name = 'Крышка';
-        }
-
-        // Внутреннее наполнение Шкафа 2
         ActiveMaterial.Make('ЛДСП 16 мм', t16);
 
+        // 1. Боковина левая (прилегает к правому торцу Шкафа 1)
+        var s2_left = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMin);
+        s2_left.Name = 'Боковина левая';
+
+        // 2. Боковина правая (сплошная стенка, строго на внешнем краю W2 = 1200 мм)
+        var s2_right = AddVertPanel(c2_zMin, c2_y0, c2_zMax, c2_yTop, c2_xMax - t16);
+        s2_right.Name = 'Боковина правая (сплошная)';
+
+        // Внутренний проем шкафа 2 (ровно 1168 мм)
         var c2_innerX1 = c2_xMin + t16;
         var c2_innerX2 = c2_xMax - t16;
+
+        // 3. Цоколи H=60 мм
+        var socleFrontZ = (signZ > 0) ? (c2_zMax - 25 - t16) : (c2_zMin + 25);
+        var s2_socleFront = AddFrontPanel(c2_innerX1, c2_y0, c2_innerX2, c2_y0 + 60, socleFrontZ);
+        s2_socleFront.Name = 'Цоколь передний H=60';
+
+        var socleRearZ = (signZ > 0) ? (c2_zMin + 80) : (c2_zMax - 80 - t16);
+        var s2_socleRear = AddFrontPanel(c2_innerX1, c2_y0, c2_innerX2, c2_y0 + 60, socleRearZ);
+        s2_socleRear.Name = 'Цоколь задний H=60';
+
+        // 4. Дно (на высоте 60 мм от пола)
+        var s2_bottom = AddHorizPanel(c2_innerX1, c2_zMin, c2_innerX2, c2_zMax, c2_y0 + 60);
+        s2_bottom.Name = 'Дно';
+
+        // 5. Крышка (заподлицо сверху, под уровень yTop)
+        var s2_roof = AddHorizPanel(c2_innerX1, c2_zMin, c2_innerX2, c2_zMax, c2_yTop - t16);
+        s2_roof.Name = 'Крышка';
+
         var dnoTopY = c2_y0 + 60 + t16;    // верх дна = 76 мм от пола
         var roofBotY = c2_yTop - t16;        // низ крышки = 2644 мм от пола
 
-        // 1. Задняя стенка ЛДСП 16 мм с отступом 50 мм от задней стены:
-        //    Z стенки = [c2_zMin + 50 .. c2_zMin + 66 мм]
+        // 6. Задняя стенка ЛДСП 16 мм с отступом 50 мм от задней стены
+        //    Строго внутри проема c2_innerX1..c2_innerX2 (1168 мм) - НИКУДА НЕ ВЫЛАЗИТ!
         var backZ1 = (signZ > 0) ? (c2_zMin + 50) : (c2_zMax - 50 - t16);
         var backWall2 = AddFrontPanel(c2_innerX1, dnoTopY, c2_innerX2, roofBotY, backZ1);
         backWall2.Name = 'Задняя стенка ЛДСП 16 мм (отступ 50 мм)';
 
-        // 2. Полки начинаются строго от передней пласти задней стенки (Z = 66 мм)
+        // 7. Полки: начинаются строго от передней пласти задней стенки (Z = 66 мм)
         //    до передней кромки шкафа (Z = 600 мм). Глубина полок = 534 мм.
-        //    Полки НЕ проходят сквозь заднюю стенку!
+        //    Строго внутри проема c2_innerX1..c2_innerX2 (1168 мм) - НИКУДА НЕ ВЫЛАЗЯТ!
         var shelfZ1 = (signZ > 0) ? (c2_zMin + 50 + t16) : c2_zMin;
         var shelfZ2 = (signZ > 0) ? c2_zMax : (c2_zMax - 50 - t16);
 
-        // 3. Расчет высот полок в свету:
+        // Расчет высот полок в свету:
         // Полка 1 (силовая): чистая ниша 650 мм от дна
         var yShelf1 = dnoTopY + 650; // baseY + 726 мм
 
@@ -331,21 +270,10 @@ function buildComplex() {
         sh2.Name = 'Полка 2 съемная (ниша 385 мм)';
 
         var sh3 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf3);
-        sh3.Name = 'Полка 3 съемная (ниша 385 мм, над вырезом счетчиков)';
+        sh3.Name = 'Полка 3 съемная (ниша 385 мм)';
 
         var sh4 = AddHorizPanel(c2_innerX1, shelfZ1, c2_innerX2, shelfZ2, yShelf4);
         sh4.Name = 'Полка 4 силовая (антресоль 700 мм от верха)';
-
-        // 4. Вырез под счетчики в правой боковине (Y = 1250..1430 мм, H = 180 мм)
-        // Добавляем реальный прямоугольный вырез в контур правой боковины
-        if (s2_rightPanel && s2_rightPanel.Contour) {
-            try {
-                // В локальной системе координат вертикальной панели:
-                // ось X контура = Z панели (от 50 до 370 мм), ось Y контура = Y панели (от 1250 до 1430 мм)
-                s2_rightPanel.Contour.AddRectangle(50, 1250, 370, 1430);
-                s2_rightPanel.Build();
-            } catch(eCut) {}
-        }
 
         // Монтаж стяжек Rafix на полки шкафа 2
         if (rafixFurn) {
