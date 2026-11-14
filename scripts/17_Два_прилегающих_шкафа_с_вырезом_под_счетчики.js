@@ -49,6 +49,7 @@ try {
 }
 
 // 2. Интерактивный выбор точки привязки
+Action.Hint = 'Кликните точку привязки комплекса (X, Y, Z) или нажмите Enter для (0, 0, 0)';
 var basePt = null;
 try {
     basePt = GetPoint('Укажите точку привязки левого нижнего угла комплекса (X, Y, Z):');
@@ -58,7 +59,10 @@ if (!basePt) {
     basePt = NewVector(0, 0, 0);
 }
 
-// 3. Создание панели свойств (Action.Properties)
+// 3. Создание панели свойств Action.Properties
+var Prop = Action.Properties;
+Prop.Clear();
+
 var grPos = Prop.NewGroup('1. Привязка и состав комплекса');
 var pBuildMode = grPos.NewCombo('Что строить', 
     '1. Оба шкафа (комплекс 2080 мм)\n' +
