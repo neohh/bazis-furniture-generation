@@ -31,6 +31,11 @@ def generate_svg():
       <rect width="20" height="20" fill="#f1f8e9" />
       <line x1="0" y1="0" x2="0" y2="20" stroke="#33691e" stroke-width="3.5" />
     </pattern>
+    <!-- Задняя стенка ЛДСП 16 мм -->
+    <pattern id="hatch-backwall" width="12" height="12" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#e0f2f1" />
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#00796b" stroke-width="2" />
+    </pattern>
     <!-- Полки жесткие фиолетовые -->
     <pattern id="hatch-fixed" width="16" height="16" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
       <rect width="16" height="16" fill="#f3e5f5" />
@@ -46,7 +51,7 @@ def generate_svg():
       <rect width="12" height="12" fill="#ffebee" />
       <line x1="0" y1="0" x2="0" y2="12" stroke="#e53935" stroke-width="2" />
     </pattern>
-    <!-- Задний отступ 50 мм -->
+    <!-- Задний отступ 50 мм под трубы -->
     <pattern id="hatch-gap" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
       <rect width="10" height="10" fill="#eceff1" />
       <line x1="0" y1="0" x2="0" y2="10" stroke="#90a4ae" stroke-width="1.5" />
@@ -70,6 +75,12 @@ def generate_svg():
     </marker>
     <marker id="arrow-end-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L9,3 L0,6 z" fill="#1565c0" />
+    </marker>
+    <marker id="arrow-start-teal" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M9,0 L0,3 L9,6 z" fill="#00796b" />
+    </marker>
+    <marker id="arrow-end-teal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3 L0,6 z" fill="#00796b" />
     </marker>''')
     svg.append('  </defs>\n')
 
@@ -77,7 +88,7 @@ def generate_svg():
     svg.append('  <!-- ==================== ШАПКА ПРОЕКТА ==================== -->')
     svg.append('  <rect x="-200" y="-300" width="4350" height="120" fill="#1a237e" rx="8" />')
     svg.append('  <text x="-150" y="-230" fill="#ffffff" font-size="38" font-weight="bold">КОМПЛЕКС ИЗ ДВУХ ПРИЛЕГАЮЩИХ ШКАФОВ (ОБЩИЙ L=2080 мм, H=2660 мм)</text>')
-    svg.append('  <text x="-150" y="-195" fill="#9fa8da" font-size="22">Шкаф 1: 880 мм (ЛДСП 26 мм, высокое дно 600) | Шкаф 2: 1200 мм (ЛДСП 16 мм, цоколь 60, ниша 650, 3 ниши по 385, верх 700)</text>\n')
+    svg.append('  <text x="-150" y="-195" fill="#9fa8da" font-size="22">Шкаф 1: 880 мм (ЛДСП 26 мм, высокое дно 600) | Шкаф 2: 1200 мм (ЛДСП 16 мм, цоколь 60, отступ 50, стенка ЛДСП 16 мм, вырез счетчиков)</text>\n')
 
     # Floor and Ceiling reference lines
     svg.append('  <!-- Пол и Потолок -->')
@@ -104,7 +115,7 @@ def generate_svg():
     svg.append('    <g id="cabinet-1">')
     # Background panel (ЛДСП back)
     svg.append(f'      <rect x="{c1_x + t26}" y="{sy(2634)}" width="{c1_inner_w}" height="{2634 - 626}" fill="#e8f5e9" stroke="#81c784" stroke-width="1.5" />')
-    svg.append(f'      <text x="{c1_x + c1_w/2}" y="{sy(1600)}" fill="#2e7d32" font-size="22" font-weight="bold" text-anchor="middle">Задняя стенка ЛДСП</text>')
+    svg.append(f'      <text x="{c1_x + c1_w/2}" y="{sy(1600)}" fill="#2e7d32" font-size="22" font-weight="bold" text-anchor="middle">Задняя стенка ЛДСП 26 мм</text>')
     
     # Left side (26 mm)
     svg.append(f'      <rect x="{c1_x}" y="{sy(2660)}" width="{t26}" height="2660" fill="url(#hatch-thick26)" stroke="#1b5e20" stroke-width="2" />')
@@ -142,23 +153,18 @@ def generate_svg():
     t16 = 16
     c2_inner_w = c2_w - 2 * t16 # 1168 mm
 
-    # Shelf coordinates:
-    # Floor: 0
-    # Socle: 60 (Y = 0..60)
-    # Bottom: 16 (Y = 60..76)
-    # Niche 1 (bottom): 650 mm -> Shelf 1: Y = 726..742
-    # Niche 2: 385 mm -> Shelf 2: Y = 1127..1143
-    # Niche 3: 385 mm -> Shelf 3: Y = 1528..1544 (Cutout is Y = 1250..1430, inside Niche 3!)
-    # Niche 4: 385 mm -> Shelf 4: Y = 1929..1945
-    # Niche 5 (top): 700 mm -> Roof: Y = 2644..2660
     socle_h = 60
     s1_y = 726
     s2_y = 1127
     s3_y = 1528
     s4_y = 1929
 
-    svg.append('    <!-- ШКАФ 2 (ПРАВЫЙ ШКАФ 1200 мм): ЛДСП 16 мм, цоколь 60, полки 650, 3x385, 700 -->')
+    svg.append('    <!-- ШКАФ 2 (ПРАВЫЙ ШКАФ 1200 мм): ЛДСП 16 мм, задняя стенка 16 мм, полки 650, 3x385, 700 -->')
     svg.append('    <g id="cabinet-2">')
+    # Задняя стенка ЛДСП 16 мм (фон)
+    svg.append(f'      <rect x="{c2_x + t16}" y="{sy(2644)}" width="{c2_inner_w}" height="{2644 - 76}" fill="url(#hatch-backwall)" stroke="#004d40" stroke-width="1.5" />')
+    svg.append(f'      <text x="{c2_x + c2_w/2}" y="{sy(2300)}" fill="#00695c" font-size="20" font-weight="bold" text-anchor="middle">Задняя стенка ЛДСП 16 мм (отступ 50 мм от стены)</text>')
+    
     # Left side (16 мм)
     svg.append(f'      <rect x="{c2_x}" y="{sy(2660)}" width="{t16}" height="2660" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />')
     # Right side (16 мм)
@@ -167,7 +173,7 @@ def generate_svg():
     svg.append(f'      <rect x="{c2_x + t16}" y="{sy(2660)}" width="{c2_inner_w}" height="{t16}" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />')
     # Socle (60 mm)
     svg.append(f'      <rect x="{c2_x + t16}" y="{sy(socle_h)}" width="{c2_inner_w}" height="{socle_h}" fill="#cfd8dc" stroke="#455a64" stroke-width="1.5" />')
-    svg.append(f'      <text x="{c2_x + c2_w/2}" y="{sy(30) + 6}" fill="#37474f" font-size="16" font-weight="bold" text-anchor="middle">Цоколь H=60 мм (как в исходной базе)</text>')
+    svg.append(f'      <text x="{c2_x + c2_w/2}" y="{sy(30) + 6}" fill="#37474f" font-size="16" font-weight="bold" text-anchor="middle">Цоколь H=60 мм</text>')
     # Bottom panel (16 mm at Y=60..76)
     svg.append(f'      <rect x="{c2_x + t16}" y="{sy(socle_h + t16)}" width="{c2_inner_w}" height="{t16}" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="2" />')
     
@@ -235,7 +241,9 @@ def generate_svg():
 
     # =========================================================================
     # VIEW 2: RIGHT SIDE SECTION OF CABINET 2 (ВИД СПРАВА / РАЗРЕЗ)
-    # Depth = 600 mm, Height = 2660 mm, showing 50 mm rear setback and base socle setback
+    # Depth = 600 mm, Height = 2660 mm
+    # Shows: Wall at s_x, 50 mm gap (s_x..s_x+50), Back wall 16 mm (s_x+50..s_x+66),
+    # Shelves starting at s_x+66 and going to s_x+600 (depth 534 mm, NO penetration!)
     # Placed at X = 2320..2920
     # =========================================================================
     s_x = 2320
@@ -243,32 +251,45 @@ def generate_svg():
     svg.append('  <!-- ==================== ВИД СПРАВА / РАЗРЕЗ ПРАВОГО ШКАФА ==================== -->')
     svg.append('  <g id="view-side-section">')
     svg.append(f'    <text x="{s_x}" y="{sy(2660) - 100}" fill="#0d47a1" font-size="28" font-weight="bold">2. СЕЧЕНИЕ / ВИД СПРАВА ШКАФА 2 (D = 600 мм)</text>')
-    svg.append(f'    <text x="{s_x}" y="{sy(2660) - 70}" fill="#546e7a" font-size="18">Показан вырез под счетчики, отступ от стены 50 мм и цоколь базы 60 мм</text>')
+    svg.append(f'    <text x="{s_x}" y="{sy(2660) - 70}" fill="#004d40" font-size="18" font-weight="bold">Показана задняя стенка ЛДСП 16 мм (отступ 50), полки примыкают без прохода сквозь нее</text>')
 
     # Rear wall line
     svg.append(f'    <line x1="{s_x}" y1="{sy(0)}" x2="{s_x}" y2="{sy(2660)}" stroke="#37474f" stroke-width="4" />')
-    svg.append(f'    <text x="{s_x - 15}" y="{sy(1330)}" fill="#37474f" font-size="18" font-weight="bold" text-anchor="middle" transform="rotate(-90 {s_x - 15} {sy(1330)})">СТЕНА ПОМЕЩЕНИЯ</text>')
+    svg.append(f'    <text x="{s_x - 15}" y="{sy(1330)}" fill="#37474f" font-size="18" font-weight="bold" text-anchor="middle" transform="rotate(-90 {s_x - 15} {sy(1330)})">СТЕНА ПОМЕЩЕНИЯ (Z=0)</text>')
 
-    # Outer side panel boundary
+    # Outer side panel boundary (600 mm full depth to wall)
     svg.append(f'    <rect x="{s_x}" y="{sy(2660)}" width="{s_d}" height="2660" fill="none" stroke="#2c3e50" stroke-width="2.5" />')
 
-    # 50 mm rear gap zone
+    # 1. Задний зазор 50 мм под трубы/проводку (от s_x до s_x+50)
     svg.append(f'    <rect x="{s_x}" y="{sy(2660)}" width="50" height="2660" fill="url(#hatch-gap)" stroke="#90a4ae" stroke-width="1" stroke-dasharray="4,4" />')
-    svg.append(f'    <text x="{s_x + 25}" y="{sy(2000)}" fill="#546e7a" font-size="14" font-weight="bold" text-anchor="middle" transform="rotate(-90 {s_x + 25} {sy(2000)})">ОТСТУП 50 мм ПОД КОММУНИКАЦИИ</text>')
+    svg.append(f'    <text x="{s_x + 25}" y="{sy(2000)}" fill="#546e7a" font-size="14" font-weight="bold" text-anchor="middle" transform="rotate(-90 {s_x + 25} {sy(2000)})">ЗАЗОР 50 мм (ТРУБЫ / КАБЕЛИ)</text>')
 
-    # Internal panels depth = 550 mm (from s_x+50 to s_x+600)
-    svg.append(f'    <rect x="{s_x + 50}" y="{sy(76)}" width="550" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="1.5" />')
-    svg.append(f'    <rect x="{s_x + 50}" y="{sy(2660)}" width="550" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="1.5" />')
+    # 2. ЗАДНЯЯ СТЕНКА ЛДСП 16 мм (от s_x+50 до s_x+66)
+    svg.append(f'    <!-- Задняя стенка ЛДСП 16 мм -->')
+    svg.append(f'    <rect x="{s_x + 50}" y="{sy(2644)}" width="16" height="{2644 - 76}" fill="url(#hatch-backwall)" stroke="#004d40" stroke-width="2" />')
+    svg.append(f'    <text x="{s_x + 58}" y="{sy(1400)}" fill="#004d40" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90 {s_x + 58} {sy(1400)})">СТЕНКА ЛДСП 16 мм</text>')
+
+    # 3. Горизонтали и полки (начинаются СТРОГО от s_x+66 и идут до s_x+600, глубина = 534 мм)
+    # Полки НЕ проходят сквозь заднюю стенку!
+    shelf_start_z = s_x + 66
+    shelf_depth = 600 - 66 # 534 mm
+
+    # Дно (Y=60..76)
+    svg.append(f'    <rect x="{shelf_start_z}" y="{sy(76)}" width="{shelf_depth}" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="1.5" />')
+    # Крышка (Y=2644..2660)
+    svg.append(f'    <rect x="{shelf_start_z}" y="{sy(2660)}" width="{shelf_depth}" height="16" fill="url(#hatch-carcass)" stroke="#2c3e50" stroke-width="1.5" />')
     
-    # Socle (height 60 mm, as in base fragment, e.g. recessed 20-30 mm)
+    # Socle (height 60 mm, recessed 25 mm from front: s_x+600-25-16 = s_x+559)
     svg.append(f'    <rect x="{s_x + 600 - 25 - 16}" y="{sy(60)}" width="16" height="60" fill="#cfd8dc" stroke="#37474f" stroke-width="2" />')
-    svg.append(f'    <text x="{s_x + 600 - 50}" y="{sy(25)}" fill="#37474f" font-size="13" font-weight="bold">Цоколь 60</text>')
+    svg.append(f'    <text x="{s_x + 600 - 55}" y="{sy(25)}" fill="#37474f" font-size="13" font-weight="bold">Цоколь 60</text>')
 
-    # Shelves in side section (depth = 550 mm)
+    # 4 Полки в сечении (глубина 534 мм)
     for sy_pos in [s1_y, s2_y, s3_y, s4_y]:
         fill_pat = "url(#hatch-fixed)" if sy_pos in [s1_y, s4_y] else "url(#hatch-removable)"
         stroke_col = "#4a148c" if sy_pos in [s1_y, s4_y] else "#e65100"
-        svg.append(f'    <rect x="{s_x + 50}" y="{sy(sy_pos + 16)}" width="550" height="16" fill="{fill_pat}" stroke="{stroke_col}" stroke-width="1.5" />')
+        svg.append(f'    <rect x="{shelf_start_z}" y="{sy(sy_pos + 16)}" width="{shelf_depth}" height="16" fill="{fill_pat}" stroke="{stroke_col}" stroke-width="1.5" />')
+        # Зеленая отметка плотного стыка с задней стенкой (полка не проходит насквозь)
+        svg.append(f'    <circle cx="{shelf_start_z}" cy="{sy(sy_pos + 8)}" r="4" fill="#2e7d32" />')
 
     # Utility Meter Cutout on right side panel:
     cut_w = 320
@@ -283,15 +304,24 @@ def generate_svg():
     svg.append(f'    <text x="{s_x + 630}" y="{sy(1330)}" fill="#0288d1" font-size="18" font-weight="bold" text-anchor="middle" transform="rotate(90 {s_x + 630} {sy(1330)})">ФАСАДЫ ЛДСП 16 мм</text>')
 
     # Depth dimensions
+    # Overall side depth = 600
     svg.append(f'    <line x1="{s_x}" y1="{sy(-30)}" x2="{s_x + 600}" y2="{sy(-30)}" stroke="#d32f2f" stroke-width="2.5" marker-start="url(#arrow-start-red)" marker-end="url(#arrow-end-red)" />')
     svg.append(f'    <text x="{s_x + 300}" y="{sy(-30) + 30}" fill="#d32f2f" font-size="22" font-weight="bold" text-anchor="middle">Глубина боковины = 600 мм</text>')
     
-    svg.append(f'    <line x1="{s_x}" y1="{sy(-90)}" x2="{s_x + 616}" y2="{sy(-90)}" stroke="#0288d1" stroke-width="2" marker-start="url(#arrow-start-blue)" marker-end="url(#arrow-end-blue)" />')
-    svg.append(f'    <text x="{s_x + 308}" y="{sy(-90) + 26}" fill="#0288d1" font-size="18" font-weight="bold" text-anchor="middle">Габарит с фасадом = 616 мм</text>')
+    # Shelf depth = 534 mm
+    svg.append(f'    <line x1="{shelf_start_z}" y1="{sy(-75)}" x2="{s_x + 600}" y2="{sy(-75)}" stroke="#2e7d32" stroke-width="2" marker-start="url(#arrow-start-teal)" marker-end="url(#arrow-end-teal)" />')
+    svg.append(f'    <text x="{shelf_start_z + shelf_depth/2}" y="{sy(-75) + 25}" fill="#2e7d32" font-size="18" font-weight="bold" text-anchor="middle">Глубина полок = 534 мм (до стенки)</text>')
 
-    # 50 mm dimension on top
+    # Facade total = 616
+    svg.append(f'    <line x1="{s_x}" y1="{sy(-120)}" x2="{s_x + 616}" y2="{sy(-120)}" stroke="#0288d1" stroke-width="2" marker-start="url(#arrow-start-blue)" marker-end="url(#arrow-end-blue)" />')
+    svg.append(f'    <text x="{s_x + 308}" y="{sy(-120) + 26}" fill="#0288d1" font-size="18" font-weight="bold" text-anchor="middle">Габарит с фасадом = 616 мм</text>')
+
+    # Top dimensions: 50 gap + 16 backwall
     svg.append(f'    <line x1="{s_x}" y1="{sy(2660) - 20}" x2="{s_x + 50}" y2="{sy(2660) - 20}" stroke="#d32f2f" stroke-width="2" marker-start="url(#arrow-start-red)" marker-end="url(#arrow-end-red)" />')
-    svg.append(f'    <text x="{s_x + 25}" y="{sy(2660) - 30}" fill="#d32f2f" font-size="16" font-weight="bold" text-anchor="middle">50</text>')
+    svg.append(f'    <text x="{s_x + 25}" y="{sy(2660) - 30}" fill="#d32f2f" font-size="15" font-weight="bold" text-anchor="middle">50</text>')
+    
+    svg.append(f'    <line x1="{s_x + 50}" y1="{sy(2660) - 20}" x2="{s_x + 66}" y2="{sy(2660) - 20}" stroke="#00796b" stroke-width="2" marker-start="url(#arrow-start-teal)" marker-end="url(#arrow-end-teal)" />')
+    svg.append(f'    <text x="{s_x + 58}" y="{sy(2660) - 30}" fill="#00796b" font-size="14" font-weight="bold" text-anchor="middle">16</text>')
 
     svg.append('  </g>\n')
 
@@ -310,7 +340,7 @@ def generate_svg():
 
     # Section 2: Parameters of Cabinet 1
     svg.append(f'    <text x="{p_x + 30}" y="{sy(2520)}" fill="#1b5e20" font-size="22" font-weight="bold">ШКАФ 1 (ЛЕВЫЙ ПОРТАЛ / ШКАФ ИЗ ЛДСП 26 мм):</text>')
-    svg.append(f'    <text x="{p_x + 50}" y="{sy(2470)}" fill="#263238" font-size="18">• Материал: <tspan font-weight="bold" fill="#1b5e20">ЛДСП 26 мм</tspan> (боковины, верх, дно, полки)</text>')
+    svg.append(f'    <text x="{p_x + 50}" y="{sy(2470)}" fill="#263238" font-size="18">• Материал: <tspan font-weight="bold" fill="#1b5e20">ЛДСП 26 мм</tspan> (боковины, верх, дно, задник)</text>')
     svg.append(f'    <text x="{p_x + 50}" y="{sy(2430)}" fill="#263238" font-size="18">• Габариты: <tspan font-weight="bold" fill="#2e7d32">880 × 2660 × 620 мм</tspan> (2080 - 1200 = 880)</text>')
     svg.append(f'    <text x="{p_x + 50}" y="{sy(2390)}" fill="#263238" font-size="18">• Внутренний проем по ширине: <tspan font-weight="bold">828 мм</tspan> (880 - 52 мм)</text>')
     svg.append(f'    <text x="{p_x + 50}" y="{sy(2350)}" fill="#263238" font-size="18">• Базовый блок: <tspan font-weight="bold">Высокое дно без цоколя</tspan></text>')
@@ -322,21 +352,22 @@ def generate_svg():
     svg.append(f'    <text x="{p_x + 30}" y="{sy(2160)}" fill="#0d47a1" font-size="22" font-weight="bold">ШКАФ 2 (ПРАВЫЙ ШКАФ ИЗ ЛДСП 16 мм):</text>')
     svg.append(f'    <text x="{p_x + 50}" y="{sy(2115)}" fill="#263238" font-size="18">• Материал: <tspan font-weight="bold">ЛДСП 16 мм</tspan></text>')
     svg.append(f'    <text x="{p_x + 50}" y="{sy(2080)}" fill="#263238" font-size="18">• Габариты: <tspan font-weight="bold" fill="#0d47a1">1200 × 2660 × 600 мм</tspan> (+ фасад 16 мм)</text>')
-    svg.append(f'    <text x="{p_x + 50}" y="{sy(2045)}" fill="#263238" font-size="18">• Базовый блок: <tspan font-weight="bold">База с цоколем без козырька</tspan></text>')
-    svg.append(f'    <text x="{p_x + 50}" y="{sy(2010)}" fill="#263238" font-size="18">• Высота цоколя: <tspan font-weight="bold" fill="#d32f2f">60 мм</tspan> (отступ спереди как в базе)</text>')
-    svg.append(f'    <text x="{p_x + 50}" y="{sy(1975)}" fill="#263238" font-size="18">• Задний отступ от стены: <tspan font-weight="bold" fill="#d32f2f">50 мм</tspan> (глубина полок 550 мм)</text>')
+    svg.append(f'    <text x="{p_x + 50}" y="{sy(2045)}" fill="#263238" font-size="18">• Высота цоколя: <tspan font-weight="bold" fill="#d32f2f">60 мм</tspan> (отступ спереди как в базе)</text>')
+    svg.append(f'    <text x="{p_x + 50}" y="{sy(2010)}" fill="#263238" font-size="18">• Задний отступ от стены: <tspan font-weight="bold" fill="#d32f2f">50 мм</tspan> под коммуникации</text>')
+    svg.append(f'    <text x="{p_x + 50}" y="{sy(1975)}" fill="#263238" font-size="18">• Задняя стенка: <tspan font-weight="bold" fill="#00796b">ЛДСП 16 мм</tspan> (на Z = 50..66 мм)</text>')
+    svg.append(f'    <text x="{p_x + 50}" y="{sy(1940)}" fill="#263238" font-size="18">• Глубина полок: <tspan font-weight="bold" fill="#2e7d32">534 мм</tspan> (полки упираются в стенку, не проходя сквозь нее)</text>')
 
     # Section 4: Cutout Safety Calculation
-    svg.append(f'    <rect x="{p_x + 20}" y="{sy(1930)}" width="980" height="230" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="6" />')
-    svg.append(f'    <text x="{p_x + 40}" y="{sy(1890)}" fill="#1b5e20" font-size="20" font-weight="bold">ПРОВЕРКА ВЫРЕЗА ПОД СЧЕТЧИКИ (Y = 1250..1430 мм):</text>')
-    svg.append(f'    <text x="{p_x + 40}" y="{sy(1850)}" fill="#263238" font-size="16">• Низ выреза: <tspan font-weight="bold">Y = 1250 мм</tspan>. Верх выреза: <tspan font-weight="bold">Y = 1430 мм</tspan> (H = 180 мм).</text>')
-    svg.append(f'    <text x="{p_x + 40}" y="{sy(1815)}" fill="#263238" font-size="16">• Полка 2: <tspan font-weight="bold">Y = 1127..1143 мм</tspan>. Запас до низа выреза: <tspan font-weight="bold" fill="#2e7d32">107 мм</tspan>.</text>')
-    svg.append(f'    <text x="{p_x + 40}" y="{sy(1780)}" fill="#263238" font-size="16">• Полка 3: <tspan font-weight="bold">Y = 1528..1544 мм</tspan>. Запас до верха выреза: <tspan font-weight="bold" fill="#2e7d32">98 мм</tspan>.</text>')
-    svg.append(f'    <text x="{p_x + 40}" y="{sy(1735)}" fill="#1b5e20" font-size="18" font-weight="bold">✓ ВЫРЕЗ ИДЕАЛЬНО ВХОДИТ В 3-Ю СЕКЦИЮ БЕЗ ПЕРЕСЕЧЕНИЙ!</text>')
+    svg.append(f'    <rect x="{p_x + 20}" y="{sy(1895)}" width="980" height="230" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="6" />')
+    svg.append(f'    <text x="{p_x + 40}" y="{sy(1855)}" fill="#1b5e20" font-size="20" font-weight="bold">ПРОВЕРКА ВЫРЕЗА ПОД СЧЕТЧИКИ (Y = 1250..1430 мм):</text>')
+    svg.append(f'    <text x="{p_x + 40}" y="{sy(1815)}" fill="#263238" font-size="16">• Низ выреза: <tspan font-weight="bold">Y = 1250 мм</tspan>. Верх выреза: <tspan font-weight="bold">Y = 1430 мм</tspan> (H = 180 мм).</text>')
+    svg.append(f'    <text x="{p_x + 40}" y="{sy(1780)}" fill="#263238" font-size="16">• Полка 2: <tspan font-weight="bold">Y = 1127..1143 мм</tspan>. Запас до низа выреза: <tspan font-weight="bold" fill="#2e7d32">107 мм</tspan>.</text>')
+    svg.append(f'    <text x="{p_x + 40}" y="{sy(1745)}" fill="#263238" font-size="16">• Полка 3: <tspan font-weight="bold">Y = 1528..1544 мм</tspan>. Запас до верха выреза: <tspan font-weight="bold" fill="#2e7d32">98 мм</tspan>.</text>')
+    svg.append(f'    <text x="{p_x + 40}" y="{sy(1700)}" fill="#1b5e20" font-size="18" font-weight="bold">✓ ВЫРЕЗ ИДЕАЛЬНО ВХОДИТ В 3-Ю СЕКЦИЮ БЕЗ ПЕРЕСЕЧЕНИЙ!</text>')
 
     # Section 5: Table of Compartments
-    svg.append(f'    <text x="{p_x + 30}" y="{sy(1660)}" fill="#37474f" font-size="20" font-weight="bold">РАСКЛАДКА ПОЛОК ШКАФА 2 ПО ВЫСОТЕ:</text>')
-    table_y = 1610
+    svg.append(f'    <text x="{p_x + 30}" y="{sy(1630)}" fill="#37474f" font-size="20" font-weight="bold">РАСКЛАДКА ПОЛОК ШКАФА 2 ПО ВЫСОТЕ:</text>')
+    table_y = 1580
     headers = [("Секция", 180), ("Позиция Y (мм)", 220), ("Проем в свету", 220), ("Тип полки", 300)]
     cur_x = p_x + 30
     for h_txt, h_w in headers:

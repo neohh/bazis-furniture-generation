@@ -5,7 +5,8 @@
 //   - Шкаф 2 (Правый): 1200 x 2660 x 600 мм из ЛДСП 16 мм, цоколь 60 мм,
 //     ниша 650 мм от дна, 3 ниши по 385 мм, ниша 700 мм от верха,
 //     вырез под счетчики (Y=1250..1430, H=180 мм) в правой боковине,
-//     отступ полок сзади 50 мм под трубы/проводку.
+//     отступ 50 мм от стены, ЗАДНЯЯ СТЕНКА ЛДСП 16 мм (на Z=50..66 мм),
+//     полки глубиной 534 мм примыкают к стенке БЕЗ прохода насквозь!
 // С интерактивным выбором точки привязки (GetPoint) и live-настройками в 3D.
 // ==============================================================================
 
@@ -154,7 +155,6 @@ function buildComposition() {
         ActiveMaterial.Make('Труба хромированная', 25);
         var yRod = y0 + 2500;
         var midZ1 = (c1_zMin + c1_zMax) / 2;
-        var rod = AddExtrusion('Штанга овальная');
         var rodLine = AddLine3D(c1_xMin + t26, yRod, midZ1, c1_xMax - t26, yRod, midZ1);
         rodLine.Color = 0xc2185b;
 
@@ -180,7 +180,6 @@ function buildComposition() {
         var t16 = 16;
         var block2 = BeginBlock('Шкаф 2 (ЛДСП 16 мм, 1200x2660x600)');
 
-        // Смещение X для Шкафа 2: если строятся оба шкафа, он прилегает к Шкафу 1
         var c2_startX = baseX;
         if (mode === 0) {
             c2_startX = (signX > 0) ? (baseX + W1) : (baseX - W1);
@@ -206,15 +205,19 @@ function buildComposition() {
         var y0 = baseY;
         var yTop = baseY + H;
 
-        // Отступ полок сзади 50 мм под трубы/проводку
-        // Внутренние полки глубиной 550 мм
-        var shelf_zMin, shelf_zMax;
+        // 1. Отступ 50 мм от стены под трубы/проводку
+        // 2. Задняя стенка ЛДСП 16 мм (на Z = 50..66 мм)
+        // 3. Полки и горизонты начинаются СТРОГО от передней пласти задней стенки (Z = 66 мм)
+        //    и упираются в переднюю кромку боковин (Z = 600 мм), не проходя сквозь стенку!
+        var back_zPos, shelf_zMin, shelf_zMax;
         if (signZ > 0) {
-            shelf_zMin = c2_zMin + 50; // от стены 50 мм
-            shelf_zMax = c2_zMax;
+            back_zPos = c2_zMin + 50;           // задняя пласть стенки
+            shelf_zMin = back_zPos + t16;       // передняя пласть стенки (Z=66)
+            shelf_zMax = c2_zMax;               // передний край боковин (Z=600)
         } else {
-            shelf_zMin = c2_zMin;
-            shelf_zMax = c2_zMax - 50;
+            back_zPos = c2_zMax - 50 - t16;     // передняя пласть стенки при отрицательном Z
+            shelf_zMax = back_zPos;             // полки до задника
+            shelf_zMin = c2_zMin;               // передний край боковин
         }
 
         // 1. Боковины (идут на полную глубину 600 мм до стены)
@@ -224,13 +227,36 @@ function buildComposition() {
         var s2_right = AddVertPanel(c2_xMax - t16, y0, c2_zMin, c2_xMax, yTop, c2_zMax);
         s2_right.Name = 'Боковина правая (с вырезом под счетчики)';
 
-        // Вырез под счетчики в правой боковине: Y = 1250..1430, H = 180 мм
+        // 2. Цоколь H = 60 мм (утоплен спереди на 25 мм)
+        var zSocle;
+        if (signZ > 0) {
+            zSocle = c2_zMax - 25 - t16;
+        } else {
+            zSocle = c2_zMin + 25;
+        }
+        var socle = AddFrontPanel(c2_xMin + t16, y0, c2_xMax - t16, y0 + 60, zSocle);
+        socle.Name = 'Цоколь H=60';
+
+        // Дно шкафа (на высоте Y = 60..76 мм, примыкает к задней стенке, глубина 534 мм)
+        var yDno2 = y0 + 60;
+        var s2_bottom = AddHorizPanel(c2_xMin + t16, shelf_zMin, c2_xMax - t16, shelf_zMax, yDno2);
+        s2_bottom.Name = 'Дно';
+
+        // Крышка верхняя (глубина 534 мм, примыкает к задней стенке)
+        var s2_roof = AddHorizPanel(c2_xMin + t16, shelf_zMin, c2_xMax - t16, shelf_zMax, yTop - t16);
+        s2_roof.Name = 'Крышка';
+
+        // 3. ЗАДНЯЯ СТЕНКА ЛДСП 16 мм (отступ 50 мм от стены, идет от дна до крышки)
+        ActiveMaterial.Make('ЛДСП 16 мм', 16);
+        var s2_back = AddFrontPanel(c2_xMin + t16, yDno2, c2_xMax - t16, yTop - t16, back_zPos);
+        s2_back.Name = 'Задняя стенка ЛДСП 16 мм (отступ 50 мм)';
+
+        // 4. Вырез под счетчики в правой боковине: Y = 1250..1430, H = 180 мм
         var yCutBottom = y0 + 1250;
         var yCutTop = y0 + 1430;
         var cutDepth = pCutoutD.Value;
         if (cutDepth < 50) cutDepth = 320;
 
-        // Маркер выреза под счетчики в блоке
         var cutMarker = AddBlock('Вырез под счетчики (180x' + cutDepth + ' мм)');
         var cutZ1, cutZ2;
         if (signZ > 0) {
@@ -244,26 +270,7 @@ function buildComposition() {
         cutBox.Color = 0xd32f2f;
         cutBox.Name = 'Окно выреза под счетчики (180x' + cutDepth + ' мм)';
 
-        // 2. Цоколь H = 60 мм (утоплен спереди на 25 мм)
-        var zSocle;
-        if (signZ > 0) {
-            zSocle = c2_zMax - 25 - t16;
-        } else {
-            zSocle = c2_zMin + 25;
-        }
-        var socle = AddFrontPanel(c2_xMin + t16, y0, c2_xMax - t16, y0 + 60, zSocle);
-        socle.Name = 'Цоколь H=60';
-
-        // Дно шкафа (на высоте Y = 60..76 мм, глубина 550 мм с отступом 50 сзади)
-        var yDno2 = y0 + 60;
-        var s2_bottom = AddHorizPanel(c2_xMin + t16, shelf_zMin, c2_xMax - t16, shelf_zMax, yDno2);
-        s2_bottom.Name = 'Дно';
-
-        // Крышка верхняя (глубина 550 мм)
-        var s2_roof = AddHorizPanel(c2_xMin + t16, shelf_zMin, c2_xMax - t16, shelf_zMax, yTop - t16);
-        s2_roof.Name = 'Крышка';
-
-        // 3. Раскладка полок по чертежу
+        // 5. Раскладка полок по чертежу (глубина 534 мм, плотно к задней стенке)
         // Полка 1: от дна 650 мм в свету -> Y = yDno2 + 16 + 650 = y0 + 726 мм
         var yShelf1 = yDno2 + t16 + 650;
         // Полка 4 (антресольная): 700 мм в свету от верха -> Y = (yTop - 16) - 700 - 16 = y0 + 1928 мм
@@ -335,7 +342,7 @@ function buildComposition() {
             } catch(eE2) {}
         }
 
-        // 4. Опциональная установка фасадов
+        // 6. Опциональная установка фасадов
         if (pDoors.ItemIndex === 1) {
             ActiveMaterial.Make('Фасад ЛДСП 16 мм', 16);
             var zDoor = (signZ > 0) ? (c2_zMax + 2) : (c2_zMin - 18);
