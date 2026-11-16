@@ -3,31 +3,24 @@
 // Базис-Мебельщик 2021-2024 JS (ES5)
 // Кодировка: Windows-1251 (CP1251)
 //
-// НАДЕЖНЫЙ АЛГОРИТМ (КАК В ОРИГИНАЛЬНОМ СКРИПТЕ):
-//   1. Выбор деталей: если доски уже выделены заранее — берутся они.
-//      Если ничего не выделено — запрос клика (Esc/Enter — весь корпус шкафа).
-//   2. Указание переда: клик на переднюю грань шкафа (Esc/Enter — стандартно вперед по Z).
+// РЕЖИМ: ОБЛИЦОВКА СТРОГО ЛИЦЕВЫХ (ПЕРЕДНИХ) ТОРЦОВ КОРПУСА:
+//   1. Выбор деталей: если доски уже выделены — берутся они;
+//      если нет — клик по деталям или Esc/Enter для всего корпуса.
+//   2. Указание переда: Esc/Enter — стандартно вперед по Z.
 //   3. Кромление:
-//      - У каждой детали находится РОВНО ОДИН торец с максимальным Z (лицевой) -> кромка 0.8 мм.
-//      - Остальные торцы детали проверяются IsButtVisible:
-//        * Если открыт наружу -> кромка 0.4 мм.
-//        * Если закрыт стыком с другой панелью -> чистый (без кромки).
+//      - У каждой детали корпуса определяется РОВНО ОДИН передний торец (максимальный Z).
+//      - ТОЛЬКО на этот передний торец наносится кромка 0.8 мм (ClipPanel=true).
+//      - Все остальные стороны детали (зад, верх, низ, стыки) остаются ЧИСТЫМИ (без кромки).
 //      - Фасады, двери и ДВП/ХДФ полностью пропускаются.
 // =========================================================================
 
-// --- 1. Настройка материалов кромки ---
+// --- 1. Настройка материала кромки ---
 var buttMat08 = NewButtMaterialInput('Кромка 0.8 мм (лицевая сторона)');
-var buttMat04 = NewButtMaterialInput('Кромка 0.4 мм (видимый корпус)');
-
 buttMat08.Thickness = 0.8;
 buttMat08.ClipPanel = true;
 buttMat08.Allowance = 0.8;
 
-buttMat04.Thickness = 0.4;
-buttMat04.ClipPanel = true;
-buttMat04.Allowance = 0.4;
-
-// Автопоиск кромочных материалов из текущей модели
+// Автопоиск кромочного материала 0.8 мм из текущей модели
 function findModelMaterialName(targetThick) {
     var foundName = null;
     function scan(cnt) {
@@ -53,10 +46,7 @@ function findModelMaterialName(targetThick) {
 var auto08 = findModelMaterialName(0.8);
 if (auto08) buttMat08.Name = auto08; else buttMat08.Name = 'Кромка 0.8 мм';
 
-var auto04 = findModelMaterialName(0.4);
-if (auto04) buttMat04.Name = auto04; else buttMat04.Name = 'Кромка 0.4 мм';
-
-// --- 2. Вспомогательные функции фильтрации ---
+// --- 2. Вспомогательные функции ---
 
 function isFacadePanel(obj) {
     if (!obj || !obj.AsPanel) return false;
@@ -203,45 +193,29 @@ function getFrontContourIndex(pan, fDir) {
     return bestIdx;
 }
 
-// --- 5. НАНЕСЕНИЕ КРОМКИ ---
+// --- 5. НАНЕСЕНИЕ КРОМКИ (СТРОГО ТОЛЬКО НА ЛИЦЕВЫЕ ТОРЦЫ) ---
 var countPanels = 0;
 var countFrontEdges = 0;
-var countOpenEdges = 0;
 
 for (var i = 0; i < targetPanels.length; i++) {
     var pan = targetPanels[i];
     StartEditing(pan);
-    pan.Butts.Clear();
+    pan.Butts.Clear(); // Очищаем старые кромки и наслоения
 
     if (pan.Contour && pan.Contour.Count) {
         var fIndex = getFrontContourIndex(pan, frontDir);
 
-        for (var ce = 0; ce < pan.Contour.Count; ce++) {
-            if (ce === fIndex) {
-                // РОВНО ОДИН ЛИЦЕВОЙ ПЕРЕДНИЙ ТОРЕЦ -> КРОМКА 0.8 ММ
-                var bFront = pan.AddButt(buttMat08, ce);
-                if (bFront) {
-                    bFront.ClipPanel = true;
-                    bFront.Thickness = 0.8;
-                    bFront.Material = buttMat08.Name;
-                }
-                countFrontEdges++;
-            } else {
-                // Проверяем, открыт ли торец наружу
-                var isOpen = pan.IsButtVisible(ce, 5);
-                if (isOpen) {
-                    // ОТКРЫТЫЙ ТОРЕЦ КОРПУСА -> КРОМКА 0.4 ММ
-                    var bOpen = pan.AddButt(buttMat04, ce);
-                    if (bOpen) {
-                        bOpen.ClipPanel = true;
-                        bOpen.Thickness = 0.4;
-                        bOpen.Material = buttMat04.Name;
-                    }
-                    countOpenEdges++;
-                }
-                // Закрытые стыки деталей остаются чистыми (без кромки)
+        if (fIndex >= 0) {
+            // ТОЛЬКО ОДИН ЛИЦЕВОЙ ТОРЕЦ ДЕТАЛИ -> КРОМКА 0.8 ММ
+            var bFront = pan.AddButt(buttMat08, fIndex);
+            if (bFront) {
+                bFront.ClipPanel = true;
+                bFront.Thickness = 0.8;
+                bFront.Material = buttMat08.Name;
             }
+            countFrontEdges++;
         }
+        // ВСЕ ОСТАЛЬНЫЕ СТОРОНЫ (ЗАД, ВЕРХ, НИЗ, СТЫКИ) ОСТАЮТСЯ ЧИСТЫМИ!
     }
     pan.Build();
     countPanels++;
@@ -250,16 +224,15 @@ for (var i = 0; i < targetPanels.length; i++) {
 // --- 6. ЗАВЕРШЕНИЕ И ОТЧЕТ ---
 Action.Commit();
 
-var summaryHint = 'Готово! Деталей: ' + countPanels + ' | Перед 0.8 мм: ' + countFrontEdges + ' | Открытые 0.4 мм: ' + countOpenEdges + (skippedFacades > 0 ? ' | Фасады пропущены: ' + skippedFacades : '');
+var summaryHint = 'Готово! Деталей: ' + countPanels + ' | Облицовано передних торцов (0.8 мм): ' + countFrontEdges + (skippedFacades > 0 ? ' | Фасады пропущены: ' + skippedFacades : '');
 Action.Hint = summaryHint;
 
-var msg = 'Умная облицовка корпуса завершена!\n' +
+var msg = 'Облицовка лицевых торцов завершена!\n' +
     '-----------------------------------------\n' +
-    'Обработано деталей корпуса: ' + countPanels + ' шт.\n' +
-    '  - Лицевые передние торцы (0.8 мм): ' + countFrontEdges + ' шт.\n' +
-    '  - Открытые наружные торцы (0.4 мм): ' + countOpenEdges + ' шт.\n' +
-    '  - Стыки деталей корпуса: чистые (без кромки)\n' +
-    (skippedFacades > 0 ? 'Фасады и двери: не кромятся (пропущено ' + skippedFacades + ' шт.)\n' : '') +
+    'Обработано деталей: ' + countPanels + ' шт.\n' +
+    'Нанесено кромки 0.8 мм на передние торцы: ' + countFrontEdges + ' шт.\n' +
+    'Задние, верхние/нижние торцы и стыки: оставлены чистыми\n' +
+    (skippedFacades > 0 ? 'Фасады и двери: пропущены (' + skippedFacades + ' шт.)\n' : '') +
     '-----------------------------------------\n' +
     'Все детали подрезаны (ClipPanel), наслоения удалены.';
 
