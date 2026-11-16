@@ -1,19 +1,18 @@
 // =========================================================================
-// Скрипт: Умная облицовка шкафа (0.8 мм лицевые + 0.4 мм корпус)
+// Скрипт: Умная авто-облицовка шкафа (только передние торцы 0.8 мм + корпус 0.4 мм)
 // Базис-Мебельщик 2021-2024 JS (ES5)
 // Кодировка: Windows-1251 (CP1251)
 //
-// Возможности:
-//   1. Очищает все старые наслоения через StartEditing и Butts.Clear().
-//   2. Фасады (двери, ящики) облицовывает ПО КРУГУ кромкой 0.8 мм.
-//   3. Передние лицевые торцы корпуса облицовывает кромкой 0.8 мм.
-//   4. Все остальные ОТКРЫТЫЕ торцы облицовывает кромкой 0.4 мм (IsButtVisible).
-//   5. Закрытые торцы (стыки полок со стойками) оставляет ЧИСТЫМИ (без кромки).
-//   6. Вся кромка наносится С ПОДРЕЗКОЙ (ClipPanel = true).
+// ПРАВИЛА КРОМЛЕНИЯ:
+//   1. ФАСАДЫ И ДВЕРИ НЕ КРОМЯТСЯ (полностью пропускаются).
+//   2. Лицевые передние торцы корпуса (стойки, полки, крышка, дно) -> кромка 0.8 мм.
+//   3. Открытые наружные/задние торцы корпуса -> кромка 0.4 мм.
+//   4. Закрытые стыки (полки к боковинам, перегородки) -> ЧИСТЫЕ (без кромки).
+//   5. Скрипт работает автоматически в 1 клик без лишних запросов.
 // =========================================================================
 
 // --- 1. Настройка материалов кромки ---
-var buttMat08 = NewButtMaterialInput('Кромка 0.8 мм (фасады и лицевые торцы)');
+var buttMat08 = NewButtMaterialInput('Кромка 0.8 мм (передние торцы)');
 var buttMat04 = NewButtMaterialInput('Кромка 0.4 мм (открытые торцы корпуса)');
 
 buttMat08.Thickness = 0.8;
@@ -24,7 +23,7 @@ buttMat04.Thickness = 0.4;
 buttMat04.ClipPanel = true;
 buttMat04.Allowance = 0.4;
 
-// Автопоиск существующих названий кромок в открытой модели
+// Автопоиск названий кромок в открытой модели
 function findModelMaterialName(targetThick) {
     var foundName = null;
     function scan(cnt) {
@@ -53,85 +52,35 @@ if (auto08) buttMat08.Name = auto08; else buttMat08.Name = 'Кромка 0.8 мм';
 var auto04 = findModelMaterialName(0.4);
 if (auto04) buttMat04.Name = auto04; else buttMat04.Name = 'Кромка 0.4 мм';
 
-// --- 2. Шаг 1: Определение лицевой стороны (где перед шкафа) ---
-var frontZ = Model.GMax.z;
-try {
-    Action.Hint = '1/2: Кликните ЛИЦЕВОЙ (передний) торец шкафа (или Enter/Esc для авто-определения)';
-    var pickPt = GetPoint('1/2: Кликните передний торец шкафа (Enter/Esc для авто)');
-    if (pickPt) {
-        frontZ = pickPt.z;
-    }
-} catch (ePt) {}
-
-// --- 3. Шаг 2: Поиск фасадов (двери, накладки ящиков) ---
-var facadePanels = [];
-
-function collectAutoFacades(cnt) {
-    if (!cnt) return;
-    for (var i = 0; i < cnt.Count; i++) {
-        var obj = cnt.Objects[i];
-        if (obj.AsPanel) {
-            var nm = (obj.Name || '').toLowerCase();
-            if (obj.Selected || nm.indexOf('фасад') !== -1 || nm.indexOf('двер') !== -1 || nm.indexOf('створк') !== -1 || nm.indexOf('накладка') !== -1) {
-                var exists = false;
-                for (var f = 0; f < facadePanels.length; f++) {
-                    if (facadePanels[f] === obj) { exists = true; break; }
-                }
-                if (!exists) facadePanels.push(obj);
-            }
-        }
-        if (obj.Count && obj.Count > 0) collectAutoFacades(obj);
-    }
-}
-collectAutoFacades(Model);
-
-Action.Hint = '2/2: Найдено фасадов: ' + facadePanels.length + ' шт. Кликните фасад для добавления или Esc для запуска кромления';
-
-while (true) {
-    var pickedFacade = null;
-    try {
-        pickedFacade = GetPanel('2/2: Кликните еще фасад (или Esc/Enter для запуска кромления)');
-    } catch (eF) {
-        pickedFacade = null;
-    }
-    if (!pickedFacade) break;
-
-    var exists = false;
-    for (var f = 0; f < facadePanels.length; f++) {
-        if (facadePanels[f] === pickedFacade) {
-            exists = true;
-            break;
-        }
-    }
-    if (!exists) {
-        facadePanels.push(pickedFacade);
-        Action.Hint = 'Добавлен фасад: ' + (pickedFacade.Name || 'Панель') + ' (всего: ' + facadePanels.length + '). Нажмите Esc для старта кромления';
-    }
-}
-
-// --- 4. Сбор деталей корпуса (исключая фасады и задние стенки ДВП) ---
+// --- 2. Сбор деталей корпуса (фасады и ДВП исключаются) ---
 var carcassPanels = [];
+var skippedFacadesCount = 0;
+
+function isFacadePanel(obj) {
+    if (!obj || !obj.AsPanel) return false;
+    var nm = (obj.Name || '').toLowerCase();
+    if (nm.indexOf('фасад') !== -1 || nm.indexOf('двер') !== -1 || nm.indexOf('створк') !== -1 || nm.indexOf('накладка') !== -1) {
+        return true;
+    }
+    return false;
+}
 
 function collectCarcass(cnt) {
     if (!cnt) return;
     for (var i = 0; i < cnt.Count; i++) {
         var obj = cnt.Objects[i];
         if (obj.AsPanel) {
-            var isFac = false;
-            for (var k = 0; k < facadePanels.length; k++) {
-                if (facadePanels[k] === obj) {
-                    isFac = true;
-                    break;
-                }
-            }
-
-            if (!isFac) {
+            if (isFacadePanel(obj)) {
+                // Фасады не кромятся — пропускаем!
+                skippedFacadesCount++;
+            } else {
                 var thX = obj.GabMax.x - obj.GabMin.x;
                 var thY = obj.GabMax.y - obj.GabMin.y;
                 var thZ = obj.GabMax.z - obj.GabMin.z;
                 var minTh = Math.min(thX, Math.min(thY, thZ));
                 var nm = (obj.Name || '').toLowerCase();
 
+                // Исключаем тонкие задние стенки ДВП/ХДФ
                 if (minTh >= 8 && nm.indexOf('двп') === -1 && nm.indexOf('хдф') === -1 && nm.indexOf('задн') === -1) {
                     carcassPanels.push(obj);
                 }
@@ -142,33 +91,16 @@ function collectCarcass(cnt) {
 }
 collectCarcass(Model);
 
-// --- 5. Выполнение облицовки ---
-var countFacades = 0;
+if (carcassPanels.length === 0) {
+    alert('В модели не найдено деталей корпуса для кромления!');
+    Action.Finish();
+}
+
+// --- 3. Выполнение облицовки деталей корпуса ---
 var countCarcass = 0;
 var countFrontEdges = 0;
 var countOpenEdges = 0;
 
-// А. Фасады: по кругу 0.8 мм
-for (var f = 0; f < facadePanels.length; f++) {
-    var fac = facadePanels[f];
-    StartEditing(fac);
-    fac.Butts.Clear();
-
-    if (fac.Contour && fac.Contour.Count) {
-        for (var fe = 0; fe < fac.Contour.Count; fe++) {
-            var bF = fac.AddButt(buttMat08, fe);
-            if (bF) {
-                bF.ClipPanel = true;
-                bF.Thickness = 0.8;
-                bF.Material = buttMat08.Name;
-            }
-        }
-    }
-    fac.Build();
-    countFacades++;
-}
-
-// Б. Корпус: лицевые передние торцы 0.8 мм, открытые торцы 0.4 мм, закрытые стыки - чистые
 for (var c = 0; c < carcassPanels.length; c++) {
     var pan = carcassPanels[c];
     StartEditing(pan);
@@ -179,14 +111,16 @@ for (var c = 0; c < carcassPanels.length; c++) {
             var elem = pan.Contour.Objects[ce];
             if (!elem || !elem.Pos1 || !elem.Pos2) continue;
 
+            // Находим глобальные координаты середины ребра
             var midX = (elem.Pos1.x + elem.Pos2.x) / 2;
             var midY = (elem.Pos1.y + elem.Pos2.y) / 2;
             var midGlobal = pan.ToGlobal(NewVector(midX, midY, 0));
 
-            // Проверка на ЛИЦЕВОЙ передний торец детали
+            // Проверка на ЛИЦЕВОЙ передний торец детали (Z максимальный для этой детали)
             var isFront = (Math.abs(midGlobal.z - pan.GabMax.z) < 2.0);
 
             if (isFront) {
+                // Передний торец корпуса -> строго 0.8 мм
                 var bFront = pan.AddButt(buttMat08, ce);
                 if (bFront) {
                     bFront.ClipPanel = true;
@@ -195,8 +129,10 @@ for (var c = 0; c < carcassPanels.length; c++) {
                 }
                 countFrontEdges++;
             } else {
+                // Проверяем, открыт ли торец (дистанция проверки 2 мм)
                 var isOpen = pan.IsButtVisible(ce, 2);
                 if (isOpen) {
+                    // Открытый торец корпуса (задний у стены, открытый низ/верх) -> 0.4 мм
                     var bOpen = pan.AddButt(buttMat04, ce);
                     if (bOpen) {
                         bOpen.ClipPanel = true;
@@ -205,6 +141,7 @@ for (var c = 0; c < carcassPanels.length; c++) {
                     }
                     countOpenEdges++;
                 }
+                // Закрытые стыки со стойками остаются чистыми без кромки!
             }
         }
     }
@@ -212,18 +149,20 @@ for (var c = 0; c < carcassPanels.length; c++) {
     countCarcass++;
 }
 
-// --- 6. Завершение транзакции ---
+// --- 4. Завершение ---
 Action.Commit();
 
-var msg = 'Умная авто-облицовка завершена!\n' +
+var summaryHint = 'ГОТОВО: Облицовано передних торцов (0.8 мм): ' + countFrontEdges + ', открытых торцов (0.4 мм): ' + countOpenEdges + '. Фасады пропущены (' + skippedFacadesCount + ' шт.).';
+Action.Hint = summaryHint;
+
+var msg = 'Умная облицовка корпуса успешно выполнена!\n' +
     '-----------------------------------------\n' +
-    '• Фасадов облицовано (0.8 мм по кругу): ' + countFacades + ' шт.\n' +
     '• Деталей корпуса обработано: ' + countCarcass + ' шт.\n' +
     '  - Лицевых передних торцов (0.8 мм): ' + countFrontEdges + ' шт.\n' +
     '  - Открытых торцов корпуса (0.4 мм): ' + countOpenEdges + ' шт.\n' +
     '  - Закрытые стыки полок со стойками: БЕЗ КРОМКИ\n' +
+    '• Фасады и двери: НЕ КРОМИЛИСЬ (' + skippedFacadesCount + ' шт.)\n' +
     '-----------------------------------------\n' +
-    'Все наслоения очищены, подрезка деталей включена.';
+    'Все старые наслоения очищены, подрезка деталей включена.';
 
-Action.Hint = 'ГОТОВО: Фасады 0.8мм (' + countFacades + '), лицо 0.8мм (' + countFrontEdges + '), корпус 0.4мм (' + countOpenEdges + ')';
 alert(msg);
