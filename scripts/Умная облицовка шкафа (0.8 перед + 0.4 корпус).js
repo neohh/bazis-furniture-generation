@@ -3,16 +3,16 @@
 // Базис-Мебельщик 2021-2024 JS (ES5)
 // Кодировка: Windows-1251 (CP1251)
 //
-// ИНТЕРАКТИВНЫЙ РЕЖИМ С РАСЧЕТОМ 3D-НОРМАЛЕЙ:
-//   Шаг 1: Выбор деталей (если уже выделены в Базисе - берутся они;
-//          иначе запрос клика деталей, либо Esc/Enter - все детали корпуса).
-//   Шаг 2: Указание направления лица (клик точки/ребра на передней стороне,
-//          либо Esc/Enter - направление вперед по оси Z+).
-//   Шаг 3: Расчет 3D-нормалей каждого торца в глобальных координатах:
-//          - Торцы с нормалью вперед (N * Front > 0.6) -> кромка 0.8 мм (ClipPanel=true).
-//          - Открытые торцы корпуса (IsButtVisible)    -> кромка 0.4 мм (ClipPanel=true).
-//          - Закрытые стыки деталей                   -> чистые (без кромки).
-//          - Фасады и двери                          -> пропускаются (не кромятся).
+// НАДЕЖНЫЙ АЛГОРИТМ (КАК В ОРИГИНАЛЬНОМ СКРИПТЕ):
+//   1. Выбор деталей: если доски уже выделены заранее — берутся они.
+//      Если ничего не выделено — запрос клика (Esc/Enter — весь корпус шкафа).
+//   2. Указание переда: клик на переднюю грань шкафа (Esc/Enter — стандартно вперед по Z).
+//   3. Кромление:
+//      - У каждой детали находится РОВНО ОДИН торец с максимальным Z (лицевой) -> кромка 0.8 мм.
+//      - Остальные торцы детали проверяются IsButtVisible:
+//        * Если открыт наружу -> кромка 0.4 мм.
+//        * Если закрыт стыком с другой панелью -> чистый (без кромки).
+//      - Фасады, двери и ДВП/ХДФ полностью пропускаются.
 // =========================================================================
 
 // --- 1. Настройка материалов кромки ---
@@ -27,7 +27,7 @@ buttMat04.Thickness = 0.4;
 buttMat04.ClipPanel = true;
 buttMat04.Allowance = 0.4;
 
-// Автопоиск названий кромочных материалов из текущей модели
+// Автопоиск кромочных материалов из текущей модели
 function findModelMaterialName(targetThick) {
     var foundName = null;
     function scan(cnt) {
@@ -97,12 +97,10 @@ function extractPanels(obj, list) {
 var rawPanels = [];
 
 if (Model.SelectionCount > 0) {
-    // Если пользователь заранее выделил детали в Базисе - берем их
     for (var s = 0; s < Model.SelectionCount; s++) {
         extractPanels(Model.Selections[s], rawPanels);
     }
 } else {
-    // Иначе интерактивный запрос: кликайте детали или Esc для всех деталей
     Action.Hint = 'Шаг 1/2: Кликните деталь (Esc - закончить выбор или Esc сразу для ВСЕГО корпуса)';
     while (true) {
         var picked = null;
@@ -115,12 +113,10 @@ if (Model.SelectionCount > 0) {
         extractPanels(picked, rawPanels);
     }
     if (rawPanels.length === 0) {
-        // Esc был нажат сразу -> берем весь корпус модели
         extractPanels(Model, rawPanels);
     }
 }
 
-// Фильтруем: исключаем фасады и тонкое ДВП
 var targetPanels = [];
 var skippedFacades = 0;
 var seenPanels = [];
@@ -153,8 +149,8 @@ if (targetPanels.length === 0) {
     Action.Finish();
 }
 
-// --- 4. ШАГ 2: ОПРЕДЕЛЕНИЕ ЛИЦЕВОЙ СТОРОНЫ (НАПРАВЛЕНИЯ ПЕРЕДА) ---
-var frontDir = { x: 0, y: 0, z: 1 }; // По умолчанию в Базисе лицо смотрит по оси +Z
+// --- 4. ШАГ 2: ОПРЕДЕЛЕНИЕ НАПРАВЛЕНИЯ ПЕРЕДА ---
+var frontDir = { x: 0, y: 0, z: 1 }; // По умолчанию лицо шкафа смотрит по оси +Z
 
 try {
     Action.Hint = 'Шаг 2/2: Кликните точку на ЛИЦЕВОЙ стороне шкафа (Enter/Esc - направление вперед Z+)';
@@ -180,75 +176,34 @@ try {
     frontDir = { x: 0, y: 0, z: 1 };
 }
 
-// --- 5. РАСЧЕТ 3D-НОРМАЛЕЙ И КРОМЛЕНИЕ ---
+// Поиск ровно одного лицевого (переднего) торца на детали
+function getFrontContourIndex(pan, fDir) {
+    if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
 
-function getButtNormalGlobal(pan, ce) {
-    if (!pan || !pan.Contour) return null;
-    var elem = pan.Contour[ce] || (pan.Contour.Objects ? pan.Contour.Objects[ce] : null);
-    if (!elem || !elem.Pos1 || !elem.Pos2) return null;
+    var bestIdx = -1;
+    var maxProj = -1e9;
 
-    // Точки торца в глобальных координатах
-    var p1_glob = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
-    var p2_glob = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
+    for (var i = 0; i < pan.Contour.Count; i++) {
+        var elem = pan.Contour[i];
+        if (elem && elem.Pos1 && elem.Pos2) {
+            var p1 = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
+            var p2 = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
+            var midX = (p1.x + p2.x) / 2;
+            var midY = (p1.y + p2.y) / 2;
+            var midZ = (p1.z + p2.z) / 2;
 
-    // Касательный вектор ребра
-    var tx = p2_glob.x - p1_glob.x;
-    var ty = p2_glob.y - p1_glob.y;
-    var tz = p2_glob.z - p1_glob.z;
-    var tLen = Math.sqrt(tx*tx + ty*ty + tz*tz);
-    if (tLen < 1e-4) return null;
-    tx /= tLen; ty /= tLen; tz /= tLen;
-
-    // Середина ребра
-    var midX = (elem.Pos1.x + elem.Pos2.x) / 2;
-    var midY = (elem.Pos1.y + elem.Pos2.y) / 2;
-    var midGlob = pan.ToGlobal(NewVector(midX, midY, 0));
-
-    // Нормаль к пласти детали (смещение по локальному Z=1)
-    var facePt = pan.ToGlobal(NewVector(midX, midY, 1));
-    var wx = facePt.x - midGlob.x;
-    var wy = facePt.y - midGlob.y;
-    var wz = facePt.z - midGlob.z;
-    var wLen = Math.sqrt(wx*wx + wy*wy + wz*wz);
-    if (wLen < 1e-4) return null;
-    wx /= wLen; wy /= wLen; wz /= wLen;
-
-    // Векторное произведение: касательная x нормаль к пласти = внешняя нормаль к торцу
-    var nx = ty * wz - tz * wy;
-    var ny = tz * wx - tx * wz;
-    var nz = tx * wy - ty * wx;
-    var nLen = Math.sqrt(nx*nx + ny*ny + nz*nz);
-    if (nLen < 1e-4) return null;
-    nx /= nLen; ny /= nLen; nz /= nLen;
-
-    // Ориентация наружу от центра контура детали
-    var cLocalX = 0, cLocalY = 0, cCount = 0;
-    for (var k = 0; k < pan.Contour.Count; k++) {
-        var el = pan.Contour[k] || (pan.Contour.Objects ? pan.Contour.Objects[k] : null);
-        if (el && el.Pos1) {
-            cLocalX += el.Pos1.x;
-            cLocalY += el.Pos1.y;
-            cCount++;
+            // Проекция середины ребра на вектор лица
+            var proj = midX * fDir.x + midY * fDir.y + midZ * fDir.z;
+            if (proj > maxProj) {
+                maxProj = proj;
+                bestIdx = i;
+            }
         }
     }
-    if (cCount > 0) {
-        cLocalX /= cCount;
-        cLocalY /= cCount;
-    }
-    var cGlob = pan.ToGlobal(NewVector(cLocalX, cLocalY, 0));
-
-    var awayX = midGlob.x - cGlob.x;
-    var awayY = midGlob.y - cGlob.y;
-    var awayZ = midGlob.z - cGlob.z;
-    if (nx * awayX + ny * awayY + nz * awayZ < 0) {
-        nx = -nx;
-        ny = -ny;
-        nz = -nz;
-    }
-
-    return { x: nx, y: ny, z: nz };
+    return bestIdx;
 }
 
+// --- 5. НАНЕСЕНИЕ КРОМКИ ---
 var countPanels = 0;
 var countFrontEdges = 0;
 var countOpenEdges = 0;
@@ -259,15 +214,11 @@ for (var i = 0; i < targetPanels.length; i++) {
     pan.Butts.Clear();
 
     if (pan.Contour && pan.Contour.Count) {
+        var fIndex = getFrontContourIndex(pan, frontDir);
+
         for (var ce = 0; ce < pan.Contour.Count; ce++) {
-            var norm = getButtNormalGlobal(pan, ce);
-            if (!norm) continue;
-
-            // Скалярное произведение вектора нормали с направлением переда
-            var dotFront = norm.x * frontDir.x + norm.y * frontDir.y + norm.z * frontDir.z;
-
-            if (dotFront > 0.6) {
-                // ПЕРЕДНИЙ ЛИЦЕВОЙ ТОРЕЦ -> КРОМКА 0.8 ММ
+            if (ce === fIndex) {
+                // РОВНО ОДИН ЛИЦЕВОЙ ПЕРЕДНИЙ ТОРЕЦ -> КРОМКА 0.8 ММ
                 var bFront = pan.AddButt(buttMat08, ce);
                 if (bFront) {
                     bFront.ClipPanel = true;
@@ -276,8 +227,8 @@ for (var i = 0; i < targetPanels.length; i++) {
                 }
                 countFrontEdges++;
             } else {
-                // Проверяем, открыт ли торец (не примыкает ли к другой детали)
-                var isOpen = pan.IsButtVisible(ce, 2);
+                // Проверяем, открыт ли торец наружу
+                var isOpen = pan.IsButtVisible(ce, 5);
                 if (isOpen) {
                     // ОТКРЫТЫЙ ТОРЕЦ КОРПУСА -> КРОМКА 0.4 ММ
                     var bOpen = pan.AddButt(buttMat04, ce);
