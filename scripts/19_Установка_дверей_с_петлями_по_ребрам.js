@@ -56,7 +56,7 @@ var eLeft = null, eRight = null, eTop = null, eBottom = null, eFront = null;
 
 try {
     Action.Hint = 'Укажите ЛЕВОЕ крайнее ребро шкафа/секции';
-    eLeft = GetEdge('1/5: Укажите ЛЕВОЕ крайнее ребро шкафа (AxisY)', AxisY);
+    eLeft = GetEdge('1/5: Кликните ЛЕВОЕ крайнее ребро шкафа', AxisY);
 } catch(eL) {}
 
 if (!eLeft) {
@@ -65,7 +65,7 @@ if (!eLeft) {
 
 try {
     Action.Hint = 'Укажите ПРАВОЕ крайнее ребро шкафа/секции';
-    eRight = GetEdge('2/5: Укажите ПРАВОЕ крайнее ребро шкафа (AxisY)', AxisY);
+    eRight = GetEdge('2/5: Кликните ПРАВОЕ крайнее ребро шкафа', AxisY);
 } catch(eR) {}
 
 if (!eRight) {
@@ -74,7 +74,7 @@ if (!eRight) {
 
 try {
     Action.Hint = 'Укажите ВЕРХНЕЕ крайнее ребро шкафа/секции';
-    eTop = GetEdge('3/5: Укажите ВЕРХНЕЕ крайнее ребро шкафа (AxisX)', AxisX);
+    eTop = GetEdge('3/5: Кликните ВЕРХНЕЕ ребро (крышку)', AxisX);
 } catch(eT) {}
 
 if (!eTop) {
@@ -83,7 +83,7 @@ if (!eTop) {
 
 try {
     Action.Hint = 'Укажите НИЖНЕЕ крайнее ребро шкафа/секции';
-    eBottom = GetEdge('4/5: Укажите НИЖНЕЕ крайнее ребро шкафа (AxisX)', AxisX);
+    eBottom = GetEdge('4/5: Кликните НИЖНЕЕ ребро (дно/цоколь)', AxisX);
 } catch(eB) {}
 
 if (!eBottom) {
@@ -92,7 +92,7 @@ if (!eBottom) {
 
 try {
     Action.Hint = 'Укажите ПЕРЕДНЕЕ ребро (лицевую плоскость корпуса) или Enter для авто';
-    eFront = GetEdge('5/5: Укажите ПЕРЕДНЕЕ ребро (лицевую грань корпуса)', AxisY);
+    eFront = GetEdge('5/5: Кликните ПЕРЕДНЕЕ ребро (фасадную плоскость)', AxisY);
 } catch(eF) {
     eFront = null;
 }
