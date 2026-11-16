@@ -1,12 +1,12 @@
 // ==============================================================================
 // 19_Установка_дверей_с_петлями_по_ребрам.js
-// Универсальный генератор фасадов (дверей) по указанным крайним ребрам шкафа:
-// 1. Интерактивный клик по 4-5 ребрам проема (левое, правое, верхнее, нижнее, фасад)
-// 2. Точный отступ фасада со всех сторон: ровно 1.5 мм (настраивается)
-// 3. Выбор количества дверей (1 левая / 1 правая / 2 распашные / 3 / 4)
-// 4. Установка петель "петля МОЯ" (Blum CLIP top с присадкой)
-// 5. Выбор количества петель на створку (2, 3, 4, 5, 6)
-// 6. Отступ петель от края фасада: ровно 50 мм (настраивается)
+// Универсальный генератор накладных фасадов (дверей) по ребрам шкафа:
+// 1. Клик по 4-5 ребрам проема (левое, правое, верхнее, нижнее, фасад).
+// 2. Если кликнуто внутреннее ребро боковины — фасад перекрывает боковину
+//    до дальнего внешнего края (с отступом 1.5 мм), а петли крепятся к внутренней пласти.
+// 3. Интерактивная ПРЕВИЗУАЛИЗАЦИЯ в 3D в реальном времени.
+// 4. Панель свойств: выбор количества петель, отступа 50 мм, типа дверей, зазоров.
+// 5. Кнопка "Применить" фиксирует превизуализацию в реальную геометрию (Action.Commit).
 // ==============================================================================
 
 // 1. Поиск фурнитуры "петля МОЯ.f3d"
@@ -20,9 +20,9 @@ function findFirstFile(paths) {
 }
 
 var HINGE_DEFAULT_PATH = findFirstFile([
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\петля МОЯ.f3d',
     'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фурнитура\\Blum петли\\Antarion\\Петли без заглушек и крестообр. планка\\Петля_CLIP top, CLIP без заглушек\\петля МОЯ.f3d',
-    'z:\\Work\\генерация мебели\\furn\\петля_моя.f3d',
-    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Фрагменты\\Крепеж\\петля МОЯ.f3d'
+    'z:\\Work\\генерация мебели\\furn\\петля_моя.f3d'
 ]);
 
 var currentHingePath = HINGE_DEFAULT_PATH;
@@ -40,7 +40,7 @@ function loadHinge(path) {
 
 hingeObj = loadHinge(currentHingePath);
 
-// 2. Вспомогательная функция извлечения координаты из ребра (Edge3)
+// 2. Вспомогательные функции
 function getEdgeCoord(edge, coordName) {
     if (!edge) return 0;
     var pt = edge.GFirst || edge.First;
@@ -51,12 +51,62 @@ function getEdgeCoord(edge, coordName) {
     return 0;
 }
 
-// 3. Запрос указания крайних ребер шкафа в 3D
+function getEdgeMidPoint(edge) {
+    if (!edge) return NewVector(0, 0, 0);
+    var p1 = edge.GFirst || edge.First;
+    var p2 = edge.GLast || edge.Last;
+    if (!p1 && !p2) return NewVector(0, 0, 0);
+    if (!p1) return p2;
+    if (!p2) return p1;
+    return NewVector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, (p1.z + p2.z) / 2);
+}
+
+// Поиск панели, которой принадлежит ребро
+function findPanelAtPoint(pt) {
+    if (!pt) return null;
+    var exact = null;
+    var closest = null;
+    var minDist = 30; // в пределах 30 мм
+
+    function scan(container) {
+        if (!container) return;
+        for (var i = 0; i < container.Count; i++) {
+            var obj = container.Objects[i];
+            if (obj.AsPanel) {
+                var pMin = obj.GabMin;
+                var pMax = obj.GabMax;
+                if (pt.x >= pMin.x - 3 && pt.x <= pMax.x + 3 &&
+                    pt.y >= pMin.y - 3 && pt.y <= pMax.y + 3 &&
+                    pt.z >= pMin.z - 3 && pt.z <= pMax.z + 3) {
+                    exact = obj;
+                    return;
+                }
+                var dx = Math.max(0, pMin.x - pt.x, pt.x - pMax.x);
+                var dy = Math.max(0, pMin.y - pt.y, pt.y - pMax.y);
+                var dz = Math.max(0, pMin.z - pt.z, pt.z - pMax.z);
+                var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = obj;
+                }
+            }
+            if (obj.Count && obj.Count > 0) scan(obj);
+            if (exact) return;
+        }
+    }
+
+    try {
+        scan(Model);
+    } catch(eSc) {}
+    return exact || closest;
+}
+
+// 3. Запрос указания ребер проема
 var eLeft = null, eRight = null, eTop = null, eBottom = null, eFront = null;
 
 try {
-    Action.Hint = 'Укажите ЛЕВОЕ крайнее ребро шкафа/секции';
-    eLeft = GetEdge('1/5: Кликните ЛЕВОЕ крайнее ребро шкафа', AxisY);
+    Action.Hint = '1/5: Кликните ЛЕВОЕ ребро шкафа (внутреннее или внешнее)';
+    eLeft = GetEdge('1/5: Кликните ЛЕВОЕ ребро шкафа', AxisY);
 } catch(eL) {}
 
 if (!eLeft) {
@@ -64,8 +114,8 @@ if (!eLeft) {
 }
 
 try {
-    Action.Hint = 'Укажите ПРАВОЕ крайнее ребро шкафа/секции';
-    eRight = GetEdge('2/5: Кликните ПРАВОЕ крайнее ребро шкафа', AxisY);
+    Action.Hint = '2/5: Кликните ПРАВОЕ ребро шкафа (внутреннее или внешнее)';
+    eRight = GetEdge('2/5: Кликните ПРАВОЕ ребро шкафа', AxisY);
 } catch(eR) {}
 
 if (!eRight) {
@@ -73,7 +123,7 @@ if (!eRight) {
 }
 
 try {
-    Action.Hint = 'Укажите ВЕРХНЕЕ крайнее ребро шкафа/секции';
+    Action.Hint = '3/5: Кликните ВЕРХНЕЕ ребро (крышку)';
     eTop = GetEdge('3/5: Кликните ВЕРХНЕЕ ребро (крышку)', AxisX);
 } catch(eT) {}
 
@@ -82,8 +132,8 @@ if (!eTop) {
 }
 
 try {
-    Action.Hint = 'Укажите НИЖНЕЕ крайнее ребро шкафа/секции';
-    eBottom = GetEdge('4/5: Кликните НИЖНЕЕ ребро (дно/цоколь)', AxisX);
+    Action.Hint = '4/5: Кликните НИЖНЕЕ ребро (дно или цоколь)';
+    eBottom = GetEdge('4/5: Кликните НИЖНЕЕ ребро (дно или цоколь)', AxisX);
 } catch(eB) {}
 
 if (!eBottom) {
@@ -91,178 +141,229 @@ if (!eBottom) {
 }
 
 try {
-    Action.Hint = 'Укажите ПЕРЕДНЕЕ ребро (лицевую плоскость корпуса) или Enter для авто';
-    eFront = GetEdge('5/5: Кликните ПЕРЕДНЕЕ ребро (фасадную плоскость)', AxisY);
+    Action.Hint = '5/5: Кликните ПЕРЕДНЕЕ ребро шкафа (или Esc для авто-определения)';
+    eFront = GetEdge('5/5: Кликните ПЕРЕДНЕЕ ребро (Esc для авто)', AxisY);
 } catch(eF) {
     eFront = null;
 }
 
-// Извлечение координат габаритного прямоугольника проема
-var rawX1 = getEdgeCoord(eLeft, 'x');
-var rawX2 = getEdgeCoord(eRight, 'x');
-var rawY1 = getEdgeCoord(eBottom, 'y');
-var rawY2 = getEdgeCoord(eTop, 'y');
+// 4. Анализ геометрии: определение панелей боковин, крышки и дна
+var ptLeft = getEdgeMidPoint(eLeft);
+var ptRight = getEdgeMidPoint(eRight);
+var ptTop = getEdgeMidPoint(eTop);
+var ptBottom = getEdgeMidPoint(eBottom);
 
-var xMin = Math.min(rawX1, rawX2);
-var xMax = Math.max(rawX1, rawX2);
-var yMin = Math.min(rawY1, rawY2);
-var yMax = Math.max(rawY1, rawY2);
+// Автоматическая нормализация сторон, если пользователь кликнул в обратном порядке
+if (ptLeft.x > ptRight.x) {
+    var tmpE = eLeft; eLeft = eRight; eRight = tmpE;
+    var tmpP = ptLeft; ptLeft = ptRight; ptRight = tmpP;
+}
 
-// Определение лицевой плоскости Z
+if (ptBottom.y > ptTop.y) {
+    var tmpEy = eBottom; eBottom = eTop; eTop = tmpEy;
+    var tmpPy = ptBottom; ptBottom = ptTop; ptTop = tmpPy;
+}
+
+var panelLeft = findPanelAtPoint(ptLeft);
+var panelRight = findPanelAtPoint(ptRight);
+var panelTop = findPanelAtPoint(ptTop);
+var panelBottom = findPanelAtPoint(ptBottom);
+
+// Координаты ребер
+var rawL = getEdgeCoord(eLeft, 'x');
+var rawR = getEdgeCoord(eRight, 'x');
+var edgeX_left = Math.min(rawL, rawR);
+var edgeX_right = Math.max(rawL, rawR);
+
+var rawB = getEdgeCoord(eBottom, 'y');
+var rawT = getEdgeCoord(eTop, 'y');
+var edgeY_bot = Math.min(rawB, rawT);
+var edgeY_top = Math.max(rawB, rawT);
+
+// Z передней плоскости фасада
 var zFront = 0;
 if (eFront) {
     zFront = getEdgeCoord(eFront, 'z');
 } else {
-    // Берем максимальный Z из указанных ребер
     var zList = [
         getEdgeCoord(eLeft, 'z'),
         getEdgeCoord(eRight, 'z'),
         getEdgeCoord(eTop, 'z'),
         getEdgeCoord(eBottom, 'z')
     ];
+    if (panelLeft) zList.push(panelLeft.GabMax.z);
+    if (panelRight) zList.push(panelRight.GabMax.z);
+    if (panelTop) zList.push(panelTop.GabMax.z);
+    if (panelBottom) zList.push(panelBottom.GabMax.z);
     zFront = Math.max.apply(null, zList);
 }
 
-var openingW = xMax - xMin;
-var openingH = yMax - yMin;
-
-// 4. Поиск прилегающих боковин/стоек в сцене для присадки петель
-var postLeft = null;
-var postRight = null;
-
-function scanPosts(container) {
-    if (!container) return;
-    for (var i = 0; i < container.Count; i++) {
-        var obj = container.Objects[i];
-        if (obj.AsPanel) {
-            var n = (obj.Name || '').toLowerCase();
-            var thX = obj.GabMax.x - obj.GabMin.x;
-            var htY = obj.GabMax.y - obj.GabMin.y;
-            var dpZ = obj.GabMax.z - obj.GabMin.z;
-
-            // Вертикальная стойка: толщина <= 35, высота > 200, глубина > 150
-            if (thX <= 35 && htY > 200 && dpZ > 150 && n.indexOf('фасад') === -1 && n.indexOf('дверь') === -1) {
-                // Левая стойка: внешняя или внутренняя пласть совпадает с xMin (+-10 мм)
-                if (Math.abs(obj.GabMin.x - xMin) < 15 || Math.abs(obj.GabMax.x - xMin) < 15) {
-                    postLeft = obj;
-                }
-                // Правая стойка: внешняя или внутренняя пласть совпадает с xMax (+-10 мм)
-                if (Math.abs(obj.GabMax.x - xMax) < 15 || Math.abs(obj.GabMin.x - xMax) < 15) {
-                    postRight = obj;
-                }
-            }
-        }
-        if (obj.Count && obj.Count > 0) scanPosts(obj);
-    }
-}
-
-try {
-    scanPosts(Model);
-} catch(eScan) {}
-
-// Авто-определение количества петель по высоте проема
+// Авто-определение количества петель по высоте
 function suggestHingeCount(h) {
     if (h < 900) return 2;
     if (h < 1500) return 3;
     if (h < 2100) return 4;
-    return 5; // Для высоких шкафов 2100..2700 мм
+    return 5;
 }
 
-// 5. Панель свойств Action.Properties
-var Prop = null;
-try {
-    Prop = Action.Properties;
-    Prop.Clear();
-} catch(ePr) {}
+var openingH = edgeY_top - edgeY_bot;
+var openingW = edgeX_right - edgeX_left;
 
-var pDoorsMode = null;
-var pDoorGap = null;
-var pMidGap = null;
-var pDoorThick = null;
+// 5. Создание интерактивной панели свойств Action.Properties
+var Prop = Action.Properties;
+Prop.Clear();
 
-var pInstallHinges = null;
-var pHingeCount = null;
-var pHingeOffset = null;
-var pBtnHinge = null;
+// Кнопка применения в самом верху для максимального удобства!
+var grApply = Prop.NewGroup('ГОТОВО (ФИКСАЦИЯ)');
+var pBtnApply = grApply.NewButton('Применить (создать реальные двери)');
 
-if (Prop) {
-    var grDoors = Prop.NewGroup('1. Конфигурация дверей (фасадов)');
-    
-    // Предлагаем 2 двери по умолчанию, если ширина > 600 мм
-    var defaultModeIdx = (openingW > 600) ? 0 : 1;
-    pDoorsMode = grDoors.NewCombo('Тип дверей',
-        '2 двери (распашные: левая + правая)\n' +
-        '1 дверь (распашная, петли слева)\n' +
-        '1 дверь (распашная, петли справа)\n' +
-        '3 двери (распашные)\n' +
-        '4 двери (распашные)'
-    );
-    pDoorsMode.ItemIndex = defaultModeIdx;
+var grDoors = Prop.NewGroup('1. Конфигурация дверей (фасадов)');
 
-    pDoorGap = grDoors.NewNumber('Отступ от краев (зазор), мм', 1.5);
-    pDoorGap.MinValue = 0;
-    pDoorGap.MaxValue = 10;
+var defaultModeIdx = (openingW > 600) ? 0 : 1;
+var pDoorsMode = grDoors.NewCombo('Тип дверей',
+    '2 двери (распашные: левая + правая)\n' +
+    '1 дверь (распашная, петли слева)\n' +
+    '1 дверь (распашная, петли справа)\n' +
+    '3 двери (распашные)\n' +
+    '4 двери (распашные)'
+);
+pDoorsMode.ItemIndex = defaultModeIdx;
 
-    pMidGap = grDoors.NewNumber('Зазор между створками, мм', 2.0);
-    pMidGap.MinValue = 0;
-    pMidGap.MaxValue = 10;
+var pOverlayMode = grDoors.NewCombo('Перекрытие боковин',
+    'Накладной (до дальних внешних краев боковин)\n' +
+    'Вкладной (строго внутри проема)\n' +
+    'Полунакладной (на половину толщины боковин)\n' +
+    'По указанным ребрам (без изменений)'
+);
+pOverlayMode.ItemIndex = 0; // По умолчанию НАКЛАДНОЙ!
 
-    pDoorThick = grDoors.NewNumber('Толщина фасада, мм', 16);
-    pDoorThick.MinValue = 10;
-    pDoorThick.MaxValue = 30;
+var pOverlayTop = grDoors.NewCombo('Перекрытие крышки',
+    'Накладной (до верха крышки/детали)\n' +
+    'В стык (по указанному ребру)'
+);
+pOverlayTop.ItemIndex = 0;
 
-    var grHinges = Prop.NewGroup('2. Петли (фурнитура)');
+var pOverlayBot = grDoors.NewCombo('Перекрытие дна',
+    'Накладной (до низа дна/детали)\n' +
+    'В стык (по указанному ребру)'
+);
+pOverlayBot.ItemIndex = 0;
 
-    pInstallHinges = grHinges.NewBool('Устанавливать петли', (hingeObj !== null));
+var pDoorGap = grDoors.NewNumber('Отступ от краев (зазор), мм', 1.5);
+pDoorGap.MinValue = 0;
+pDoorGap.MaxValue = 10;
 
-    var defaultHingeCount = suggestHingeCount(openingH);
-    pHingeCount = grHinges.NewNumber('Количество петель на створку', defaultHingeCount);
-    pHingeCount.MinValue = 2;
-    pHingeCount.MaxValue = 7;
+var pMidGap = grDoors.NewNumber('Зазор между створками, мм', 2.0);
+pMidGap.MinValue = 0;
+pMidGap.MaxValue = 10;
 
-    pHingeOffset = grHinges.NewNumber('Отступ петли от края фасада, мм', 50.0);
-    pHingeOffset.MinValue = 30;
-    pHingeOffset.MaxValue = 200;
+var pDoorThick = grDoors.NewNumber('Толщина фасада, мм', 16);
+pDoorThick.MinValue = 10;
+pDoorThick.MaxValue = 30;
 
-    pBtnHinge = grHinges.NewButton('Выбрать файл петли (.f3d)...');
-    pBtnHinge.OnClick = function() {
-        try {
-            var newPath = system.askFileName('f3d;fr3d');
-            if (newPath) {
-                currentHingePath = newPath;
-                hingeObj = loadHinge(currentHingePath);
-                pInstallHinges.Value = (hingeObj !== null);
-                buildDoors();
-            }
-        } catch(eFile) {}
-    };
-}
+var pMatName = grDoors.NewString('Материал фасада', 'ЛДСП 16 мм');
 
-// 6. Основная функция построения дверей и расстановки петель
-function buildDoors() {
+var grHinges = Prop.NewGroup('2. Петли (фурнитура)');
+
+var pInstallHinges = grHinges.NewBool('Устанавливать петли', (hingeObj !== null));
+
+var defaultHingeCount = suggestHingeCount(openingH);
+var pHingeCount = grHinges.NewNumber('Количество петель на створку', defaultHingeCount);
+pHingeCount.MinValue = 2;
+pHingeCount.MaxValue = 7;
+
+var pHingeOffset = grHinges.NewNumber('Отступ петли от края фасада, мм', 50.0);
+pHingeOffset.MinValue = 30;
+pHingeOffset.MaxValue = 200;
+
+var pBtnHinge = grHinges.NewButton('Выбрать файл петли (.f3d)...');
+pBtnHinge.OnClick = function() {
+    try {
+        var newPath = system.askFileName('f3d;fr3d');
+        if (newPath) {
+            currentHingePath = newPath;
+            hingeObj = loadHinge(currentHingePath);
+            pInstallHinges.Value = (hingeObj !== null);
+            renderDoors(false);
+        }
+    } catch(eFile) {}
+};
+
+// 6. Функция генерации геометрии дверей и петель
+function renderDoors(isFinalCommit) {
+    // Очищаем предыдущую превизуализацию
     DeleteNewObjects();
 
-    var mode = pDoorsMode ? pDoorsMode.ItemIndex : ((openingW > 600) ? 0 : 1);
-    var gap = pDoorGap ? pDoorGap.Value : 1.5;
-    var midGap = pMidGap ? pMidGap.Value : 2.0;
-    var thick = pDoorThick ? pDoorThick.Value : 16;
-    var doHinges = pInstallHinges ? pInstallHinges.Value : (hingeObj !== null);
-    var hCount = pHingeCount ? Math.round(pHingeCount.Value) : suggestHingeCount(openingH);
-    var hOffset = pHingeOffset ? pHingeOffset.Value : 50.0;
+    var mode = pDoorsMode.ItemIndex;
+    var overlayMode = pOverlayMode.ItemIndex;
+    var gap = pDoorGap.Value;
+    var midGap = pMidGap.Value;
+    var thick = pDoorThick.Value;
+    var matName = pMatName.Value || ('ЛДСП ' + thick + ' мм');
+    var doHinges = pInstallHinges.Value && (hingeObj !== null);
+    var hCount = Math.round(pHingeCount.Value);
+    var hOffset = pHingeOffset.Value;
+
+    // Расчет внешних и внутренних границ по боковинам
+    var farLeftX = edgeX_left;
+    var innerLeftX = edgeX_left;
+    if (panelLeft) {
+        farLeftX = Math.min(panelLeft.GabMin.x, panelLeft.GabMax.x);
+        innerLeftX = Math.max(panelLeft.GabMin.x, panelLeft.GabMax.x);
+    } else {
+        farLeftX = edgeX_left - 16;
+    }
+
+    var farRightX = edgeX_right;
+    var innerRightX = edgeX_right;
+    if (panelRight) {
+        farRightX = Math.max(panelRight.GabMin.x, panelRight.GabMax.x);
+        innerRightX = Math.min(panelRight.GabMin.x, panelRight.GabMax.x);
+    } else {
+        farRightX = edgeX_right + 16;
+    }
+
+    // Горизонтальная база фасада в зависимости от режима наложения
+    var baseLeftX, baseRightX;
+    if (overlayMode === 0) {
+        // Накладной: фасад перекрывает боковины до самого дальнего внешнего края!
+        baseLeftX = farLeftX;
+        baseRightX = farRightX;
+    } else if (overlayMode === 1) {
+        // Вкладной: строго по внутреннему проему
+        baseLeftX = innerLeftX;
+        baseRightX = innerRightX;
+    } else if (overlayMode === 2) {
+        // Полунакладной: на половину толщины боковин
+        baseLeftX = (farLeftX + innerLeftX) / 2;
+        baseRightX = (farRightX + innerRightX) / 2;
+    } else {
+        // По указанным ребрам
+        baseLeftX = edgeX_left;
+        baseRightX = edgeX_right;
+    }
+
+    // Вертикальные границы
+    var topY = edgeY_top;
+    if (pOverlayTop.ItemIndex === 0 && panelTop) {
+        topY = Math.max(panelTop.GabMin.y, panelTop.GabMax.y);
+    }
+    var doorY2 = topY - gap;
+
+    var botY = edgeY_bot;
+    if (pOverlayBot.ItemIndex === 0 && panelBottom) {
+        botY = Math.min(panelBottom.GabMin.y, panelBottom.GabMax.y);
+    }
+    var doorY1 = botY + gap;
+
+    // Горизонтальные габариты фасадов с отступами 1.5 мм
+    var spanX1 = baseLeftX + gap;
+    var spanX2 = baseRightX - gap;
+    var totalSpanW = spanX2 - spanX1;
 
     BeginBlock('Фасады с петлями');
 
-    ActiveMaterial.Make('ЛДСП ' + thick + ' мм', thick);
-
-    // Вертикальные границы фасада с отступом 1.5 мм сверху и снизу
-    var doorY1 = yMin + gap;
-    var doorY2 = yMax - gap;
-    var doorH = doorY2 - doorY1;
-
-    // Горизонтальные границы
-    var spanX1 = xMin + gap;
-    var spanX2 = xMax - gap;
-    var totalSpanW = spanX2 - spanX1;
+    ActiveMaterial.Make(matName, thick);
 
     var doorConfigs = [];
 
@@ -274,16 +375,16 @@ function buildDoors() {
             x1: spanX1,
             x2: spanX1 + wSingle,
             hingeSide: 'left',
-            post: postLeft,
-            mountX: xMin
+            post: panelLeft,
+            mountX: innerLeftX
         });
         doorConfigs.push({
             name: 'Фасад правый',
             x1: spanX2 - wSingle,
             x2: spanX2,
             hingeSide: 'right',
-            post: postRight,
-            mountX: xMax
+            post: panelRight,
+            mountX: innerRightX
         });
     } else if (mode === 1) {
         // 1 дверь (петли слева)
@@ -292,8 +393,8 @@ function buildDoors() {
             x1: spanX1,
             x2: spanX2,
             hingeSide: 'left',
-            post: postLeft,
-            mountX: xMin
+            post: panelLeft,
+            mountX: innerLeftX
         });
     } else if (mode === 2) {
         // 1 дверь (петли справа)
@@ -302,27 +403,26 @@ function buildDoors() {
             x1: spanX1,
             x2: spanX2,
             hingeSide: 'right',
-            post: postRight,
-            mountX: xMax
+            post: panelRight,
+            mountX: innerRightX
         });
     } else if (mode === 3) {
         // 3 двери распашные
         var w3 = (totalSpanW - 2 * midGap) / 3;
-        doorConfigs.push({ name: 'Фасад 1 (левый)', x1: spanX1, x2: spanX1 + w3, hingeSide: 'left', post: postLeft, mountX: xMin });
-        doorConfigs.push({ name: 'Фасад 2 (средний)', x1: spanX1 + w3 + midGap, x2: spanX1 + 2 * w3 + midGap, hingeSide: 'left', post: null, mountX: spanX1 + w3 + midGap });
-        doorConfigs.push({ name: 'Фасад 3 (правый)', x1: spanX2 - w3, x2: spanX2, hingeSide: 'right', post: postRight, mountX: xMax });
+        doorConfigs.push({ name: 'Фасад 1', x1: spanX1, x2: spanX1 + w3, hingeSide: 'left', post: panelLeft, mountX: innerLeftX });
+        doorConfigs.push({ name: 'Фасад 2', x1: spanX1 + w3 + midGap, x2: spanX1 + 2 * w3 + midGap, hingeSide: 'left', post: null, mountX: spanX1 + w3 + midGap });
+        doorConfigs.push({ name: 'Фасад 3', x1: spanX2 - w3, x2: spanX2, hingeSide: 'right', post: panelRight, mountX: innerRightX });
     } else if (mode === 4) {
         // 4 двери распашные
         var w4 = (totalSpanW - 3 * midGap) / 4;
-        doorConfigs.push({ name: 'Фасад 1', x1: spanX1, x2: spanX1 + w4, hingeSide: 'left', post: postLeft, mountX: xMin });
+        doorConfigs.push({ name: 'Фасад 1', x1: spanX1, x2: spanX1 + w4, hingeSide: 'left', post: panelLeft, mountX: innerLeftX });
         doorConfigs.push({ name: 'Фасад 2', x1: spanX1 + (w4 + midGap), x2: spanX1 + (w4 + midGap) + w4, hingeSide: 'right', post: null, mountX: spanX1 + (w4 + midGap) + w4 });
         doorConfigs.push({ name: 'Фасад 3', x1: spanX2 - 2 * w4 - midGap, x2: spanX2 - w4 - midGap, hingeSide: 'left', post: null, mountX: spanX2 - 2 * w4 - midGap });
-        doorConfigs.push({ name: 'Фасад 4', x1: spanX2 - w4, x2: spanX2, hingeSide: 'right', post: postRight, mountX: xMax });
+        doorConfigs.push({ name: 'Фасад 4', x1: spanX2 - w4, x2: spanX2, hingeSide: 'right', post: panelRight, mountX: innerRightX });
     }
 
     var totalHingesCount = 0;
 
-    // Создание панелей дверей и монтаж петель
     for (var d = 0; d < doorConfigs.length; d++) {
         var cfg = doorConfigs[d];
         var panel = AddFrontPanel(cfg.x1, doorY1, cfg.x2, doorY2, zFront);
@@ -334,22 +434,21 @@ function buildDoors() {
             panel.AddButt(null, 1);
             panel.AddButt(null, 2);
             panel.AddButt(null, 3);
-        } catch(eButt) {}
+        } catch(eB) {}
         panel.Build();
 
-        // Монтаж петель с отступом 50 мм от нижнего и верхнего края
-        if (doHinges && hingeObj && hCount >= 2) {
+        // Монтаж петель с фиксированным отступом 50 мм от верхнего и нижнего края
+        if (doHinges && hCount >= 2) {
             var yHingeBot = doorY1 + hOffset;
             var yHingeTop = doorY2 - hOffset;
             if (yHingeTop <= yHingeBot) yHingeTop = yHingeBot + 100;
 
             var stepY = (yHingeTop - yHingeBot) / (hCount - 1);
-            var mX = (cfg.hingeSide === 'left') ? cfg.x1 : cfg.x2;
+            var mX = cfg.mountX;
 
             for (var k = 0; k < hCount; k++) {
                 var yPos = yHingeBot + k * stepY;
                 try {
-                    // Если стойка найдена в сцене — крепим к стойке и фасаду, иначе к фасаду
                     var targetPost = cfg.post || panel;
                     hingeObj.Mount(targetPost, panel, mX, yPos, zFront);
                     totalHingesCount++;
@@ -360,25 +459,49 @@ function buildDoors() {
 
     EndBlock();
 
-    try {
-        Action.Commit();
-    } catch(eC) {}
-
-    try {
-        ViewAll();
-        SetCamera(p3dIsometric);
-    } catch(eV) {}
-
-    var hingeStatus = doHinges ? ('Установлено петель: ' + totalHingesCount + ' (модель: МОЯ, отступ: ' + hOffset + ' мм)') : 'Без петель';
-    Action.Hint = 'Создано фасадов: ' + doorConfigs.length + ' (отступ: ' + gap + ' мм) | ' + hingeStatus;
+    if (isFinalCommit) {
+        try {
+            Action.Commit();
+        } catch(eC) {}
+        try {
+            ViewAll();
+            SetCamera(p3dIsometric);
+        } catch(eV) {}
+        Action.Hint = 'ГОТОВО: Создано реальных дверей: ' + doorConfigs.length + ', петель: ' + totalHingesCount;
+        Action.Finish();
+    } else {
+        // Режим превизуализации
+        var hStatus = doHinges ? ('Петель: ' + totalHingesCount + ' (отступ: ' + hOffset + ' мм)') : 'Без петель';
+        Action.Hint = 'ПРЕВИЗУАЛИЗАЦИЯ: Дверей ' + doorConfigs.length + ' (отступ: ' + gap + ' мм) | ' + hStatus + ' -> Нажмите "Применить" в свойствах слева!';
+    }
 }
 
-// Первоначальное построение
-buildDoors();
-
-// Обработка изменений в панели свойств
-if (Prop) {
-    Prop.OnChange = function() {
-        buildDoors();
-    };
+var isCommitted = false;
+function commitAndFinish() {
+    if (isCommitted) return;
+    isCommitted = true;
+    renderDoors(true);
 }
+
+// Первоначальный запуск в режиме ПРЕВИЗУАЛИЗАЦИИ
+renderDoors(false);
+
+// Интерактивное обновление при любых изменениях в панели свойств
+Prop.OnChange = function() {
+    if (!isCommitted) {
+        renderDoors(false);
+    }
+};
+
+// Обработка кнопки "Применить"
+pBtnApply.OnClick = function() {
+    commitAndFinish();
+};
+
+// Обработка стандартного завершения действия (зеленая галочка в Базисе)
+Action.OnFinish = function() {
+    commitAndFinish();
+};
+
+// Удерживаем интерактивный режим активным!
+Action.Continue();
