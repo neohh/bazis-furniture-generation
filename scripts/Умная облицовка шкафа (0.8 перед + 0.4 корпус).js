@@ -2,217 +2,329 @@
 // Скрипт: Умная облицовка шкафа (0.8 перед + 0.4 корпус)
 // Базис-Мебельщик 2021-2024 JS (ES5)
 // Кодировка: Windows-1251 (CP1251)
+//
+// Логика кромления:
+//   1. Пользователь выделяет доски (или весь шкаф, если ничего не выбрано).
+//   2. Лицевые передние торцы -> Кромка 0.8 мм (зеленая, 0.8мм 16х).
+//   3. Открытые наружные торцы (IsButtVisible) -> Кромка 0.4 мм (синяя/голубая, 0.4).
+//   4. Стыки полок и стенок -> Без кромки (чистые, красные при проверке).
+//   5. Фасады и задняя стенка ДВП (<8мм) -> Не кромятся (пропускаются).
 // =========================================================================
 
-Action.AsyncExec(function() {
+var FileOptions = 'Настройки_кромки.xml';
+
+// --- 1. ПАНЕЛЬ СВОЙСТВ СЛЕВА (Action.Properties) ---
+var Prop = Action.Properties;
+
+// Группа 1: Кромочные материалы
+var grMat = Prop.NewGroup('1. Кромочные материалы');
+var pEdgeFront = grMat.NewButt('Кромка 0.8 мм (лицевая сторона)');
+var pEdgeBody  = grMat.NewButt('Кромка 0.4 мм (открытый корпус)');
+var pClip      = grMat.NewBool('Подрезать деталь (ClipPanel)', true);
+
+// Группа 2: Направление лица шкафа
+var grDir = Prop.NewGroup('2. Направление лица шкафа');
+var pDirCombo = grDir.NewCombo('Лицевая сторона', 'Вперед (+Z, стандарт)\nНазад (-Z)\nВправо (+X)\nВлево (-X)');
+pDirCombo.ItemIndex = 0;
+var btnPickDir = grDir.NewButton('Указать перед кликом по ребру');
+
+// Группа 3: Действия
+var grAct = Prop.NewGroup('3. Действия');
+var btnApplyAll  = grAct.NewButton('Облицевать (0.8 перед + 0.4 корпус)');
+var btnFrontOnly = grAct.NewButton('Только ПЕРЕДНИЕ торцы (0.8 мм)');
+var btnBodyOnly  = grAct.NewButton('Только ОТКРЫТЫЕ торцы (0.4 мм)');
+var btnClear     = grAct.NewButton('Очистить кромки на выбранных');
+var btnFinish    = grAct.NewButton('Завершить работу');
+
+// Кнопка внизу панели команд
+var btnBarFinish = NewButtonInput('Завершить');
+btnBarFinish.OnChange = function() {
+    Action.Finish();
+};
+
+// Загрузка сохраненных настроек материалов
+var configFiles = [
+    'Настройки_кромки.xml',
+    'Scripts\\Настройки_кромки.xml',
+    'Scripts\\Генерация мебели\\Настройки_кромки.xml',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Scripts\\Настройки_кромки.xml',
+    'C:\\Users\\maxim\\OneDrive\\Документы\\Bazis\\Scripts\\Генерация мебели\\Настройки_кромки.xml',
+    'C:\\Users\\maxim\\Desktop\\БАЗИС_ЛАЙТ\\Bazis_Documents\\Scripts\\Настройки_кромки.xml',
+    'C:\\Users\\maxim\\Desktop\\БАЗИС_ЛАЙТ\\Bazis_Documents\\Scripts\\Генерация мебели\\Настройки_кромки.xml'
+];
+
+for (var cf = 0; cf < configFiles.length; cf++) {
     try {
-        // --- 1. ШАГ 1: ВЫБОР ДЕТАЛЕЙ ДЛЯ КРОМЛЕНИЯ ---
-        var rawPanels = [];
+        Action.Properties.Load(configFiles[cf]);
+        break;
+    } catch(eLoad) {}
+}
 
-        function extractPanels(obj, list) {
-            if (!obj) return;
-            if (obj.AsPanel) {
-                list.push(obj.AsPanel);
-            } else if (obj.Count && obj.Count > 0) {
-                for (var i = 0; i < obj.Count; i++) {
-                    var child = obj.Objects ? obj.Objects[i] : obj[i];
-                    extractPanels(child, list);
-                }
+// Сохранение при выходе
+Action.OnFinish = function() {
+    try {
+        Action.Properties.Save(FileOptions);
+    } catch(eSave) {}
+};
+
+// --- 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+
+function extractPanels(obj, list) {
+    if (!obj) return;
+    if (obj.AsPanel) {
+        list.push(obj.AsPanel);
+    } else if (obj.Count && obj.Count > 0) {
+        for (var i = 0; i < obj.Count; i++) {
+            var child = obj.Objects ? obj.Objects[i] : obj[i];
+            extractPanels(child, list);
+        }
+    }
+}
+
+function isFacadePanel(obj) {
+    if (!obj || !obj.AsPanel) return false;
+    var nm = (obj.Name || '').toLowerCase();
+    if (nm.indexOf('фасад') !== -1 || nm.indexOf('двер') !== -1 || nm.indexOf('створ') !== -1) {
+        return true;
+    }
+    return false;
+}
+
+function isBackWall(obj) {
+    if (!obj || !obj.AsPanel) return false;
+    var nm = (obj.Name || '').toLowerCase();
+    if (nm.indexOf('двп') !== -1 || nm.indexOf('хдф') !== -1 || nm.indexOf('задн') !== -1) {
+        return true;
+    }
+    var thX = obj.GabMax.x - obj.GabMin.x;
+    var thY = obj.GabMax.y - obj.GabMin.y;
+    var thZ = obj.GabMax.z - obj.GabMin.z;
+    var minTh = Math.min(thX, Math.min(thY, thZ));
+    if (minTh < 8.0) return true;
+    return false;
+}
+
+function getPanelsToProcess() {
+    var raw = [];
+    if (Model.SelectionCount > 0) {
+        for (var s = 0; s < Model.SelectionCount; s++) {
+            extractPanels(Model.Selections[s], raw);
+        }
+    }
+    if (raw.length === 0) {
+        extractPanels(Model, raw);
+    }
+
+    var targets = [];
+    var seen = [];
+    for (var i = 0; i < raw.length; i++) {
+        var p = raw[i];
+        if (!p) continue;
+        var already = false;
+        for (var k = 0; k < seen.length; k++) {
+            if (seen[k] === p) { already = true; break; }
+        }
+        if (already) continue;
+        seen.push(p);
+
+        if (isFacadePanel(p) || isBackWall(p)) continue;
+        targets.push(p);
+    }
+    return targets;
+}
+
+function getFrontVector() {
+    var idx = (pDirCombo && typeof pDirCombo.ItemIndex !== 'undefined') ? pDirCombo.ItemIndex : 0;
+    if (idx === 1) return { x: 0, y: 0, z: -1 }; // Назад
+    if (idx === 2) return { x: 1, y: 0, z: 0 };  // Вправо
+    if (idx === 3) return { x: -1, y: 0, z: 0 }; // Влево
+    return { x: 0, y: 0, z: 1 };                  // Вперед (+Z)
+}
+
+function getFrontContourIndex(pan, fDir) {
+    if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
+    var bestIdx = -1;
+    var maxProj = -1e9;
+    for (var i = 0; i < pan.Contour.Count; i++) {
+        var elem = pan.Contour[i];
+        if (elem && elem.Pos1 && elem.Pos2) {
+            var p1 = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
+            var p2 = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
+            var midX = (p1.x + p2.x) / 2;
+            var midY = (p1.y + p2.y) / 2;
+            var midZ = (p1.z + p2.z) / 2;
+            var proj = midX * fDir.x + midY * fDir.y + midZ * fDir.z;
+            if (proj > maxProj) {
+                maxProj = proj;
+                bestIdx = i;
             }
         }
+    }
+    return bestIdx;
+}
 
-        function isFacadePanel(obj) {
-            if (!obj || !obj.AsPanel) return false;
-            var nm = (obj.Name || '').toLowerCase();
-            if (nm.indexOf('фасад') !== -1 || nm.indexOf('двер') !== -1 || nm.indexOf('створ') !== -1) {
-                return true;
-            }
-            return false;
-        }
+// --- 3. ИНТЕРАКТИВНОЕ УКАЗАНИЕ РЕБРА ---
+function pickFrontEdge() {
+    Action.Hint = 'Кликните ПЕРЕДНЕЕ ребро шкафа (Esc - отмена)';
+    try {
+        var e = GetEdge('Кликните переднее ребро шкафа', AxisY);
+        if (e) {
+            var p1 = e.GFirst || e.First;
+            var p2 = e.GLast || e.Last;
+            if (p1 && p2) {
+                var midZ = (p1.z + p2.z) / 2;
+                var midX = (p1.x + p2.x) / 2;
+                var modZ = (Model.GabMax.z + Model.GabMin.z) / 2;
+                var modX = (Model.GabMax.x + Model.GabMin.x) / 2;
 
-        function isBackWall(obj) {
-            if (!obj || !obj.AsPanel) return false;
-            var nm = (obj.Name || '').toLowerCase();
-            if (nm.indexOf('двп') !== -1 || nm.indexOf('хдф') !== -1 || nm.indexOf('задн') !== -1) {
-                return true;
-            }
-            var thX = obj.GabMax.x - obj.GabMin.x;
-            var thY = obj.GabMax.y - obj.GabMin.y;
-            var thZ = obj.GabMax.z - obj.GabMin.z;
-            var minTh = Math.min(thX, Math.min(thY, thZ));
-            if (minTh < 8.0) return true;
-            return false;
-        }
-
-        if (Model.SelectionCount > 0) {
-            for (var s = 0; s < Model.SelectionCount; s++) {
-                extractPanels(Model.Selections[s], rawPanels);
-            }
-        } else {
-            Action.Hint = 'Шаг 1/3: Кликните детали корпуса (Esc - закончить выбор или Esc сразу для ВСЕГО шкафа)';
-            while (true) {
-                var picked = null;
-                try {
-                    picked = GetPanel('Кликните деталь (Esc - готово / весь шкаф)');
-                } catch(ePick) {
-                    picked = null;
-                }
-                if (!picked) break;
-                extractPanels(picked, rawPanels);
-            }
-            if (rawPanels.length === 0) {
-                extractPanels(Model, rawPanels);
-            }
-        }
-
-        var targetPanels = [];
-        var skippedFacades = 0;
-        var seenPanels = [];
-
-        function isAlreadyInTarget(p) {
-            for (var k = 0; k < seenPanels.length; k++) {
-                if (seenPanels[k] === p) return true;
-            }
-            return false;
-        }
-
-        for (var pIdx = 0; pIdx < rawPanels.length; pIdx++) {
-            var pObj = rawPanels[pIdx];
-            if (!pObj) continue;
-            if (isAlreadyInTarget(pObj)) continue;
-            seenPanels.push(pObj);
-
-            if (isFacadePanel(pObj)) {
-                skippedFacades++;
-                continue;
-            }
-            if (isBackWall(pObj)) {
-                continue;
-            }
-            targetPanels.push(pObj);
-        }
-
-        if (targetPanels.length === 0) {
-            alert('Не выбрано ни одной детали корпуса для кромления!');
-            Action.Finish();
-            return;
-        }
-
-        // --- 2. ШАГ 2: УКАЗАНИЕ ПЕРЕДНЕЙ (ЛИЦЕВОЙ) СТОРОНЫ ШКАФА ---
-        var frontDir = { x: 0, y: 0, z: 1 }; // По умолчанию вперед по оси +Z
-
-        Action.Hint = 'Шаг 2/3: Кликните ПЕРЕДНЕЕ (лицевое) ребро шкафа (Esc/Enter - направление вперед по Z)';
-        try {
-            var eFront = GetEdge('Шаг 2/3: Кликните ПЕРЕДНЕЕ ребро шкафа (Esc - авто вперед по Z)', AxisY);
-            if (eFront && eFront.First && eFront.Second) {
-                var edgeMidZ = (eFront.First.z + eFront.Second.z) / 2;
-                var modelMidZ = (Model.GabMax.z + Model.GabMin.z) / 2;
-                if (edgeMidZ < modelMidZ) {
-                    frontDir = { x: 0, y: 0, z: -1 };
+                if (Math.abs(midZ - modZ) >= Math.abs(midX - modX)) {
+                    pDirCombo.ItemIndex = (midZ >= modZ) ? 0 : 1;
                 } else {
-                    frontDir = { x: 0, y: 0, z: 1 };
+                    pDirCombo.ItemIndex = (midX >= modX) ? 2 : 3;
                 }
+                Action.Hint = 'Лицевая сторона установлена: ' + pDirCombo.Value;
+                return true;
             }
-        } catch(eEdge) {
-            frontDir = { x: 0, y: 0, z: 1 };
         }
+    } catch(errEdge) {}
+    return false;
+}
 
-        // --- 3. ШАГ 3: ВЫБОР КРОМКИ 0.8 И 0.4 ИЗ БАЗЫ ---
-        Action.Hint = 'Шаг 3/3: Выберите кромку 0.8 мм (для передних торцов) в строке вверху';
-        var mat08 = NewButtMaterialInput('Кромка 0.8 мм (лицевая сторона)');
-        if (!mat08) {
-            Action.Finish();
-            return;
-        }
-        mat08.Thickness = 0.8;
-        mat08.ClipPanel = true;
-
-        Action.Hint = 'Шаг 3/3: Выберите кромку 0.4 мм (для открытого корпуса) в строке вверху';
-        var mat04 = NewButtMaterialInput('Кромка 0.4 мм (открытый корпус)');
-        if (!mat04) {
-            Action.Finish();
-            return;
-        }
-        mat04.Thickness = 0.4;
-        mat04.ClipPanel = true;
-
-        // --- 4. РАСЧЕТ И НАНЕСЕНИЕ КРОМКИ ---
-        function getFrontContourIndex(pan, fDir) {
-            if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
-            var bestIdx = -1;
-            var maxProj = -1e9;
-            for (var i = 0; i < pan.Contour.Count; i++) {
-                var elem = pan.Contour[i];
-                if (elem && elem.Pos1 && elem.Pos2) {
-                    var p1 = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
-                    var p2 = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
-                    var midX = (p1.x + p2.x) / 2;
-                    var midY = (p1.y + p2.y) / 2;
+// --- 4. ОСНОВНАЯ ФУНКЦИЯ ОБЛИЦОВКИ ---
+function runEdging(askEdge, mode) {
+    if (askEdge) {
+        Action.Hint = 'Шаг 1/2: Кликните ПЕРЕДНЕЕ ребро шкафа (Esc / Enter - авто вперед по Z)';
+        try {
+            var e = GetEdge('Кликните ПЕРЕДНЕЕ ребро шкафа (Esc - вперед по Z)', AxisY);
+            if (e) {
+                var p1 = e.GFirst || e.First;
+                var p2 = e.GLast || e.Last;
+                if (p1 && p2) {
                     var midZ = (p1.z + p2.z) / 2;
-                    var proj = midX * fDir.x + midY * fDir.y + midZ * fDir.z;
-                    if (proj > maxProj) {
-                        maxProj = proj;
-                        bestIdx = i;
+                    var midX = (p1.x + p2.x) / 2;
+                    var modZ = (Model.GabMax.z + Model.GabMin.z) / 2;
+                    var modX = (Model.GabMax.x + Model.GabMin.x) / 2;
+
+                    if (Math.abs(midZ - modZ) >= Math.abs(midX - modX)) {
+                        pDirCombo.ItemIndex = (midZ >= modZ) ? 0 : 1;
+                    } else {
+                        pDirCombo.ItemIndex = (midX >= modX) ? 2 : 3;
                     }
                 }
             }
-            return bestIdx;
+        } catch(eIgnore) {}
+    }
+
+    var targets = getPanelsToProcess();
+    if (targets.length === 0) {
+        alert('Не найдено ни одной детали корпуса для кромления!');
+        return;
+    }
+
+    var fDir = getFrontVector();
+    var clip = pClip.Value;
+    var countPanels = 0;
+    var countFront = 0;
+    var countOpen = 0;
+
+    for (var i = 0; i < targets.length; i++) {
+        var pan = targets[i];
+        if (!pan || !pan.Contour || pan.Contour.Count === 0) continue;
+
+        StartEditing(pan);
+        pan.Butts.Clear();
+
+        var fIndex = getFrontContourIndex(pan, fDir);
+
+        for (var ce = 0; ce < pan.Contour.Count; ce++) {
+            if (ce === fIndex) {
+                if (mode === 'all' || mode === 'front') {
+                    // ЛИЦЕВОЙ ПЕРЕДНИЙ ТОРЕЦ -> КРОМКА 0.8 ММ
+                    var b08 = pan.AddButt(pEdgeFront, ce);
+                    if (b08) {
+                        b08.ClipPanel = clip;
+                        countFront++;
+                    }
+                }
+            } else if (pan.IsButtVisible(ce, 5)) {
+                if (mode === 'all' || mode === 'open') {
+                    // ОТКРЫТЫЙ ТОРЕЦ КОРПУСА -> КРОМКА 0.4 ММ
+                    var b04 = pan.AddButt(pEdgeBody, ce);
+                    if (b04) {
+                        b04.ClipPanel = clip;
+                        countOpen++;
+                    }
+                }
+            }
+            // ЗАКРЫТЫЕ СТЫКИ ДЕТАЛЕЙ ОСТАЮТСЯ БЕЗ КРОМКИ (ЧИСТЫЕ)
         }
 
-        var countPanels = 0;
-        var countFrontEdges = 0;
-        var countOpenEdges = 0;
+        pan.Build();
+        countPanels++;
+    }
 
-        for (var i = 0; i < targetPanels.length; i++) {
-            var pan = targetPanels[i];
+    Action.Commit();
+
+    var hintText = 'Готово! Облицовано деталей: ' + countPanels + ' | Лицевых (0.8 мм): ' + countFront + ' | Корпус (0.4 мм): ' + countOpen + '. Настройки материалов слева в окне Свойств.';
+    Action.Hint = hintText;
+}
+
+function clearButts() {
+    var targets = getPanelsToProcess();
+    var count = 0;
+    for (var i = 0; i < targets.length; i++) {
+        var pan = targets[i];
+        if (pan.Butts && pan.Butts.Count > 0) {
             StartEditing(pan);
             pan.Butts.Clear();
-
-            if (pan.Contour && pan.Contour.Count) {
-                var fIndex = getFrontContourIndex(pan, frontDir);
-
-                for (var ce = 0; ce < pan.Contour.Count; ce++) {
-                    if (ce === fIndex) {
-                        // ЛИЦЕВОЙ ПЕРЕДНИЙ ТОРЕЦ -> КРОМКА 0.8 ММ
-                        var b08 = pan.AddButt(mat08, ce);
-                        if (b08) {
-                            b08.ClipPanel = true;
-                            countFrontEdges++;
-                        }
-                    } else if (pan.IsButtVisible(ce, 5)) {
-                        // ОТКРЫТЫЙ НАРУЖНЫЙ ТОРЕЦ КОРПУСА -> КРОМКА 0.4 ММ
-                        var b04 = pan.AddButt(mat04, ce);
-                        if (b04) {
-                            b04.ClipPanel = true;
-                            countOpenEdges++;
-                        }
-                    }
-                    // ЗАКРЫТЫЕ СТЫКИ ДЕТАЛЕЙ ОСТАЮТСЯ БЕЗ КРОМКИ (ЧИСТЫЕ)
-                }
-            }
             pan.Build();
-            countPanels++;
+            count++;
         }
-
-        Action.Commit();
-
-        var summaryHint = 'Готово! Деталей: ' + countPanels + ' | Лицо 0.8: ' + countFrontEdges + ' | Корпус 0.4: ' + countOpenEdges + (skippedFacades > 0 ? ' | Фасады пропущены: ' + skippedFacades : '');
-        Action.Hint = summaryHint;
-
-        var msg = 'Умная облицовка корпуса завершена!\n' +
-            '-----------------------------------------\n' +
-            'Обработано деталей: ' + countPanels + ' шт.\n' +
-            '  - Лицевые торцы (0.8 мм): ' + countFrontEdges + ' шт.\n' +
-            '  - Открытые торцы корпуса (0.4 мм): ' + countOpenEdges + ' шт.\n' +
-            '  - Стыки деталей: без кромки (чистые)\n' +
-            (skippedFacades > 0 ? '  - Фасады и двери: не кромятся (' + skippedFacades + ' шт.)\n' : '') +
-            '-----------------------------------------\n' +
-            'Все кромки нанесены с подрезкой (ClipPanel = true).';
-
-        alert(msg);
-    } catch(err) {
-        alert('Ошибка при выполнении: ' + err.message);
     }
+    Action.Commit();
+    Action.Hint = 'Кромки очищены на ' + count + ' деталях.';
+}
+
+// --- 5. НАЗНАЧЕНИЕ КНОПОК ---
+btnPickDir.OnClick = function() {
+    Action.AsyncExec(function() {
+        pickFrontEdge();
+    });
+};
+
+btnApplyAll.OnClick = function() {
+    Action.AsyncExec(function() {
+        runEdging(false, 'all');
+    });
+};
+
+btnFrontOnly.OnClick = function() {
+    Action.AsyncExec(function() {
+        runEdging(false, 'front');
+    });
+};
+
+btnBodyOnly.OnClick = function() {
+    Action.AsyncExec(function() {
+        runEdging(false, 'open');
+    });
+};
+
+btnClear.OnClick = function() {
+    Action.AsyncExec(function() {
+        clearButts();
+    });
+};
+
+btnFinish.OnClick = function() {
+    Action.Finish();
+};
+
+// --- 6. ЗАПУСК ПРИ СТАРТЕ СКРИПТА ---
+// При запуске сразу спрашиваем переднее ребро (или Esc для стандартного Z+),
+// наносим кромки и оставляем окно свойств открытым!
+Action.AsyncExec(function() {
+    runEdging(true, 'all');
 });
 
 Action.Continue();

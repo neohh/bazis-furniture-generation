@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Options>
+  <Items>
+    <Item Name="1. Кромочные материалы">
+      <ReadOnly>Y</ReadOnly>
+      <Items>
+        <Item Name="Кромка 0.8 мм (лицевая сторона)">
+          <Value>
+            <Name>0.8мм 16х</Name>
+            <Thickness>0.8</Thickness>
+            <Width>-1</Width>
+            <Tape>Y</Tape>
+            <Sign>0.8</Sign>
+            <Overhung>0</Overhung>
+            <Clip>1</Clip>
+          </Value>
+        </Item>
+        <Item Name="Кромка 0.4 мм (открытый корпус)">
+          <Value>
+            <Name>0.4</Name>
+            <Thickness>0.4</Thickness>
+            <Width>-1</Width>
+            <Tape>Y</Tape>
+            <Sign>0.4</Sign>
+            <Overhung>0</Overhung>
+            <Clip>1</Clip>
+          </Value>
+        </Item>
+        <Item Name="Подрезать деталь (ClipPanel)">
+          <Value>1</Value>
+        </Item>
+      </Items>
+    </Item>
+    <Item Name="2. Направление лица шкафа">
+      <ReadOnly>Y</ReadOnly>
+      <Items>
+        <Item Name="Лицевая сторона">
+          <Value>Вперед (+Z, стандарт)</Value>
+        </Item>
+      </Items>
+    </Item>
+  </Items>
+</Options>
