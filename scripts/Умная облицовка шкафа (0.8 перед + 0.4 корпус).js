@@ -3,24 +3,26 @@
 // Базис-Мебельщик 2021-2024 JS (ES5)
 // Кодировка: Windows-1251 (CP1251)
 //
-// РЕЖИМ: ОБЛИЦОВКА СТРОГО ЛИЦЕВЫХ (ПЕРЕДНИХ) ТОРЦОВ КОРПУСА:
-//   1. Выбор деталей: если доски уже выделены — берутся они;
-//      если нет — клик по деталям или Esc/Enter для всего корпуса.
-//   2. Указание переда: Esc/Enter — стандартно вперед по Z.
-//   3. Кромление:
-//      - У каждой детали корпуса определяется РОВНО ОДИН передний торец (максимальный Z).
-//      - ТОЛЬКО на этот передний торец наносится кромка 0.8 мм (ClipPanel=true).
-//      - Все остальные стороны детали (зад, верх, низ, стыки) остаются ЧИСТЫМИ (без кромки).
-//      - Фасады, двери и ДВП/ХДФ полностью пропускаются.
+// ЭКСПРЕСС-ОБЛИЦОВКА ШКАФА:
+//   1. Передние лицевые торцы корпуса -> кромка 0.8 мм (0.8мм 16х - ЗЕЛЕНАЯ).
+//   2. Открытые наружные торцы корпуса (IsButtVisible) -> кромка 0.4 мм (0.4 - СИНЯЯ).
+//   3. Закрытые стыки деталей (полка к стойке и т.д.) -> БЕЗ КРОМКИ (чистые, красные в проверке).
+//   4. Фасады и задняя стенка ДВП/ХДФ -> полностью пропускаются.
+//   5. Все кромки ставятся с подрезкой детали (ClipPanel = true).
 // =========================================================================
 
-// --- 1. Настройка материала кромки ---
-var buttMat08 = NewButtMaterialInput('Кромка 0.8 мм (лицевая сторона)');
+// --- 1. Поиск и настройка кромочных материалов ---
+var buttMat08 = NewButtMaterialInput('Кромка 0.8 мм (лицевые торцы)');
+var buttMat04 = NewButtMaterialInput('Кромка 0.4 мм (открытый корпус)');
+
 buttMat08.Thickness = 0.8;
 buttMat08.ClipPanel = true;
 buttMat08.Allowance = 0.8;
 
-// Автопоиск кромочного материала 0.8 мм из текущей модели
+buttMat04.Thickness = 0.4;
+buttMat04.ClipPanel = true;
+buttMat04.Allowance = 0.4;
+
 function findModelMaterialName(targetThick) {
     var foundName = null;
     function scan(cnt) {
@@ -44,7 +46,10 @@ function findModelMaterialName(targetThick) {
 }
 
 var auto08 = findModelMaterialName(0.8);
-if (auto08) buttMat08.Name = auto08; else buttMat08.Name = 'Кромка 0.8 мм';
+buttMat08.Name = auto08 || '0.8мм 16х';
+
+var auto04 = findModelMaterialName(0.4);
+buttMat04.Name = auto04 || '0.4';
 
 // --- 2. Вспомогательные функции ---
 
@@ -83,7 +88,7 @@ function extractPanels(obj, list) {
     }
 }
 
-// --- 3. ШАГ 1: ВЫБОР ДЕТАЛЕЙ ДЛЯ КРОМЛЕНИЯ ---
+// --- 3. Сбор деталей корпуса ---
 var rawPanels = [];
 
 if (Model.SelectionCount > 0) {
@@ -139,53 +144,22 @@ if (targetPanels.length === 0) {
     Action.Finish();
 }
 
-// --- 4. ШАГ 2: ОПРЕДЕЛЕНИЕ НАПРАВЛЕНИЯ ПЕРЕДА ---
-var frontDir = { x: 0, y: 0, z: 1 }; // По умолчанию лицо шкафа смотрит по оси +Z
-
-try {
-    Action.Hint = 'Шаг 2/2: Кликните точку на ЛИЦЕВОЙ стороне шкафа (Enter/Esc - направление вперед Z+)';
-    var pFace = GetPoint('Кликните точку на лицевой стороне шкафа (Esc - вперед по Z)');
-    if (pFace) {
-        var midZ = (Model.GabMax.z + Model.GabMin.z) / 2;
-        var midX = (Model.GabMax.x + Model.GabMin.x) / 2;
-        var midY = (Model.GabMax.y + Model.GabMin.y) / 2;
-
-        var dx = pFace.x - midX;
-        var dy = pFace.y - midY;
-        var dz = pFace.z - midZ;
-
-        if (Math.abs(dz) >= Math.abs(dx) && Math.abs(dz) >= Math.abs(dy)) {
-            frontDir = { x: 0, y: 0, z: (dz >= 0 ? 1 : -1) };
-        } else if (Math.abs(dx) >= Math.abs(dz) && Math.abs(dx) >= Math.abs(dy)) {
-            frontDir = { x: (dx >= 0 ? 1 : -1), y: 0, z: 0 };
-        } else {
-            frontDir = { x: 0, y: (dy >= 0 ? 1 : -1), z: 0 };
-        }
-    }
-} catch(eFace) {
-    frontDir = { x: 0, y: 0, z: 1 };
-}
-
-// Поиск ровно одного лицевого (переднего) торца на детали
-function getFrontContourIndex(pan, fDir) {
+// --- 4. Определение лицевого (переднего) торца по максимальному Z ---
+function getFrontContourIndex(pan) {
     if (!pan || !pan.Contour || pan.Contour.Count === 0) return -1;
 
     var bestIdx = -1;
-    var maxProj = -1e9;
+    var maxZ = -1e9;
 
     for (var i = 0; i < pan.Contour.Count; i++) {
         var elem = pan.Contour[i];
         if (elem && elem.Pos1 && elem.Pos2) {
             var p1 = pan.ToGlobal(NewVector(elem.Pos1.x, elem.Pos1.y, 0));
             var p2 = pan.ToGlobal(NewVector(elem.Pos2.x, elem.Pos2.y, 0));
-            var midX = (p1.x + p2.x) / 2;
-            var midY = (p1.y + p2.y) / 2;
             var midZ = (p1.z + p2.z) / 2;
 
-            // Проекция середины ребра на вектор лица
-            var proj = midX * fDir.x + midY * fDir.y + midZ * fDir.z;
-            if (proj > maxProj) {
-                maxProj = proj;
+            if (midZ > maxZ) {
+                maxZ = midZ;
                 bestIdx = i;
             }
         }
@@ -193,47 +167,58 @@ function getFrontContourIndex(pan, fDir) {
     return bestIdx;
 }
 
-// --- 5. НАНЕСЕНИЕ КРОМКИ (СТРОГО ТОЛЬКО НА ЛИЦЕВЫЕ ТОРЦЫ) ---
+// --- 5. Кромление: передние 0.8 мм (зеленая), открытые 0.4 мм (синяя), стыки чистые ---
 var countPanels = 0;
 var countFrontEdges = 0;
+var countOpenEdges = 0;
 
 for (var i = 0; i < targetPanels.length; i++) {
     var pan = targetPanels[i];
     StartEditing(pan);
-    pan.Butts.Clear(); // Очищаем старые кромки и наслоения
+    pan.Butts.Clear();
 
     if (pan.Contour && pan.Contour.Count) {
-        var fIndex = getFrontContourIndex(pan, frontDir);
+        var fIndex = getFrontContourIndex(pan);
 
-        if (fIndex >= 0) {
-            // ТОЛЬКО ОДИН ЛИЦЕВОЙ ТОРЕЦ ДЕТАЛИ -> КРОМКА 0.8 ММ
-            var bFront = pan.AddButt(buttMat08, fIndex);
-            if (bFront) {
-                bFront.ClipPanel = true;
-                bFront.Thickness = 0.8;
-                bFront.Material = buttMat08.Name;
+        for (var ce = 0; ce < pan.Contour.Count; ce++) {
+            if (ce === fIndex) {
+                // ЛИЦЕВОЙ ПЕРЕДНИЙ ТОРЕЦ -> КРОМКА 0.8 ММ (ЗЕЛЕНАЯ)
+                var bFront = pan.AddButt(buttMat08, ce);
+                if (bFront) {
+                    bFront.ClipPanel = true;
+                    bFront.Thickness = 0.8;
+                }
+                countFrontEdges++;
+            } else if (pan.IsButtVisible(ce, 5)) {
+                // ОТКРЫТЫЙ НАРУЖНЫЙ ТОРЕЦ КОРПУСА -> КРОМКА 0.4 ММ (СИНЯЯ)
+                var bOpen = pan.AddButt(buttMat04, ce);
+                if (bOpen) {
+                    bOpen.ClipPanel = true;
+                    bOpen.Thickness = 0.4;
+                }
+                countOpenEdges++;
             }
-            countFrontEdges++;
+            // ЗАКРЫТЫЕ СТЫКИ ДЕТАЛЕЙ ОСТАЮТСЯ БЕЗ КРОМКИ (ЧИСТЫЕ)
         }
-        // ВСЕ ОСТАЛЬНЫЕ СТОРОНЫ (ЗАД, ВЕРХ, НИЗ, СТЫКИ) ОСТАЮТСЯ ЧИСТЫМИ!
     }
     pan.Build();
     countPanels++;
 }
 
-// --- 6. ЗАВЕРШЕНИЕ И ОТЧЕТ ---
+// --- 6. Завершение и отчет ---
 Action.Commit();
 
-var summaryHint = 'Готово! Деталей: ' + countPanels + ' | Облицовано передних торцов (0.8 мм): ' + countFrontEdges + (skippedFacades > 0 ? ' | Фасады пропущены: ' + skippedFacades : '');
+var summaryHint = 'Готово! Деталей: ' + countPanels + ' | Перед (0.8 мм зеленая): ' + countFrontEdges + ' | Открытые (0.4 мм синяя): ' + countOpenEdges + (skippedFacades > 0 ? ' | Фасады пропущены: ' + skippedFacades : '');
 Action.Hint = summaryHint;
 
-var msg = 'Облицовка лицевых торцов завершена!\n' +
+var msg = 'Умная облицовка корпуса завершена!\n' +
     '-----------------------------------------\n' +
-    'Обработано деталей: ' + countPanels + ' шт.\n' +
-    'Нанесено кромки 0.8 мм на передние торцы: ' + countFrontEdges + ' шт.\n' +
-    'Задние, верхние/нижние торцы и стыки: оставлены чистыми\n' +
-    (skippedFacades > 0 ? 'Фасады и двери: пропущены (' + skippedFacades + ' шт.)\n' : '') +
+    'Обработано деталей корпуса: ' + countPanels + ' шт.\n' +
+    '  - Лицевые торцы (0.8 мм, зеленая): ' + countFrontEdges + ' шт.\n' +
+    '  - Открытые торцы (0.4 мм, синяя): ' + countOpenEdges + ' шт.\n' +
+    '  - Закрытые стыки деталей: без кромки (чистые)\n' +
+    (skippedFacades > 0 ? '  - Фасады и двери: не кромятся (пропущено ' + skippedFacades + ' шт.)\n' : '') +
     '-----------------------------------------\n' +
-    'Все детали подрезаны (ClipPanel), наслоения удалены.';
+    'Материалы: ' + buttMat08.Name + ' (0.8 мм) и ' + buttMat04.Name + ' (0.4 мм).';
 
 alert(msg);
