@@ -26,6 +26,8 @@ var pClip      = grMat.NewBool('Подрезать деталь (ClipPanel)', true);
 var grDir = Prop.NewGroup('2. Направление лица шкафа');
 var pDirCombo = grDir.NewCombo('Лицевая сторона', 'Вперед (+Z, стандарт)\nНазад (-Z)\nВправо (+X)\nВлево (-X)');
 pDirCombo.ItemIndex = 0;
+try { pDirCombo.Value = 'Вперед (+Z, стандарт)'; } catch(e) {}
+
 var btnPickDir = grDir.NewButton('Указать перед кликом по ребру');
 
 // Группа 3: Действия
@@ -58,6 +60,12 @@ for (var cf = 0; cf < configFiles.length; cf++) {
         Action.Properties.Load(configFiles[cf]);
         break;
     } catch(eLoad) {}
+}
+
+// Принудительно гарантируем, что направление по умолчанию - Вперед (+Z)
+if (!pDirCombo.Value || pDirCombo.Value.indexOf('-X') !== -1) {
+    pDirCombo.ItemIndex = 0;
+    try { pDirCombo.Value = 'Вперед (+Z, стандарт)'; } catch(eD) {}
 }
 
 // Сохранение при выходе
@@ -133,12 +141,19 @@ function getPanelsToProcess() {
     return targets;
 }
 
+// Надежное чтение направления лица шкафа (по текстовому значению комбо!)
 function getFrontVector() {
-    var idx = (pDirCombo && typeof pDirCombo.ItemIndex !== 'undefined') ? pDirCombo.ItemIndex : 0;
-    if (idx === 1) return { x: 0, y: 0, z: -1 }; // Назад (-Z)
-    if (idx === 2) return { x: 1, y: 0, z: 0 };  // Вправо (+X)
-    if (idx === 3) return { x: -1, y: 0, z: 0 }; // Влево (-X)
-    return { x: 0, y: 0, z: 1 };                  // Вперед (+Z, стандарт)
+    var val = (pDirCombo && pDirCombo.Value) ? String(pDirCombo.Value) : '';
+    if (val.indexOf('-Z') !== -1 || val.indexOf('Назад') !== -1) {
+        return { x: 0, y: 0, z: -1 };
+    }
+    if (val.indexOf('+X') !== -1 || val.indexOf('Вправо') !== -1) {
+        return { x: 1, y: 0, z: 0 };
+    }
+    if (val.indexOf('-X') !== -1 || val.indexOf('Влево') !== -1) {
+        return { x: -1, y: 0, z: 0 };
+    }
+    return { x: 0, y: 0, z: 1 }; // По умолчанию: Вперед (+Z, стандарт)
 }
 
 function getFrontContourIndex(pan, fDir) {
@@ -163,135 +178,68 @@ function getFrontContourIndex(pan, fDir) {
     return bestIdx;
 }
 
-// --- 3. ТОЧНОЕ ОПРЕДЕЛЕНИЕ НАПРАВЛЕНИЯ ПЕРЕДА ПО КЛИКНУТОМУ РЕБРУ ---
-function determineFrontDirectionFromEdge(edge, targets) {
-    if (!edge) return 0; // По умолчанию 0: +Z (Вперед)
+// --- 3. НАЗНАЧЕНИЕ НАПРАВЛЕНИЯ ПЕРЕДА ПО КЛИКНУТОМУ РЕБРУ ---
+function setFrontDirectionFromEdge(edge, targets) {
+    if (!edge) return;
+    var pt = edge.First || edge.GFirst;
+    if (!pt) return;
 
-    var p1 = edge.GFirst || edge.First;
-    var p2 = edge.GLast || edge.Last;
-    if (!p1 || !p2) return 0;
-
-    var edgeMid = {
-        x: (p1.x + p2.x) / 2,
-        y: (p1.y + p2.y) / 2,
-        z: (p1.z + p2.z) / 2
-    };
-
-    var lenX = Math.abs(p2.x - p1.x);
-    var lenY = Math.abs(p2.y - p1.y);
-    var lenZ = Math.abs(p2.z - p1.z);
-
-    // Вычисляем габариты обрабатываемых деталей шкафа (а НЕ всей комнаты/модели!)
-    var tMinX = 1e9, tMaxX = -1e9;
-    var tMinY = 1e9, tMaxY = -1e9;
     var tMinZ = 1e9, tMaxZ = -1e9;
+    var tMinX = 1e9, tMaxX = -1e9;
 
-    var panelList = (targets && targets.length > 0) ? targets : [];
-    if (panelList.length === 0) {
-        panelList = getPanelsToProcess();
-    }
-
-    // Ищем панель, которой принадлежит кликнутое ребро
-    var ownerPanel = null;
-    var bestDist = 1e9;
-
+    var panelList = (targets && targets.length > 0) ? targets : getPanelsToProcess();
     for (var i = 0; i < panelList.length; i++) {
-        var pan = panelList[i];
-        if (!pan) continue;
-        if (pan.GabMin.x < tMinX) tMinX = pan.GabMin.x;
-        if (pan.GabMax.x > tMaxX) tMaxX = pan.GabMax.x;
-        if (pan.GabMin.y < tMinY) tMinY = pan.GabMin.y;
-        if (pan.GabMax.y > tMaxY) tMaxY = pan.GabMax.y;
-        if (pan.GabMin.z < tMinZ) tMinZ = pan.GabMin.z;
-        if (pan.GabMax.z > tMaxZ) tMaxZ = pan.GabMax.z;
-
-        if (pan.Contour) {
-            for (var c = 0; c < pan.Contour.Count; c++) {
-                var el = pan.Contour[c];
-                if (el && el.Pos1 && el.Pos2) {
-                    var g1 = pan.ToGlobal(NewVector(el.Pos1.x, el.Pos1.y, 0));
-                    var g2 = pan.ToGlobal(NewVector(el.Pos2.x, el.Pos2.y, 0));
-                    var cMidX = (g1.x + g2.x) / 2;
-                    var cMidY = (g1.y + g2.y) / 2;
-                    var cMidZ = (g1.z + g2.z) / 2;
-                    var d = Math.sqrt(
-                        Math.pow(cMidX - edgeMid.x, 2) +
-                        Math.pow(cMidY - edgeMid.y, 2) +
-                        Math.pow(cMidZ - edgeMid.z, 2)
-                    );
-                    if (d < bestDist) {
-                        bestDist = d;
-                        ownerPanel = pan;
-                    }
-                }
-            }
-        }
+        var p = panelList[i];
+        if (!p) continue;
+        if (p.GabMin.z < tMinZ) tMinZ = p.GabMin.z;
+        if (p.GabMax.z > tMaxZ) tMaxZ = p.GabMax.z;
+        if (p.GabMin.x < tMinX) tMinX = p.GabMin.x;
+        if (p.GabMax.x > tMaxX) tMaxX = p.GabMax.x;
     }
 
-    // Базовый центр для анализа: центр конкретной панели или центр обрабатываемого шкафа
-    var refZ = (tMinZ + tMaxZ) / 2;
-    var refX = (tMinX + tMaxX) / 2;
+    var tMidZ = (tMinZ + tMaxZ) / 2;
+    var tMidX = (tMinX + tMaxX) / 2;
 
-    if (ownerPanel) {
-        refZ = (ownerPanel.GabMin.z + ownerPanel.GabMax.z) / 2;
-        refX = (ownerPanel.GabMin.x + ownerPanel.GabMax.x) / 2;
-    }
+    var dz = pt.z - tMidZ;
+    var dx = pt.x - tMidX;
 
-    // ГЕОМЕТРИЧЕСКИЙ АНАЛИЗ ОРИЕНТАЦИИ РЕБРА:
-    // Лицевое ребро шкафа лежит в плоскости фасада/переда!
-    // 1. Если шкаф стоит прямо (лицо по Z):
-    //    Переднее ребро полки идет вдоль оси X (lenZ ~ 0).
-    //    Переднее ребро стойки идет вдоль оси Y (lenZ ~ 0).
-    //    В обоих случаях lenZ < 3 мм! Это железный признак плоскости Z.
-    // 2. Если шкаф повернут на 90 градусов (лицо по X):
-    //    Переднее ребро идет вдоль Z или Y, а lenX < 3 мм.
-    var isConstZ = (lenZ < 3.0 && (lenX > 5.0 || lenY > 5.0));
-    var isConstX = (lenX < 3.0 && (lenZ > 5.0 || lenY > 5.0));
-
-    if (isConstZ) {
-        // Ребро в плоскости XY -> нормаль строго по Z!
-        if (edgeMid.z >= refZ) {
-            return 0; // Вперед (+Z, стандарт)
-        } else {
-            return 1; // Назад (-Z)
-        }
-    }
-
-    if (isConstX) {
-        // Ребро в плоскости YZ -> нормаль строго по X!
-        if (edgeMid.x >= refX) {
-            return 2; // Вправо (+X)
-        } else {
-            return 3; // Влево (-X)
-        }
-    }
-
-    // Fallback: сравниваем смещение от центра конкретного шкафа
-    var dz = edgeMid.z - refZ;
-    var dx = edgeMid.x - refX;
-
+    // В мебели глубина почти всегда по Z (вперед/назад).
+    // Если смещение по Z доминирует или клик ближе к передней/задней плоскости:
     if (Math.abs(dz) >= Math.abs(dx)) {
-        return (dz >= 0) ? 0 : 1;
+        if (dz >= 0) {
+            pDirCombo.ItemIndex = 0;
+            try { pDirCombo.Value = 'Вперед (+Z, стандарт)'; } catch(e) {}
+        } else {
+            pDirCombo.ItemIndex = 1;
+            try { pDirCombo.Value = 'Назад (-Z)'; } catch(e) {}
+        }
     } else {
-        return (dx >= 0) ? 2 : 3;
+        if (dx >= 0) {
+            pDirCombo.ItemIndex = 2;
+            try { pDirCombo.Value = 'Вправо (+X)'; } catch(e) {}
+        } else {
+            pDirCombo.ItemIndex = 3;
+            try { pDirCombo.Value = 'Влево (-X)'; } catch(e) {}
+        }
     }
 }
 
 // --- 4. ИНТЕРАКТИВНОЕ УКАЗАНИЕ РЕБРА ---
 function pickFrontEdge() {
-    Action.Hint = 'Кликните ПЕРЕДНЕЕ ребро шкафа (любое: полки, стойки, дна или крышки)';
+    Action.Hint = 'Кликните ПЕРЕДНЕЕ вертикальное ребро шкафа (стойки, боковины или петли)';
     try {
-        var e = GetEdge('Кликните переднее ребро шкафа');
-        if (e) {
+        var e = GetEdge('Кликните переднее вертикальное ребро шкафа', AxisY);
+        if (e && (e.First || e.GFirst)) {
             var targets = getPanelsToProcess();
-            var dirIdx = determineFrontDirectionFromEdge(e, targets);
-            pDirCombo.ItemIndex = dirIdx;
+            setFrontDirectionFromEdge(e, targets);
             Action.Hint = 'Лицевая сторона установлена: ' + pDirCombo.Value + '. Выполняю кромление...';
-            // СРАЗУ же автоматически применяем кромление по указанному ребру!
+            // СРАЗУ же наносим кромку!
             runEdging(false, 'all');
             return true;
         }
-    } catch(errEdge) {}
+    } catch(errEdge) {
+        alert('Ошибка при выборе ребра: ' + errEdge.message);
+    }
     return false;
 }
 
@@ -304,12 +252,11 @@ function runEdging(askEdge, mode) {
     }
 
     if (askEdge) {
-        Action.Hint = 'Шаг 1/2: Кликните ПЕРЕДНЕЕ ребро шкафа (Esc / Enter - авто вперед по Z)';
+        Action.Hint = 'Шаг 1/2: Кликните ПЕРЕДНЕЕ вертикальное ребро шкафа (Esc / Enter - вперед по Z)';
         try {
-            var e = GetEdge('Кликните ПЕРЕДНЕЕ ребро шкафа (Esc - вперед по Z)');
-            if (e) {
-                var dirIdx = determineFrontDirectionFromEdge(e, targets);
-                pDirCombo.ItemIndex = dirIdx;
+            var e = GetEdge('Кликните переднее ребро шкафа (Esc - авто вперед по Z)', AxisY);
+            if (e && (e.First || e.GFirst)) {
+                setFrontDirectionFromEdge(e, targets);
             }
         } catch(eIgnore) {}
     }
@@ -413,7 +360,7 @@ btnFinish.OnClick = function() {
     Action.Finish();
 };
 
-// При смене направления в выпадающем списке — сразу пересчитываем кромку
+// При смене направления в выпадающем списке — сразу пересчитываем кромку!
 pDirCombo.OnChange = function() {
     Action.AsyncExec(function() {
         runEdging(false, 'all');
