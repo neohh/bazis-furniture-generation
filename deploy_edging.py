@@ -403,15 +403,21 @@ for d in dest_dirs:
         f.write(xml_content)
     print(f"Written to: {js_path} and {xml_path}")
 
-# Update zip archive if exists
+# Update zip archive cleanly from desktop folder if exists
+desktop_folder = r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ"
 zip_path = r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ.zip"
-if os.path.exists(zip_path):
-    with zipfile.ZipFile(zip_path, 'a') as zf:
-        # Add inside Bazis_Documents/Scripts/
-        zf.writestr(f"Bazis_Documents/Scripts/{script_filename}", js_content.encode('cp1251'))
-        zf.writestr(f"Bazis_Documents/Scripts/{xml_filename}", xml_content.encode('utf-8'))
-        zf.writestr(f"Bazis_Documents/Scripts/Генерация мебели/{script_filename}", js_content.encode('cp1251'))
-        zf.writestr(f"Bazis_Documents/Scripts/Генерация мебели/{xml_filename}", xml_content.encode('utf-8'))
-    print("Updated БАЗИС_ЛАЙТ.zip")
+temp_zip = r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ_tmp.zip"
+
+if os.path.exists(desktop_folder):
+    file_count = 0
+    with zipfile.ZipFile(temp_zip, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(desktop_folder):
+            for f in files:
+                full_path = os.path.join(root, f)
+                arcname = os.path.relpath(full_path, desktop_folder)
+                zf.write(full_path, arcname)
+                file_count += 1
+    os.replace(temp_zip, zip_path)
+    print(f"Cleanly updated БАЗИС_ЛАЙТ.zip ({file_count} files)")
 
 print("Deployment complete!")
