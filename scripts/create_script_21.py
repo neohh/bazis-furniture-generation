@@ -1,159 +1,143 @@
 # -*- coding: utf-8 -*-
-import os, zipfile, shutil
+import os, zipfile
 
-script_js = r"""// ==============================================================================
-// Скрипт: 21_Нормализация_шкафов_по_чертежу_2080.js
-// Назначение: Полный аудит и нормализация габаритов двух прилегающих шкафов
-// (L = 2080 мм, H = 2660 мм) строго по чертежу-эскизу.
-// 
-// Устраняет искажения старой кромки:
-//   - 601 мм -> 600 мм (боковины правого шкафа 16 мм)
-//   - 621 мм -> 620 мм (боковины и горизонты толстого шкафа 26 мм)
-//   - 2659.6 мм -> 2660.0 мм (высота всех боковин)
-//   - 434 мм / 535 мм -> 534 мм (глубина полок правого шкафа)
-//   - 2007.6 мм -> 2008.0 мм (задняя стенка 26 мм)
-//   - Включает подрезку кромки (ClipPanel = true), чтобы размеры оставались целыми!
-// ==============================================================================
+script_js = r"""var H_TOTAL = 2660;
+var D_THICK = 620;
+var D_THIN  = 600;
+var D_SHELF = 534;
+var W_THICK_INNER = 828;
+var W_THIN_INNER  = 1168;
 
-var H_TOTAL = 2660;
-var D_THICK = 620;  // Глубина толстого шкафа 26 мм
-var D_THIN  = 600;  // Глубина правого шкафа 16 мм
-var D_SHELF = 534;  // Глубина полок (600 - 50 отступ - 16 задник)
-var W_THICK_INNER = 828;  // 880 - 26 - 26
-var W_THIN_INNER  = 1168; // 1200 - 16 - 16
-
-function normalizePanelContour(pan, targetL, targetW) {
-    if (!pan || !pan.Contour) return;
-    var c = pan.Contour;
-    var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+function fitContour(pan, targetL, targetW) {
+    if (!pan || !pan.Contour || pan.Contour.Count === 0) return;
+    var cMin = pan.Contour.Min;
+    var cMax = pan.Contour.Max;
+    var curW = cMax.x - cMin.x;
+    var curH = cMax.y - cMin.y;
     
-    for (var i = 0; i < c.Count; i++) {
-        var el = c[i];
-        if (el.Pos1) {
-            if (el.Pos1.x < minX) minX = el.Pos1.x;
-            if (el.Pos1.x > maxX) maxX = el.Pos1.x;
-            if (el.Pos1.y < minY) minY = el.Pos1.y;
-            if (el.Pos1.y > maxY) maxY = el.Pos1.y;
-        }
-        if (el.Pos2) {
-            if (el.Pos2.x < minX) minX = el.Pos2.x;
-            if (el.Pos2.x > maxX) maxX = el.Pos2.x;
-            if (el.Pos2.y < minY) minY = el.Pos2.y;
-            if (el.Pos2.y > maxY) maxY = el.Pos2.y;
-        }
+    var newW, newH;
+    if (curW >= curH) {
+        newW = targetL >= targetW ? targetL : targetW;
+        newH = targetL >= targetW ? targetW : targetL;
+    } else {
+        newW = targetL >= targetW ? targetW : targetL;
+        newH = targetL >= targetW ? targetL : targetW;
     }
-    
-    var curL = maxX - minX;
-    var curW = maxY - minY;
-    
-    // Подгоняем контур через Fit
-    if (targetL && targetW) {
-        c.Fit(minX, minY, minX + targetL, minY + targetW);
-    } else if (targetL) {
-        c.Fit(minX, minY, minX + targetL, maxY);
-    } else if (targetW) {
-        c.Fit(minX, minY, maxX, minY + targetW);
-    }
+    pan.Contour.Fit(cMin.x, cMin.y, cMin.x + newW, cMin.y + newH);
 }
 
-function processModel() {
+function normalizeWardrobes() {
     var fixedCount = 0;
     var report = [];
     
-    function scanList(list) {
-        for (var i = 0; i < list.Count; i++) {
-            var obj = list[i];
-            if (obj.List) {
-                scanList(obj.List);
-            }
-            if (obj.AsPanel) {
-                var p = obj.AsPanel;
-                var name = (p.Name || '').toLowerCase();
-                var mat = (p.MaterialName || '').toLowerCase();
-                var thick = Math.round(p.Thickness || 16);
-                
-                // 1. Боковины толстого шкафа (26 мм): 2660 x 620
-                if ((name.indexOf('боковина') !== -1 && (thick === 26 || mat.indexOf('26') !== -1 || name.indexOf('26') !== -1))) {
-                    var oldH = p.GSize.y;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 2660, 620);
-                    // Выравниваем верхний срез на 2660
-                    p.PosY = 0;
-                    fixedCount++;
-                    report.push(p.Name + ': высота ' + oldH.toFixed(1) + ' -> 2660, глубина ' + oldD.toFixed(1) + ' -> 620');
-                }
-                // 2. Боковины правого шкафа (16 мм): 2660 x 600
-                else if (name.indexOf('боковина') !== -1 && thick === 16) {
-                    var oldH = p.GSize.y;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 2660, 600);
-                    p.PosY = 0;
-                    fixedCount++;
-                    report.push(p.Name + ': высота ' + oldH.toFixed(1) + ' -> 2660, глубина ' + oldD.toFixed(1) + ' -> 600');
-                }
-                // 3. Дно высокое (26 мм): 828 x 620 на Y = 600
-                else if (name.indexOf('дно') !== -1 && (thick === 26 || name.indexOf('высокое') !== -1)) {
-                    var oldL = p.GSize.x;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 828, 620);
-                    p.PosY = 600;
-                    fixedCount++;
-                    report.push(p.Name + ': ' + oldL.toFixed(1) + 'x' + oldD.toFixed(1) + ' -> 828x620, Y=600');
-                }
-                // 4. Крышка толстого шкафа (26 мм): 828 x 620 на Y = 2634
-                else if (name.indexOf('крышка') !== -1 && (thick === 26 || name.indexOf('26') !== -1)) {
-                    var oldL = p.GSize.x;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 828, 620);
-                    p.PosY = 2634;
-                    fixedCount++;
-                    report.push(p.Name + ': ' + oldL.toFixed(1) + 'x' + oldD.toFixed(1) + ' -> 828x620, Y=2634');
-                }
-                // 5. Задняя стенка толстого шкафа (26 мм): 828 x 2008 на Y = 626
-                else if (name.indexOf('задняя') !== -1 && (thick === 26 || name.indexOf('26') !== -1)) {
-                    var oldW = p.GSize.x;
-                    var oldH = p.GSize.y;
-                    normalizePanelContour(p, 828, 2008);
-                    p.PosY = 626;
-                    fixedCount++;
-                    report.push(p.Name + ': ' + oldW.toFixed(1) + 'x' + oldH.toFixed(1) + ' -> 828x2008, Y=626');
-                }
-                // 6. Полки правого шкафа (16 мм): 1168 x 534
-                else if (name.indexOf('полка') !== -1 && thick === 16) {
-                    var oldL = p.GSize.x;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 1168, 534);
-                    p.PosZ = 66; // от задника
-                    fixedCount++;
-                    report.push(p.Name + ': ' + oldL.toFixed(1) + 'x' + oldD.toFixed(1) + ' -> 1168x534');
-                }
-                // 7. Крышка и дно правого шкафа (16 мм): 1168 x 534
-                else if ((name === 'дно' || name === 'крышка') && thick === 16) {
-                    var oldL = p.GSize.x;
-                    var oldD = p.GSize.z;
-                    normalizePanelContour(p, 1168, 534);
-                    p.PosZ = 66;
-                    fixedCount++;
-                    report.push(p.Name + ' (16 мм): ' + oldL.toFixed(1) + 'x' + oldD.toFixed(1) + ' -> 1168x534');
-                }
-                // 8. Цоколь (16 мм): 1168 x 60
-                else if (name.indexOf('цоколь') !== -1) {
-                    normalizePanelContour(p, 1168, 60);
-                    fixedCount++;
-                    report.push(p.Name + ': длина 1168, высота 60');
-                }
+    function extractPanels(obj, list) {
+        if (!obj) return;
+        if (obj.AsPanel) {
+            list.push(obj.AsPanel);
+        } else if (obj.Count && obj.Count > 0) {
+            for (var i = 0; i < obj.Count; i++) {
+                var child = obj.Objects ? obj.Objects[i] : obj[i];
+                extractPanels(child, list);
             }
         }
     }
     
-    scanList(Model);
+    var panels = [];
+    extractPanels(Model, panels);
     
-    var msg = 'Нормализация завершена!\nОбработано деталей: ' + fixedCount + '\n\nДетали:\n' + report.join('\n');
+    for (var i = 0; i < panels.length; i++) {
+        var p = panels[i];
+        if (!p || !p.Contour) continue;
+        
+        var minX = p.GabMin.x, maxX = p.GabMax.x;
+        var minY = p.GabMin.y, maxY = p.GabMax.y;
+        var minZ = p.GabMin.z, maxZ = p.GabMax.z;
+        
+        var szX = maxX - minX;
+        var szY = maxY - minY;
+        var szZ = maxZ - minZ;
+        
+        var thick = Math.round(p.Thickness || Math.min(szX, Math.min(szY, szZ)));
+        var is26 = (thick >= 22);
+        var is16 = (thick < 22 && thick >= 12);
+        
+        var nm = (p.Name || '');
+        
+        // --- 1. ВЕРТИКАЛЬНЫЕ БОКОВИНЫ (YZ) ---
+        if (szX <= 30 && szY > 1000) {
+            if (is26) {
+                // Шкаф 1 (толстый): 2660 x 620
+                fitContour(p, 2660, 620);
+                p.PosY = 0;
+                fixedCount++;
+                report.push(nm + ' (26 мм): -> 2660x620');
+            } else if (is16) {
+                // Шкаф 2 (16 мм): 2660 x 600
+                fitContour(p, 2660, 600);
+                p.PosY = 0;
+                fixedCount++;
+                report.push(nm + ' (16 мм): -> 2660x600');
+            }
+        }
+        
+        // --- 2. ГОРИЗОНТАЛЬНЫЕ ПАНЕЛИ (XZ: полки, дно, крышка) ---
+        else if (szY <= 30 && (szX > 500 || szZ > 300)) {
+            if (is26) {
+                // Шкаф 1 (толстый): горизонты 828 x 620
+                fitContour(p, 828, 620);
+                if (minY < 1000) {
+                    p.PosY = 600; // Высокое дно на 600 мм
+                    report.push(nm + ' (Дно высокое 26 мм): -> 828x620, Y=600');
+                } else {
+                    p.PosY = 2634; // Крышка под 2660
+                    report.push(nm + ' (Крышка 26 мм): -> 828x620, Y=2634');
+                }
+                fixedCount++;
+            } else if (is16) {
+                // Шкаф 2 (16 мм): полки, дно, крышка 1168 x 534
+                fitContour(p, 1168, 534);
+                p.PosZ = 66; // Встык к задней стенке 16 мм
+                fixedCount++;
+                report.push(nm + ' (Полка/горизонт 16 мм): -> 1168x534, Z=66');
+            }
+        }
+        
+        // --- 3. ФАСАДНЫЕ / ЗАДНИЕ СТЕНКИ (XY) ---
+        else if (szZ <= 30 && szX > 500) {
+            if (is26) {
+                // Шкаф 1: Задняя стенка 26 мм -> 828 x 2008 в распор
+                fitContour(p, 828, 2008);
+                p.PosY = 626;
+                p.PosX = 26;
+                fixedCount++;
+                report.push(nm + ' (Задник 26 мм): -> 828x2008, Y=626');
+            } else if (is16) {
+                if (szY < 150) {
+                    // Цоколь 16 мм: 1168 x 60
+                    fitContour(p, 1168, 60);
+                    fixedCount++;
+                    report.push(nm + ' (Цоколь): -> 1168x60');
+                } else {
+                    // Задняя стенка 16 мм: 1168 x 2568
+                    fitContour(p, 1168, 2568);
+                    p.PosY = 76;
+                    fixedCount++;
+                    report.push(nm + ' (Задник 16 мм): -> 1168x2568');
+                }
+            }
+        }
+        
+        if (p.Build) {
+            try { p.Build(); } catch(eB) {}
+        }
+    }
+    
+    var msg = 'Нормализация завершена!\nИсправлено деталей: ' + fixedCount + '\n\n' + report.slice(0, 15).join('\n');
+    if (report.length > 15) msg += '\n... и еще ' + (report.length - 15) + ' дет.';
     alert(msg);
 }
 
-// Запуск
-processModel();
+normalizeWardrobes();
 """
 
 def main():
@@ -165,7 +149,6 @@ def main():
         r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ\Bazis_Documents\Scripts\Генерация мебели\21_Нормализация_шкафов_по_чертежу_2080.js",
     ]
     
-    # Save in windows-1251
     encoded = script_js.encode('cp1251', errors='replace')
     for p in target_paths:
         os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -173,7 +156,6 @@ def main():
             f.write(encoded)
         print(f"Written: {p}")
         
-    # Rebuild Desktop zip
     zip_path = r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ.zip"
     src_dir = r"C:\Users\maxim\Desktop\БАЗИС_ЛАЙТ"
     if os.path.exists(src_dir):
