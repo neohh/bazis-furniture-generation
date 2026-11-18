@@ -63,6 +63,11 @@ for (var cf = 0; cf < configFiles.length; cf++) {
 }
 
 // Принудительно гарантируем, что направление по умолчанию - Вперед (+Z)
+// Всегда по умолчанию включаем подрезку деталей (чтобы габариты оставались целыми числами)
+try {
+    pClip.Value = true;
+} catch(eClip) {}
+
 if (!pDirCombo.Value || pDirCombo.Value.indexOf('-X') !== -1) {
     pDirCombo.ItemIndex = 0;
     try { pDirCombo.Value = 'Вперед (+Z, стандарт)'; } catch(eD) {}

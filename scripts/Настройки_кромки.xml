@@ -27,7 +27,7 @@
           </Value>
         </Item>
         <Item Name="Подрезать деталь (ClipPanel)">
-          <Value>1</Value>
+          <Value>Y</Value>
         </Item>
       </Items>
     </Item>
