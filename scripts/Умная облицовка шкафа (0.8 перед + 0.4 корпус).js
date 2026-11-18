@@ -92,6 +92,10 @@ function extractPanels(obj, list) {
 function isFacadePanel(obj) {
     if (!obj || !obj.AsPanel) return false;
     var nm = (obj.Name || '').toLowerCase();
+    // Стойки, боковины и планки корпуса - это НЕ накладные фасады/двери!
+    if (nm.indexOf('стойк') !== -1 || nm.indexOf('бок') !== -1 || nm.indexOf('планк') !== -1) {
+        return false;
+    }
     if (nm.indexOf('фасад') !== -1 || nm.indexOf('двер') !== -1 || nm.indexOf('створ') !== -1) {
         return true;
     }
@@ -101,8 +105,16 @@ function isFacadePanel(obj) {
 function isBackWall(obj) {
     if (!obj || !obj.AsPanel) return false;
     var nm = (obj.Name || '').toLowerCase();
-    if (nm.indexOf('двп') !== -1 || nm.indexOf('хдф') !== -1 || nm.indexOf('задн') !== -1) {
+    // Стойки и боковины (даже 'стойка задняя') - это несущий корпус, а не задняя стенка!
+    if (nm.indexOf('стойк') !== -1 || nm.indexOf('бок') !== -1) {
+        return false;
+    }
+    if (nm.indexOf('двп') !== -1 || nm.indexOf('хдф') !== -1) {
         return true;
+    }
+    // Задняя стенка из ДВП/ЛДСП
+    if (nm.indexOf('задн') !== -1 && nm.indexOf('планк') === -1 && nm.indexOf('царг') === -1) {
+        if (nm.indexOf('стенк') !== -1) return true;
     }
     var thX = obj.GabMax.x - obj.GabMin.x;
     var thY = obj.GabMax.y - obj.GabMin.y;
