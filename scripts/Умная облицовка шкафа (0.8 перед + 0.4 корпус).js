@@ -234,7 +234,7 @@ function pickFrontEdge() {
             setFrontDirectionFromEdge(e, targets);
             Action.Hint = 'Лицевая сторона установлена: ' + pDirCombo.Value + '. Выполняю кромление...';
             // СРАЗУ же наносим кромку!
-            runEdging(false, 'all');
+            runEdging('all');
             return true;
         }
     } catch(errEdge) {
@@ -244,21 +244,12 @@ function pickFrontEdge() {
 }
 
 // --- 5. ОСНОВНАЯ ФУНКЦИЯ ОБЛИЦОВКИ ---
-function runEdging(askEdge, mode) {
+function runEdging(mode) {
+    if (!mode) mode = 'all';
     var targets = getPanelsToProcess();
     if (targets.length === 0) {
         alert('Не найдено ни одной детали корпуса для кромления!');
         return;
-    }
-
-    if (askEdge) {
-        Action.Hint = 'Шаг 1/2: Кликните ПЕРЕДНЕЕ вертикальное ребро шкафа (Esc / Enter - вперед по Z)';
-        try {
-            var e = GetEdge('Кликните переднее ребро шкафа (Esc - авто вперед по Z)', AxisY);
-            if (e && (e.First || e.GFirst)) {
-                setFrontDirectionFromEdge(e, targets);
-            }
-        } catch(eIgnore) {}
     }
 
     var fDir = getFrontVector();
@@ -326,32 +317,46 @@ function clearButts() {
 }
 
 // --- 6. НАЗНАЧЕНИЕ КНОПОК ---
+var isProcessing = false;
+
+function safeExec(fn) {
+    if (isProcessing) return;
+    isProcessing = true;
+    try {
+        fn();
+    } catch(err) {
+        alert('Ошибка: ' + err.message);
+    } finally {
+        isProcessing = false;
+    }
+}
+
 btnPickDir.OnClick = function() {
-    Action.AsyncExec(function() {
+    safeExec(function() {
         pickFrontEdge();
     });
 };
 
 btnApplyAll.OnClick = function() {
-    Action.AsyncExec(function() {
-        runEdging(false, 'all');
+    safeExec(function() {
+        runEdging('all');
     });
 };
 
 btnFrontOnly.OnClick = function() {
-    Action.AsyncExec(function() {
-        runEdging(false, 'front');
+    safeExec(function() {
+        runEdging('front');
     });
 };
 
 btnBodyOnly.OnClick = function() {
-    Action.AsyncExec(function() {
-        runEdging(false, 'open');
+    safeExec(function() {
+        runEdging('open');
     });
 };
 
 btnClear.OnClick = function() {
-    Action.AsyncExec(function() {
+    safeExec(function() {
         clearButts();
     });
 };
@@ -360,18 +365,15 @@ btnFinish.OnClick = function() {
     Action.Finish();
 };
 
-// При смене направления в выпадающем списке — сразу пересчитываем кромку!
 pDirCombo.OnChange = function() {
-    Action.AsyncExec(function() {
-        runEdging(false, 'all');
+    safeExec(function() {
+        runEdging('all');
     });
 };
 
 // --- 7. ЗАПУСК ПРИ СТАРТЕ СКРИПТА ---
-// При запуске сразу спрашиваем переднее ребро (или Esc для стандартного Z+),
-// наносим кромки и оставляем окно свойств открытым!
-Action.AsyncExec(function() {
-    runEdging(true, 'all');
-});
+// Сразу наносим кромление по текущему направлению без блокирующего GetEdge,
+// а окно свойств оставляем открытым для интерактивной работы!
+runEdging('all');
 
 Action.Continue();
